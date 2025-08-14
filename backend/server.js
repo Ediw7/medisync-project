@@ -5,6 +5,8 @@ const path = require('path');
 
 const authRoutes = require('./routes/auth');
 const produksiRoutes = require('./routes/produsen/produksiRoute'); 
+const pesananMasukRoutes = require('./routes/produsen/pesananMasukRoute');
+
 const pesananPbfRoutes = require('./routes/pbf/pesananRoute'); 
 const pbfRoutes = require('./routes/pbf/pbfRoute');
 const blockchainRoutes = require('./routes/blockchain');
@@ -20,6 +22,9 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Gunakan semua rute
 app.use('/api/auth', authRoutes);
 app.use('/api/produksi', produksiRoutes);
+app.use('/api/produsen/pesanan-masuk', pesananMasukRoutes);
+
+
 app.use('/api/pbf/pesanan', pesananPbfRoutes);
 app.use('/api/pbf', pbfRoutes);
 app.use('/api/blockchain', blockchainRoutes);

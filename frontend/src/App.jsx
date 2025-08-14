@@ -15,6 +15,8 @@ import RiwayatProduksi from './pages/produsen/manajemenproduksi/RiwayatProduksi'
 import MonitoringStok from './pages/produsen/monitoringstok/MonitoringStok';
 import RiwayatDistribusi from './pages/produsen/monitoringstok/RiwayatDistribusi';
 
+import PengelolaanPengiriman from './pages/produsen/pengelolaanpengiriman/PengelolaanPengiriman';
+
 import PbfDashboard from './pages/pbf/PbfDashboard';
 import PesanObat from './pages/pbf/pesanobat/PesanObat';
 import PilihProdusen from './pages/pbf/pesanobat/PilihProdusen';
@@ -45,6 +47,8 @@ function App() {
 
       <Route path="/produsen/monitoring-stok" element={<MonitoringStok />} />
       <Route path="/produsen/riwayat-distribusi" element={<RiwayatDistribusi />} /> 
+
+       <Route path="/produsen/pengelolaan-pengiriman" element={<PengelolaanPengiriman />} />
       
       <Route path="/pbf/dashboard" element={<PbfDashboard />} />
       <Route path="/pbf/pesan-obat" element={<PesanObat />} />

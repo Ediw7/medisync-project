@@ -12,18 +12,10 @@ const NavItem = ({ to, children }) => {
   const activeClass = "text-emerald-600 border-b-2 border-emerald-600 pointer-events-none cursor-default";
   const inactiveClass = "text-gray-600 hover:text-emerald-600";
 
-  if (isActive) {
-    return (
-      <span className={`${baseClass} ${activeClass}`}>
-        {children}
-      </span>
-    );
-  }
-
-  return (
-    <Link to={to} className={`${baseClass} ${inactiveClass}`}>
-      {children}
-    </Link>
+  return isActive ? (
+    <span className={`${baseClass} ${activeClass}`}>{children}</span>
+  ) : (
+    <Link to={to} className={`${baseClass} ${inactiveClass}`}>{children}</Link>
   );
 };
 
@@ -33,6 +25,8 @@ const PengelolaanPengiriman = () => {
   const [pesananData, setPesananData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -59,6 +53,35 @@ const PengelolaanPengiriman = () => {
     };
     fetchData();
   }, [navigate]);
+
+  // Fungsi sorting
+  const sortData = (key) => {
+    let direction = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+
+    const sortedData = [...pesananData].sort((a, b) => {
+      if (key === 'nama_pbf' || key === 'status') {
+        return direction === 'ascending'
+          ? a[key].localeCompare(b[key])
+          : b[key].localeCompare(a[key]);
+      } else if (key === 'id' || key === 'total_harga') {
+        return direction === 'ascending'
+          ? a[key] - b[key]
+          : b[key] - a[key];
+      }
+      return 0;
+    });
+    setPesananData(sortedData);
+  };
+
+  // Fungsi filtering berdasarkan pencarian
+  const filteredData = pesananData.filter(item =>
+    item.nama_pbf.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    String(item.id).includes(searchQuery)
+  );
 
   const handleLogout = () => {
     localStorage.clear();
@@ -98,7 +121,7 @@ const PengelolaanPengiriman = () => {
           </div>
 
           <div className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="p-4 border-b">
+            <div className="p-4 border-b flex justify-between items-center">
               <div className="flex space-x-2">
                 <NavItem to="/produsen/pengelolaan-pengiriman">Semua</NavItem>
                 <NavItem to="/produsen/pengelolaanpengiriman/perlu-dikirim">Perlu dikirim</NavItem>
@@ -106,6 +129,18 @@ const PengelolaanPengiriman = () => {
                 <NavItem to="/produsen/pengelolaanpengiriman/selesai">Selesai</NavItem>
                 <NavItem to="/produsen/pengelolaanpengiriman/pembatalan">Pembatalan</NavItem>
                 <NavItem to="/produsen/pengelolaanpengiriman/pengembalian">Pengembalian</NavItem>
+              </div>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Cari PBF atau ID Pesanan..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <svg className="w-5 h-5 absolute left-3 top-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
               </div>
             </div>
 
@@ -131,16 +166,24 @@ const PengelolaanPengiriman = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">PBF</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID Pesanan</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => sortData('nama_pbf')}>
+                        PBF {sortConfig.key === 'nama_pbf' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => sortData('id')}>
+                        ID Pesanan {sortConfig.key === 'id' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                      </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pesanan (Surat Pesanan)</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Harga</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => sortData('total_harga')}>
+                        Total Harga {sortConfig.key === 'total_harga' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => sortData('status')}>
+                        Status {sortConfig.key === 'status' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                      </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {pesananData.length > 0 ? pesananData.map((item) => (
+                    {filteredData.length > 0 ? filteredData.map((item) => (
                       <tr key={item.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.nama_pbf}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{String(item.id).padStart(6, '0')}</td>
@@ -161,7 +204,7 @@ const PengelolaanPengiriman = () => {
                       </tr>
                     )) : (
                       <tr>
-                        <td colSpan="6" className="text-center py-10 text-gray-500">Belum ada pesanan masuk.</td>
+                        <td colSpan="6" className="text-center py-10 text-gray-500">Tidak ada pesanan yang sesuai dengan pencarian.</td>
                       </tr>
                     )}
                   </tbody>

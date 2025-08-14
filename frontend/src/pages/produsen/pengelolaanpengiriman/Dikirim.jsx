@@ -27,7 +27,7 @@ const NavItem = ({ to, children }) => {
   );
 };
 
-const PengelolaanPengiriman = () => {
+const Dikirim = () => {
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [pesananData, setPesananData] = useState([]);
@@ -49,7 +49,10 @@ const PengelolaanPengiriman = () => {
         if (!response.ok) throw new Error('Gagal mengambil data pesanan');
         const result = await response.json();
         if (!result.success) throw new Error(result.message || 'Data pesanan tidak tersedia');
-        setPesananData(result.data || []);
+
+        // Filter hanya status "Dikirim"
+        const filteredData = (result.data || []).filter(item => item.status === 'Dikirim');
+        setPesananData(filteredData);
       } catch (error) {
         setError(error.message);
         if (error.message.includes('login')) navigate('/login/produsen');
@@ -84,16 +87,8 @@ const PengelolaanPengiriman = () => {
         <main className="pt-16 p-6">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h1 className="text-2xl font-bold">Pengelolaan Pengiriman</h1>
-              <p className="text-gray-500">Kelola pesanan dan pengiriman ke PBF</p>
-            </div>
-            <div className="flex gap-4">
-              <button className="bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition">
-                Atur Pengiriman Massal
-              </button>
-              <button className="bg-emerald-600 text-white py-2 px-4 rounded-lg hover:bg-emerald-700 transition">
-                Pengiriman Massal
-              </button>
+              <h1 className="text-2xl font-bold">Pesanan Dikirim</h1>
+              <p className="text-gray-500">Daftar pesanan yang sedang dalam proses pengiriman</p>
             </div>
           </div>
 
@@ -161,7 +156,7 @@ const PengelolaanPengiriman = () => {
                       </tr>
                     )) : (
                       <tr>
-                        <td colSpan="6" className="text-center py-10 text-gray-500">Belum ada pesanan masuk.</td>
+                        <td colSpan="6" className="text-center py-10 text-gray-500">Tidak ada pesanan yang dikirim.</td>
                       </tr>
                     )}
                   </tbody>
@@ -175,4 +170,4 @@ const PengelolaanPengiriman = () => {
   );
 };
 
-export default PengelolaanPengiriman;
+export default Dikirim;

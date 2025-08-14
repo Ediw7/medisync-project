@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
 
-// Komponen nav item untuk handle state aktif
+// Komponen NavItem untuk tab navigation
 const NavItem = ({ to, children }) => {
   const location = useLocation();
   const isActive = location.pathname === to;
@@ -13,21 +13,13 @@ const NavItem = ({ to, children }) => {
   const inactiveClass = "text-gray-600 hover:text-emerald-600";
 
   if (isActive) {
-    return (
-      <span className={`${baseClass} ${activeClass}`}>
-        {children}
-      </span>
-    );
+    return <span className={`${baseClass} ${activeClass}`}>{children}</span>;
   }
 
-  return (
-    <Link to={to} className={`${baseClass} ${inactiveClass}`}>
-      {children}
-    </Link>
-  );
+  return <Link to={to} className={`${baseClass} ${inactiveClass}`}>{children}</Link>;
 };
 
-const PengelolaanPengiriman = () => {
+const Pembatalan = () => {
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [pesananData, setPesananData] = useState([]);
@@ -49,7 +41,10 @@ const PengelolaanPengiriman = () => {
         if (!response.ok) throw new Error('Gagal mengambil data pesanan');
         const result = await response.json();
         if (!result.success) throw new Error(result.message || 'Data pesanan tidak tersedia');
-        setPesananData(result.data || []);
+
+        // Filter status "Pembatalan"
+        const filteredData = (result.data || []).filter(item => item.status === 'Pembatalan');
+        setPesananData(filteredData);
       } catch (error) {
         setError(error.message);
         if (error.message.includes('login')) navigate('/login/produsen');
@@ -72,6 +67,8 @@ const PengelolaanPengiriman = () => {
       case 'Dikirim': return 'bg-blue-100 text-blue-800';
       case 'Diterima': return 'bg-green-100 text-green-800';
       case 'Ditolak': return 'bg-red-100 text-red-800';
+      case 'Pengembalian': return 'bg-orange-100 text-orange-800';
+      case 'Pembatalan': return 'bg-gray-300 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -84,16 +81,8 @@ const PengelolaanPengiriman = () => {
         <main className="pt-16 p-6">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h1 className="text-2xl font-bold">Pengelolaan Pengiriman</h1>
-              <p className="text-gray-500">Kelola pesanan dan pengiriman ke PBF</p>
-            </div>
-            <div className="flex gap-4">
-              <button className="bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition">
-                Atur Pengiriman Massal
-              </button>
-              <button className="bg-emerald-600 text-white py-2 px-4 rounded-lg hover:bg-emerald-700 transition">
-                Pengiriman Massal
-              </button>
+              <h1 className="text-2xl font-bold">Pesanan Pembatalan</h1>
+              <p className="text-gray-500">Daftar pesanan yang dibatalkan</p>
             </div>
           </div>
 
@@ -161,7 +150,7 @@ const PengelolaanPengiriman = () => {
                       </tr>
                     )) : (
                       <tr>
-                        <td colSpan="6" className="text-center py-10 text-gray-500">Belum ada pesanan masuk.</td>
+                        <td colSpan="6" className="text-center py-10 text-gray-500">Tidak ada pesanan pembatalan.</td>
                       </tr>
                     )}
                   </tbody>
@@ -175,4 +164,4 @@ const PengelolaanPengiriman = () => {
   );
 };
 
-export default PengelolaanPengiriman;
+export default Pembatalan;

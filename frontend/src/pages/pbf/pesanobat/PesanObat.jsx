@@ -86,7 +86,7 @@ const PesanObat = () => {
               <p className="text-gray-500 mt-1">Kelola dan lacak pesanan obat Anda</p>
             </div>
             <button
-              onClick={() => navigate('/pbf/pesan-obat/pilih-produsen')}
+              onClick={() => navigate('/pbf/pesan-obat/tambah')}
               className="bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 rounded-lg flex items-center gap-2 transition"
             >
               <span className="font-semibold">+</span> Buat Pesanan Baru

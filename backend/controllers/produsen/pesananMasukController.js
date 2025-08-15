@@ -88,13 +88,13 @@ const pesananMasukController = {
     }
   },
 
-  // Mengupdate status pesanan
+// Mengupdate status pesanan
   updateStatus: async (req, res) => {
     try {
       const { id } = req.params;
       const { status } = req.body;
       const idProdusen = req.user.id;
-      const validStatuses = ['Dipesan', 'Diproses', 'Dikirim', 'Diterima', 'Ditolak'];
+      const validStatuses = ['Perlu Dikirim', 'Dikirim', 'Selesai', 'Ditolak', 'Dikembalikan'];
 
       if (!status || !validStatuses.includes(status)) {
         return res.status(400).json({ success: false, message: 'Status tidak valid. Gunakan: ' + validStatuses.join(', ') });
@@ -112,6 +112,38 @@ const pesananMasukController = {
       res.json({ success: true, message: `Status pesanan berhasil diubah menjadi ${status}.` });
     } catch (error) {
       console.error('Error in updateStatus:', error);
+      res.status(500).json({ success: false, message: 'Kesalahan Server Internal: ' + error.message });
+    }
+  },
+
+  // Mengupdate status pesanan dengan detail tambahan (untuk atur pengiriman)
+  updateStatusWithDetails: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, tanggalPengiriman, catatan } = req.body;
+      const idProdusen = req.user.id;
+      const validStatuses = ['Dikirim', 'Selesai']; // Hanya status yang diperbolehkan untuk atur pengiriman
+
+      if (!status || !validStatuses.includes(status)) {
+        return res.status(400).json({ success: false, message: 'Status tidak valid untuk atur pengiriman. Gunakan: ' + validStatuses.join(', ') });
+      }
+
+      if (!tanggalPengiriman) {
+        return res.status(400).json({ success: false, message: 'Tanggal pengiriman wajib diisi.' });
+      }
+
+      const [result] = await db.query(
+        `UPDATE pesanan SET status = ?, tanggal_pengiriman = ?, catatan = ? WHERE id = ? AND id_produsen = ?`,
+        [status, tanggalPengiriman, catatan || null, id, idProdusen]
+      );
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan atau Anda tidak memiliki akses.' });
+      }
+
+      res.json({ success: true, message: `Status pesanan berhasil diubah menjadi ${status}.` });
+    } catch (error) {
+      console.error('Error in updateStatusWithDetails:', error);
       res.status(500).json({ success: false, message: 'Kesalahan Server Internal: ' + error.message });
     }
   },

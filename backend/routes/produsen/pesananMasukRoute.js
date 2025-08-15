@@ -12,7 +12,7 @@ router.get('/', pesananMasukController.getAll);
 // Mengambil detail pesanan berdasarkan ID
 router.get('/:id', pesananMasukController.getPesananById);
 
-// Mengubah status pesanan
-router.put('/:id/status', pesananMasukController.updateStatus);
+// Mengubah status pesanan dengan detail tambahan (misalnya untuk atur pengiriman)
+router.put('/:id/status', pesananMasukController.updateStatusWithDetails);
 
 module.exports = router;

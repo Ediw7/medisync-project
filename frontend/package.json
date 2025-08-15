@@ -12,6 +12,7 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.1.11",
     "axios": "^1.11.0",
+    "html2pdf.js": "^0.10.3",
     "lucide-react": "^0.539.0",
     "prop-types": "^15.8.1",
     "qrcode": "^1.5.4",

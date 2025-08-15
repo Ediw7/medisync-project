@@ -10,6 +10,7 @@ const pesananMasukRoutes = require('./routes/produsen/pesananMasukRoute');
 const pesananPbfRoutes = require('./routes/pbf/pesananRoute'); 
 const pbfRoutes = require('./routes/pbf/pbfRoute');
 const blockchainRoutes = require('./routes/blockchain');
+const publicRoutes = require('./routes/publicRoute');
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use('/api/produsen/pesanan-masuk', pesananMasukRoutes);
 app.use('/api/pbf/pesanan', pesananPbfRoutes);
 app.use('/api/pbf', pbfRoutes);
 app.use('/api/blockchain', blockchainRoutes);
+app.use('/api/public', publicRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

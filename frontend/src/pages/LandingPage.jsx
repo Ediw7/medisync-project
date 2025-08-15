@@ -1,12 +1,42 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+// --- PERBAIKAN DI SINI ---
 import { 
   Blocks, Shield, Database, Link as LinkIcon, 
-  Search, FileCheck, ChevronRight, CheckCircle, Building2 
+  Search, FileCheck, ChevronRight, CheckCircle, Building2, Camera 
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
+import QrScanner from '../components/QrScanner';
+import RiwayatObatModal from '../components/RiwayatObatModal';
 
 const LandingPage = () => {
+  const [showScanner, setShowScanner] = useState(false);
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [scanResult, setScanResult] = useState(null);
+  const [scanError, setScanError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleScanResult = async (batchId) => {
+    setShowScanner(false);
+    setIsLoading(true);
+    setShowResultModal(true);
+    setScanError('');
+    setScanResult(null);
+
+    try {
+        const response = await fetch(`http://localhost:5000/api/public/riwayat/${batchId}`);
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || 'Gagal mengambil data.');
+        }
+        setScanResult(result.data);
+    } catch (err) {
+        setScanError(err.message);
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -14,39 +44,28 @@ const LandingPage = () => {
       {/* Hero Section */}
       <div className="relative overflow-hidden pt-20">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_#dcfce7_30%,_transparent_70%)]"></div>
-        
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-20 relative">
           <div className="text-center">
-            <div className="inline-block mb-6 px-4 py-2 bg-emerald-100 rounded-lg">
-              <span className="text-emerald-700 font-medium flex items-center gap-2">
-                <Blocks size={18} />
-                Powered by Blockchain Technology
-              </span>
-            </div>
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-              Transparent Pharmaceutical
-              <span className="text-emerald-600"> Supply Chain</span>
+              Rantai Pasok Farmasi
+              <span className="text-emerald-600"> Transparan</span>
             </h1>
             <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              Secure, traceable, and transparent pharmaceutical supply chain management powered by blockchain technology. Ensure authenticity from manufacturer to patient.
+              Amankan keaslian produk dari produsen hingga pasien dengan sistem pelacakan berbasis teknologi blockchain.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Link to="/roles" 
-                className="px-8 py-4 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 
-                        transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-200">
+              <Link to="/roles" className="px-8 py-4 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg">
                 <LinkIcon size={20} />
-                Connect Platform
+                Masuk Platform
               </Link>
-              <Link to="/explorer" 
-                className="px-8 py-4 border-2 border-emerald-600 text-emerald-600 rounded-lg 
-                        hover:bg-emerald-50 transition-all duration-300 flex items-center justify-center gap-2">
-                <Search size={20} />
-                Explore Network
-              </Link>
+              <button onClick={() => setShowScanner(true)} className="px-8 py-4 border-2 border-emerald-600 text-emerald-600 rounded-lg hover:bg-emerald-50 transition-all duration-300 flex items-center justify-center gap-2">
+                <Camera size={20} />
+                Lacak dengan QR Code
+              </button>
             </div>
           </div>
         </div>
-
+    
         {/* Partner Companies Section */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="bg-white/70 backdrop-blur-md rounded-xl p-8 shadow-lg border border-gray-200">
@@ -129,6 +148,17 @@ const LandingPage = () => {
           </Link>
         </div>
       </div>
+
+       {showScanner && <QrScanner onScanResult={handleScanResult} onClose={() => setShowScanner(false)} />}
+      
+      {showResultModal && (
+        <RiwayatObatModal 
+            data={scanResult} 
+            error={scanError}
+            isLoading={isLoading}
+            onClose={() => setShowResultModal(false)} 
+        />
+      )}
     </div>
   );
 };

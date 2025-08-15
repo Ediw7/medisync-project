@@ -90,12 +90,10 @@ const PengelolaanPengiriman = () => {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'Dipesan': return 'bg-yellow-100 text-yellow-800';
-      case 'Diproses': return 'bg-purple-100 text-purple-800';
+      case 'Perlu Dikirim': return 'bg-orange-100 text-orange-800';
       case 'Dikirim': return 'bg-blue-100 text-blue-800';
-      case 'Diterima': return 'bg-green-100 text-green-800';
-      case 'Ditolak': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'Selesai': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800'; // Untuk status lain jika ada
     }
   };
 
@@ -197,9 +195,22 @@ const PengelolaanPengiriman = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <Link to={`/produsen/pengelolaanpengiriman/detail/${item.id}`} className="text-emerald-600 hover:text-emerald-800">
-                            Lihat Detail
-                          </Link>
+                          {item.status === 'Perlu Dikirim' && (
+                            <Link to={`/produsen/pengelolaanpengiriman/atur-pengiriman/${item.id}`} className="text-emerald-600 hover:text-emerald-800">
+                              Atur Pengiriman
+                            </Link>
+                          )}
+                          {item.status === 'Dikirim' && (
+                            <Link to={`/produsen/pengelolaanpengiriman/lihat-status/${item.id}`} className="text-emerald-600 hover:text-emerald-800">
+                              Lihat Status
+                            </Link>
+                          )}
+                          {item.status === 'Selesai' && (
+                            <Link to={`/produsen/pengelolaanpengiriman/lihat-riwayat/${item.id}`} className="text-emerald-600 hover:text-emerald-800">
+                              Lihat Riwayat
+                            </Link>
+                          )}
+                          {/* Jika status tidak sesuai dengan 3 di atas, tidak ada aksi */}
                         </td>
                       </tr>
                     )) : (

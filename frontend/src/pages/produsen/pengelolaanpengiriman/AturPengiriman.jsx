@@ -13,6 +13,13 @@ const AturPengiriman = () => {
   const [tanggalPengiriman, setTanggalPengiriman] = useState('');
   const [catatan, setCatatan] = useState('');
 
+  // Mendapatkan tanggal hari ini
+  const currentDate = new Date().toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -115,10 +122,16 @@ const AturPengiriman = () => {
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={handleLogout} />
         <main className="pt-16 p-6">
+          {/* Header dengan Tanggal */}
+          <div className="mb-6 bg-emerald-50 p-4 rounded-lg shadow-md">
+            <h3 className="text-lg font-semibold text-emerald-800">Tanggal Hari Ini</h3>
+            <p className="text-gray-600">{currentDate}</p>
+          </div>
+
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h1 className="text-2xl font-bold">Atur Pengiriman</h1>
-              <p className="text-gray-500">Atur pengiriman untuk pesanan ID: {id}</p>
+              <h1 className="text-2xl font-bold text-gray-900">Atur Pengiriman</h1>
+              <p className="text-gray-600">Atur pengiriman untuk pesanan ID: {id}</p>
             </div>
             <Link
               to="/produsen/pengelolaan-pengiriman"
@@ -128,23 +141,25 @@ const AturPengiriman = () => {
             </Link>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow-lg p-6">
             <div className="mb-6">
-              <h2 className="text-lg font-semibold">Detail Pesanan</h2>
-              <p><strong>PBF:</strong> {pesanan.pesanan.nama_pbf}</p>
-              <p><strong>Alamat PBF:</strong> {pesanan.pesanan.alamat_pbf}</p>
-              <p><strong>Total Harga:</strong> Rp. {pesanan.pesanan.total_harga.toLocaleString('id-ID')}</p>
-              <p><strong>Tujuan Distribusi:</strong> {pesanan.pesanan.tujuan_distribusi || 'Tidak ditentukan'}</p>
+              <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">Detail Pesanan</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <p className="text-gray-700"><strong className="text-gray-900">PBF:</strong> {pesanan.pesanan.nama_pbf}</p>
+                <p className="text-gray-700"><strong className="text-gray-900">Alamat PBF:</strong> {pesanan.pesanan.alamat_pbf}</p>
+                <p className="text-gray-700"><strong className="text-gray-900">Total Harga:</strong> Rp. {pesanan.pesanan.total_harga.toLocaleString('id-ID')}</p>
+                <p className="text-gray-700"><strong className="text-gray-900">Tujuan Distribusi:</strong> {pesanan.pesanan.tujuan_distribusi || 'Tidak ditentukan'}</p>
+              </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Tanggal Pengiriman</label>
                 <input
                   type="date"
                   value={tanggalPengiriman}
                   onChange={(e) => setTanggalPengiriman(e.target.value)}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500"
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 p-2"
                   required
                 />
               </div>
@@ -153,13 +168,13 @@ const AturPengiriman = () => {
                 <textarea
                   value={catatan}
                   onChange={(e) => setCatatan(e.target.value)}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500"
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 p-2 h-24 resize-none"
                   placeholder="Tambahkan catatan pengiriman (opsional)"
                 />
               </div>
               <button
                 type="submit"
-                className="w-full bg-emerald-600 text-white py-2 px-4 rounded-lg hover:bg-emerald-700 transition disabled:bg-gray-400"
+                className="w-full bg-emerald-600 text-white py-3 px-6 rounded-lg hover:bg-emerald-700 transition duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed"
                 disabled={isLoading}
               >
                 {isLoading ? 'Mengatur...' : 'Atur Pengiriman'}
@@ -167,7 +182,7 @@ const AturPengiriman = () => {
             </form>
 
             {error && (
-              <div className="mt-4 p-4 bg-red-100 text-red-700 rounded-lg flex items-center gap-2">
+              <div className="mt-6 p-4 bg-red-100 text-red-700 rounded-lg flex items-center gap-2">
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.732 6.732a1 1 0 011.414 0L10 7.586l.854-.854a1 1 0 111.414 1.414L11.414 9l.854.854a1 1 0 11-1.414 1.414L10 10.414l-.854.854a1 1 0 01-1.414-1.414L8.586 9l-.854-.854a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>

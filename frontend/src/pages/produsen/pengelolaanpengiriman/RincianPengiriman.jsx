@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
 
-const AturPengiriman = () => {
+const RincianPengiriman = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -46,16 +46,37 @@ const AturPengiriman = () => {
     fetchData();
   }, [id, navigate]);
 
-  const handleNext = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!tanggalPengiriman) {
-      setError('Tanggal pengiriman wajib diisi.');
-      return;
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/produsen/pesanan-masuk/${id}/status`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: 'Dikirim',
+          tanggalPengiriman,
+          catatan,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Gagal mengatur pengiriman');
+      const result = await response.json();
+      if (result.success) {
+        alert('Pengiriman berhasil diatur!');
+        navigate('/produsen/pengelolaan-pengiriman');
+      } else {
+        throw new Error(result.message || 'Gagal mengatur pengiriman');
+      }
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
     }
-    // Arahkan ke halaman rincian dengan membawa data sementara
-    navigate(`/produsen/pengelolaanpengiriman/rincian-pengiriman/${id}`, {
-      state: { tanggalPengiriman, catatan },
-    });
   };
 
   const handleLogout = () => {
@@ -109,8 +130,8 @@ const AturPengiriman = () => {
 
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Atur Pengiriman</h1>
-              <p className="text-gray-600">Atur pengiriman untuk pesanan ID: {id}</p>
+              <h1 className="text-2xl font-bold text-gray-900">Rincian Pengiriman</h1>
+              <p className="text-gray-600">Rincian pesanan untuk pengiriman ID: {id}</p>
             </div>
             <Link
               to="/produsen/pengelolaan-pengiriman"
@@ -131,7 +152,37 @@ const AturPengiriman = () => {
               </div>
             </div>
 
-            <form onSubmit={handleNext} className="space-y-6">
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">Detail Produk</h2>
+              <div className="overflow-x-auto mt-4">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Obat</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bentuk Sediaan</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dosis</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jumlah Pesanan</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Harga Per Unit</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Harga</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {pesanan.detail_pesanan.map((item, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.nama_obat}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.bentuk_sediaan}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.dosis}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.jumlah_pesanan}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp. {item.harga_per_unit.toLocaleString('id-ID')}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp. {item.total_harga.toLocaleString('id-ID')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Tanggal Pengiriman</label>
                 <input
@@ -156,7 +207,7 @@ const AturPengiriman = () => {
                 className="w-full bg-emerald-600 text-white py-3 px-6 rounded-lg hover:bg-emerald-700 transition duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed"
                 disabled={isLoading}
               >
-                Lanjut ke Rincian
+                {isLoading ? 'Mengatur...' : 'Konfirmasi Pengiriman'}
               </button>
             </form>
 
@@ -175,4 +226,4 @@ const AturPengiriman = () => {
   );
 };
 
-export default AturPengiriman;
+export default RincianPengiriman;

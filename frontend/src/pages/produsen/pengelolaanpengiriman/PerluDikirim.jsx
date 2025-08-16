@@ -70,12 +70,8 @@ const PerluDikirim = () => {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'Dipesan': return 'bg-yellow-100 text-yellow-800';
-      case 'Diproses': return 'bg-purple-100 text-purple-800';
-      case 'Dikirim': return 'bg-blue-100 text-blue-800';
-      case 'Diterima': return 'bg-green-100 text-green-800';
-      case 'Ditolak': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'Perlu Dikirim': return 'bg-orange-100 text-orange-800';
+      default: return 'bg-gray-100 text-gray-800'; // Hanya "Perlu Dikirim" yang relevan
     }
   };
 
@@ -88,7 +84,7 @@ const PerluDikirim = () => {
           <div className="flex justify-between items-center mb-6">
             <div>
               <h1 className="text-2xl font-bold">Pesanan Perlu Dikirim</h1>
-              <p className="text-gray-500">Daftar pesanan yang menunggu untuk dikirim</p>
+              <p className="text-gray-500">Daftar pesanan yang menunggu untuk diatur pengirimannya</p>
             </div>
           </div>
 
@@ -149,8 +145,8 @@ const PerluDikirim = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <Link to={`/produsen/pengelolaanpengiriman/detail/${item.id}`} className="text-emerald-600 hover:text-emerald-800">
-                            Lihat Detail
+                          <Link to={`/produsen/pengelolaanpengiriman/atur-pengiriman/${item.id}`} className="text-emerald-600 hover:text-emerald-800">
+                            Atur Pengiriman
                           </Link>
                         </td>
                       </tr>

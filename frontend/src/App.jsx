@@ -24,6 +24,7 @@ import Pengembalian from './pages/produsen/pengelolaanpengiriman/Pengembalian';
 import SuratPesanan from './pages/produsen/pengelolaanpengiriman/SuratPesanan';
 import AturPengiriman from './pages/produsen/pengelolaanpengiriman/AturPengiriman';
 import RincianPengiriman from './pages/produsen/pengelolaanpengiriman/RincianPengiriman';
+import SuratJalanProdusen from './pages/produsen/pengelolaanpengiriman/SuratJalanProdusen';
 
 import PbfDashboard from './pages/pbf/PbfDashboard';
 import PesanObat from './pages/pbf/pesanobat/PesanObat';
@@ -65,6 +66,7 @@ function App() {
         <Route path="/produsen/pengelolaanpengiriman/detail/:id/surat" element={<SuratPesanan />} />
         <Route path="/produsen/pengelolaanpengiriman/atur-pengiriman/:id" element={<AturPengiriman />} />
         <Route path="/produsen/pengelolaanpengiriman/rincian-pengiriman/:id" element={<RincianPengiriman />} />
+        <Route path="/produsen/pengelolaanpengiriman/surat-jalan/:id" element={<SuratJalanProdusen />} />
       
       <Route path="/pbf/dashboard" element={<PbfDashboard />} />
       <Route path="/pbf/pesan-obat" element={<PesanObat />} />

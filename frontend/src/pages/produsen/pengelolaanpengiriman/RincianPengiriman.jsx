@@ -1,24 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
 
 const RincianPengiriman = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [pesanan, setPesanan] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [tanggalPengiriman, setTanggalPengiriman] = useState('');
+  const [nomorResi, setNomorResi] = useState('');
+  const [nomorSuratJalan, setNomorSuratJalan] = useState('');
+  const [opsiPengiriman, setOpsiPengiriman] = useState('standar');
   const [catatan, setCatatan] = useState('');
+  const [tanggalPengiriman, setTanggalPengiriman] = useState('');
+  const [alamatTujuan, setAlamatTujuan] = useState('');
+  const [waktuPengiriman, setWaktuPengiriman] = useState('09:00-12:00');
 
-  // Mendapatkan tanggal hari ini
   const currentDate = new Date().toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
+
+  useEffect(() => {
+    const { state } = location;
+    if (state) {
+      setTanggalPengiriman(state.tanggalPengiriman || '');
+      setCatatan(state.catatan || '');
+    }
+  }, [location]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -36,6 +49,7 @@ const RincianPengiriman = () => {
         const result = await response.json();
         if (!result.success) throw new Error(result.message || 'Data pesanan tidak tersedia');
         setPesanan(result.data);
+        setAlamatTujuan(result.data.pesanan.alamat_pbf || '');
       } catch (error) {
         setError(error.message);
         if (error.message.includes('login')) navigate('/login/produsen');
@@ -46,11 +60,13 @@ const RincianPengiriman = () => {
     fetchData();
   }, [id, navigate]);
 
-  const handleSubmit = async (e) => {
+  const handleCetakSuratJalan = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     try {
       const token = localStorage.getItem('token');
+      const hashSuratJalan = `HASH_${Date.now()}_${id}`;
+
       const response = await fetch(`http://localhost:5000/api/produsen/pesanan-masuk/${id}/status`, {
         method: 'PUT',
         headers: {
@@ -59,16 +75,21 @@ const RincianPengiriman = () => {
         },
         body: JSON.stringify({
           status: 'Dikirim',
+          nomorResi,
+          nomorSuratJalan,
           tanggalPengiriman,
+          alamatTujuan,
+          waktuPengiriman,
           catatan,
+          hashSuratJalan,
         }),
       });
 
-      if (!response.ok) throw new Error('Gagal mengatur pengiriman');
+      if (!response.ok) throw new Error('Gagal menyimpan data pengiriman');
       const result = await response.json();
       if (result.success) {
-        alert('Pengiriman berhasil diatur!');
-        navigate('/produsen/pengelolaan-pengiriman');
+        alert('Surat jalan berhasil disimpan!');
+        navigate(`/produsen/pengelolaanpengiriman/surat-jalan/${id}`); // Navigasi ke halaman baru
       } else {
         throw new Error(result.message || 'Gagal mengatur pengiriman');
       }
@@ -122,7 +143,6 @@ const RincianPengiriman = () => {
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={handleLogout} />
         <main className="pt-16 p-6">
-          {/* Header dengan Tanggal */}
           <div className="mb-6 bg-emerald-50 p-4 rounded-lg shadow-md">
             <h3 className="text-lg font-semibold text-emerald-800">Tanggal Hari Ini</h3>
             <p className="text-gray-600">{currentDate}</p>
@@ -131,7 +151,7 @@ const RincianPengiriman = () => {
           <div className="flex justify-between items-center mb-6">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Rincian Pengiriman</h1>
-              <p className="text-gray-600">Rincian pesanan untuk pengiriman ID: {id}</p>
+              <p className="text-gray-600">Rincian pengiriman untuk pesanan ID: {id}</p>
             </div>
             <Link
               to="/produsen/pengelolaan-pengiriman"
@@ -142,47 +162,57 @@ const RincianPengiriman = () => {
           </div>
 
           <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">Detail Pesanan</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <p className="text-gray-700"><strong className="text-gray-900">PBF:</strong> {pesanan.pesanan.nama_pbf}</p>
-                <p className="text-gray-700"><strong className="text-gray-900">Alamat PBF:</strong> {pesanan.pesanan.alamat_pbf}</p>
-                <p className="text-gray-700"><strong className="text-gray-900">Total Harga:</strong> Rp. {pesanan.pesanan.total_harga.toLocaleString('id-ID')}</p>
-                <p className="text-gray-700"><strong className="text-gray-900">Tujuan Distribusi:</strong> {pesanan.pesanan.tujuan_distribusi || 'Tidak ditentukan'}</p>
+            <form onSubmit={handleCetakSuratJalan} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Nomor Resi</label>
+                <input
+                  type="text"
+                  value={nomorResi}
+                  onChange={(e) => setNomorResi(e.target.value)}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 p-2"
+                  placeholder="Masukkan nomor resi"
+                  required
+                />
               </div>
-            </div>
-
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">Detail Produk</h2>
-              <div className="overflow-x-auto mt-4">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Obat</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bentuk Sediaan</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dosis</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jumlah Pesanan</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Harga Per Unit</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Harga</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {pesanan.detail_pesanan.map((item, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.nama_obat}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.bentuk_sediaan}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.dosis}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.jumlah_pesanan}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp. {item.harga_per_unit.toLocaleString('id-ID')}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp. {item.total_harga.toLocaleString('id-ID')}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Nomor Surat Jalan</label>
+                <input
+                  type="text"
+                  value={nomorSuratJalan}
+                  onChange={(e) => setNomorSuratJalan(e.target.value)}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 p-2"
+                  placeholder="Masukkan nomor surat jalan"
+                  required
+                />
               </div>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Informasi Rincian Pengiriman</label>
+                <textarea
+                  value="Detail pengiriman akan dicetak pada surat jalan."
+                  readOnly
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100 p-2 h-24 resize-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Opsi Pengiriman</label>
+                <select
+                  value={opsiPengiriman}
+                  onChange={(e) => setOpsiPengiriman(e.target.value)}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 p-2"
+                >
+                  <option value="standar">Standar (2-3 hari)</option>
+                  <option value="ekspres">Ekspres (1 hari)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Catatan</label>
+                <textarea
+                  value={catatan}
+                  onChange={(e) => setCatatan(e.target.value)}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 p-2 h-24 resize-none"
+                  placeholder="Tambahkan catatan pengiriman (opsional)"
+                />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Tanggal Pengiriman</label>
                 <input
@@ -194,21 +224,43 @@ const RincianPengiriman = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Catatan</label>
-                <textarea
-                  value={catatan}
-                  onChange={(e) => setCatatan(e.target.value)}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 p-2 h-24 resize-none"
-                  placeholder="Tambahkan catatan pengiriman (opsional)"
+                <label className="block text-sm font-medium text-gray-700">Alamat Tujuan</label>
+                <input
+                  type="text"
+                  value={alamatTujuan}
+                  onChange={(e) => setAlamatTujuan(e.target.value)}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 p-2"
+                  placeholder="Masukkan alamat tujuan"
+                  required
                 />
               </div>
-              <button
-                type="submit"
-                className="w-full bg-emerald-600 text-white py-3 px-6 rounded-lg hover:bg-emerald-700 transition duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Mengatur...' : 'Konfirmasi Pengiriman'}
-              </button>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Waktu Pengiriman</label>
+                <select
+                  value={waktuPengiriman}
+                  onChange={(e) => setWaktuPengiriman(e.target.value)}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 p-2"
+                >
+                  <option value="09:00-12:00">09:00 - 12:00</option>
+                  <option value="13:00-16:00">13:00 - 16:00</option>
+                  <option value="16:00-19:00">16:00 - 19:00</option>
+                </select>
+              </div>
+              <div className="flex space-x-4">
+                <button
+                  type="submit"
+                  className="w-full bg-emerald-600 text-white py-3 px-6 rounded-lg hover:bg-emerald-700 transition duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Menyimpan...' : 'Cetak Surat Jalan'}
+                </button>
+                <Link
+                  to="/produsen/pengelolaan-pengiriman"
+                  className="w-full bg-gray-200 text-gray-800 py-3 px-6 rounded-lg hover:bg-gray-300 transition text-center"
+                >
+                  Kembali
+                </Link>
+              </div>
             </form>
 
             {error && (

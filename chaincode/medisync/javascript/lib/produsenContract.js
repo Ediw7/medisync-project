@@ -52,36 +52,64 @@ class ProdusenContract extends Contract {
         return JSON.stringify(obat);
     }
 
-    async transferToPbf(ctx, id, hashSuratJalan) {
+    async transferToPbf(ctx, idPesanan, hashSuratJalan) {
         const mspID = ctx.clientIdentity.getMSPID();
         if (mspID !== 'ProdusenMSP') {
             throw new Error(`ERROR: Hanya Produsen yang bisa mentransfer ke PBF.`);
         }
 
-        const assetJSON = await ctx.stub.getState(id);
-        if (!assetJSON || assetJSON.length === 0) {
-            throw new Error(`ERROR: Obat dengan ID ${id} tidak ditemukan.`);
-        }
-        const obat = JSON.parse(assetJSON.toString());
-
-        if (obat.pemilikSaatIni !== 'ProdusenMSP') {
-            throw new Error(`ERROR: Obat ini tidak dimiliki oleh Produsen.`);
+        // Ambil data obat terkait pesanan (misalnya, ID obat dari detail pesanan)
+        const obatIds = await this.getObatIdsByPesanan(ctx, idPesanan);
+        if (obatIds.length === 0) {
+            throw new Error(`ERROR: Tidak ada obat terkait dengan pesanan ID ${idPesanan}.`);
         }
 
-        const timestamp = new Date(ctx.stub.getTxTimestamp().seconds.low * 1000).toISOString();
-        
-        obat.pemilikSaatIni = 'PBFMSP';
-        obat.statusSaatIni = 'DIKIRIM_KE_PBF';
-        obat.hashDokumen.suratJalan = hashSuratJalan;
-        obat.riwayat.push({
-            pemilik: 'PBFMSP',
-            status: 'DIKIRIM_KE_PBF',
-            timestamp: timestamp,
-            detail: `Surat Jalan hash: ${hashSuratJalan}`
-        });
-        
-        await ctx.stub.putState(id, Buffer.from(JSON.stringify(obat)));
-        return JSON.stringify(obat);
+        for (const obatId of obatIds) {
+            const assetJSON = await ctx.stub.getState(obatId);
+            if (!assetJSON || assetJSON.length === 0) {
+                throw new Error(`ERROR: Obat dengan ID ${obatId} tidak ditemukan.`);
+            }
+            const obat = JSON.parse(assetJSON.toString());
+
+            if (obat.pemilikSaatIni !== 'ProdusenMSP') {
+                throw new Error(`ERROR: Obat dengan ID ${obatId} tidak dimiliki oleh Produsen.`);
+            }
+
+            const timestamp = new Date(ctx.stub.getTxTimestamp().seconds.low * 1000).toISOString();
+            obat.pemilikSaatIni = 'PBFMSP';
+            obat.statusSaatIni = 'DIKIRIM_KE_PBF';
+            obat.hashDokumen.suratJalan = hashSuratJalan;
+            obat.riwayat.push({
+                pemilik: 'PBFMSP',
+                status: 'DIKIRIM_KE_PBF',
+                timestamp: timestamp,
+                detail: `Surat Jalan hash: ${hashSuratJalan}`
+            });
+
+            await ctx.stub.putState(obatId, Buffer.from(JSON.stringify(obat)));
+        }
+
+        return JSON.stringify({ success: true, message: `Transfer berhasil untuk pesanan ID ${idPesanan}` });
+    }
+
+    async getObatIdsByPesanan(ctx, idPesanan) {
+        // Logika untuk mengambil ID obat dari detail pesanan (harus disesuaikan dengan state blockchain)
+        // Misalnya, simpan relasi pesanan-obat di blockchain
+        const iterator = await ctx.stub.getStateByPartialCompositeKey('pesanan~obat', [idPesanan]);
+        const results = [];
+        let result = await iterator.next();
+
+        while (!result.done) {
+            if (result.value && result.value.value.toString()) {
+                const strValue = result.value.value.toString('utf8');
+                const record = JSON.parse(strValue);
+                results.push(record.obatId); // Asumsi ada field obatId
+            }
+            result = await iterator.next();
+        }
+        await iterator.close();
+        return results;
     }
 }
+
 module.exports = ProdusenContract;

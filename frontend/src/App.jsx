@@ -26,6 +26,7 @@ import AturPengiriman from './pages/produsen/pengelolaanpengiriman/AturPengirima
 import RincianPengiriman from './pages/produsen/pengelolaanpengiriman/RincianPengiriman';
 import SuratJalanProdusen from './pages/produsen/pengelolaanpengiriman/SuratJalanProdusen';
 import LihatStatus from './pages/produsen/pengelolaanpengiriman/LihatStatus';
+import LihatRiwayat from './pages/produsen/pengelolaanpengiriman/LihatRiwayat';
 
 import LaporanAnalitik from './pages/produsen/laporananalitik/LaporanAnalitik';
 
@@ -70,7 +71,8 @@ function App() {
         <Route path="/produsen/pengelolaanpengiriman/atur-pengiriman/:id" element={<AturPengiriman />} />
         <Route path="/produsen/pengelolaanpengiriman/rincian-pengiriman/:id" element={<RincianPengiriman />} />
         <Route path="/produsen/pengelolaanpengiriman/surat-jalan/:id" element={<SuratJalanProdusen />} />
-        <Route path="/produsen/pengelolaanpengiriman/lihat-status/:id" element={<LihatStatus />} /> 
+        <Route path="/produsen/pengelolaanpengiriman/lihat-status/:id" element={<LihatStatus />} />
+        <Route path="/produsen/pengelolaanpengiriman/lihat-riwayat/:id" element={<LihatRiwayat />} /> 
 
 
         <Route path="/produsen/laporan-analitik" element={<LaporanAnalitik />} />

@@ -36,10 +36,12 @@ import PilihProdusen from './pages/pbf/pesanobat/PilihProdusen';
 import TambahPesanan from './pages/pbf/pesanobat/TambahPesanan';
 import DetailPesanan from './pages/pbf/pesanobat/DetailPesanan';
 
+import MonitoringStokPbf from './pages/pbf/monitoringstok/MonitoringStokPbf';
+
 
 import ApotekDashboard from './pages/apotek/ApotekDashboard';
-
-
+import StokObat from './pages/apotek/stokobat/StokObat';
+import PesanObatApotek from './pages/apotek/pesanobat/PesanObatApotek';
 
 
 function App() {
@@ -82,10 +84,12 @@ function App() {
       <Route path="/pbf/pesan-obat/tambah" element={<PilihProdusen />} /> 
       <Route path="/pbf/pesan-obat/tambah/:idProdusen" element={<TambahPesanan />} /> 
       <Route path="/pbf/pesanan/:id/detail" element={<DetailPesanan />} />
-      
+      <Route path="/pbf/monitoring-stok" element={<MonitoringStokPbf />} />
 
 
       <Route path="/apotek/dashboard" element={<ApotekDashboard />} />
+       <Route path="/apotek/stok-obat" element={<StokObat />} />
+        <Route path="/apotek/pesan-obat" element={<PesanObatApotek />} />
     </Routes>
   );
 }

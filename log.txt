@@ -1,2 +1,2 @@
 Installed chaincodes on peer:
-Package ID: medisync_1.0:bdb783d6de32dbeee0afcec5a6481db57e42d6d58240684466232c1fbca5ae60, Label: medisync_1.0
+Package ID: medisync_1.0:1ec31b834510d6277ba34c3624b76e8241e3ab0e1f9b69ec11515241b32fa25c, Label: medisync_1.0

@@ -41,5 +41,35 @@ class KonsumenContract extends Contract {
         await iterator.close();
         return JSON.stringify(allResults);
     }
+
+    async queryAllObat(ctx) {
+        const queryString = {
+            selector: {
+                docType: 'obat'
+            }
+        };
+        const iterator = await ctx.stub.getQueryResult(JSON.stringify(queryString));
+        
+        const allResults = [];
+        let result = await iterator.next();
+        while (!result.done) {
+            if (result.value && result.value.value.toString()) {
+                const jsonRes = {};
+                console.log(result.value.value.toString('utf8'));
+                jsonRes.Key = result.value.key;
+                try {
+                    jsonRes.Record = JSON.parse(result.value.value.toString('utf8'));
+                } catch (err) {
+                    console.log(err);
+                    jsonRes.Record = result.value.value.toString('utf8');
+                }
+                allResults.push(jsonRes);
+            }
+            result = await iterator.next();
+        }
+        iterator.close();
+        return JSON.stringify(allResults);
+    }
+
 }
 module.exports = KonsumenContract;

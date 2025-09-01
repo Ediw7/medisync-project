@@ -12,7 +12,7 @@ const Navbar = () => {
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
               <Pill className="text-emerald-600" size={28} />
-              <span className="text-emerald-600 text-xl font-bold">MediSync</span>
+              <span className="text-xl font-bold bg-gradient-to-r from-gray-900 to-brand-700 bg-clip-text">MediSync</span>
             </Link>
           </div>
 

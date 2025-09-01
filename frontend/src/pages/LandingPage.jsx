@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  ArrowRight, 
+  ArrowRight,
+  CheckCircle,
   Zap,
   Shield, 
   Database, 
@@ -46,6 +47,38 @@ const LandingPage = () => {
         setIsLoading(false);
     }
   };
+
+  const blockchainFeatures = [
+    "Smart contract verification",
+    "Real-time blockchain tracking", 
+    "Decentralized record keeping",
+    "Automated compliance",
+    "Product authentication",
+    "Temperature monitoring",
+    "Secure data sharing",
+    "Digital certificates"
+  ];
+
+  const steps = [
+    {
+      number: "01",
+      title: "Produksi",
+      description: "Produk didaftarkan dengan ID unik di blockchain saat diproduksi",
+      color: "from-[#22C55E] to-[#16A34A]"
+    },
+    {
+      number: "02", 
+      title: "Distribusi",
+      description: "Setiap perpindahan dicatat secara real-time dengan verifikasi digital",
+      color: "from-[#22C55E] to-[#16A34A]"
+    },
+    {
+      number: "03",
+      title: "Verifikasi",
+      description: "Konsumen dapat memverifikasi keaslian dengan scan QR code",
+      color: "from-[#22C55E] to-[#16A34A]"
+    }
+  ];
 
   return (
     // Light theme change: Changed background to white and default text to dark gray
@@ -236,28 +269,54 @@ const LandingPage = () => {
         </div>
 
         {/* --- CTA SECTION --- */}
-        <div className="text-center py-20">
-          <div className="max-w-7xl mx-auto px-6">
-              <h2 className="text-3xl sm:text-5xl lg:text-6xl tracking-wide text-gray-900">
-                Bergabung dengan
-                <span className="bg-gradient-to-r from-emerald-500 to-green-600 text-transparent bg-clip-text">
-                  {" "}
-                  Jaringan Kami
-                </span>
-              </h2>
-              <p className="mt-8 text-lg text-gray-600 max-w-2xl mx-auto">
-                Hubungkan rantai pasok Anda ke platform blockchain kami yang aman dan transparan.
-              </p>
-              <div className="flex justify-center mt-10">
-                <Link to="/roles" 
-                  className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg 
-                           hover:opacity-90 transition-all duration-300 font-medium gap-2 shadow-lg">
-                  Hubungkan Sekarang
-                  <ChevronRight size={20} />
-                </Link>
-              </div>
+        <section className="py-20 bg-gradient-to-r from-[#16A34A] to-[#047857] relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5"></div>
+        <div className="absolute top-10 left-10 h-32 w-32 bg-white/20 rounded-full blur-2xl animate-float"></div>
+        <div className="absolute bottom-10 right-10 h-40 w-40 bg-white/10 animate-liquid blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-64 w-64 bg-white/15 rounded-full blur-3xl animate-pulse"></div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="text-center animate-fade-in">
+          <div className="inline-flex items-center px-4 py-2 bg-white/20 backdrop-blur-md rounded-full text-[#A7F3D0] text-sm font-medium mb-6 border border-white/30 shadow-lg">
+            <Shield size={16} className="mr-2" />
+            Bergabung dengan Jaringan Blockchain
+          </div>
+          
+          <h2 className="text-3xl lg:text-5xl font-bold text-white mb-6">
+            Mulai Transformasi Digital
+            <span className="block text-[#A7F3D0]">Rantai Pasok Anda</span>
+          </h2>
+          
+          <p className="text-xl text-white mb-10 max-w-3xl mx-auto leading-relaxed">
+            Hubungkan bisnis Anda ke platform blockchain yang aman dan terpercaya. 
+            Tingkatkan transparansi, kurangi risiko, dan bangun kepercayaan konsumen.
+          </p>
+
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <Link
+              to="/roles"
+              className="group inline-flex items-center justify-center px-8 py-4 bg-white/90 backdrop-blur-md text-[#16A34A] rounded-2xl hover:bg-white transition-all duration-500 font-semibold shadow-2xl hover:shadow-white/25 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-brand-600 border border-white/50 relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#22C55E]/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+              <span className="relative z-10 flex items-center">
+              Mulai Sekarang
+              <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />
+              </span>
+            </Link>
+            
+            <a
+              href="#features"
+              className="inline-flex items-center justify-center px-8 py-4 bg-white/10 backdrop-blur-md border-2 border-white/40 text-white rounded-2xl hover:bg-white/20 hover:border-white/60 transition-all duration-500 font-semibold hover:scale-110 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-brand-600 shadow-xl"
+            >
+              Pelajari Lebih Lanjut
+            </a>
           </div>
         </div>
+      </div>
+    </section>
       </div>
 
       {/* --- MODALS (No style changes needed for these) --- */}
@@ -270,6 +329,72 @@ const LandingPage = () => {
             onClose={() => setShowResultModal(false)} 
         />
       )}
+
+      <section className="py-20 bg-white relative overflow-hidden">
+      {/* Liquid Glass Background */}
+      <div className="absolute inset-0">
+        <div className="absolute top-1/4 left-10 w-80 h-80 bg-brand-500/5 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute bottom-1/4 right-10 w-96 h-96 bg-brand-600/10 animate-liquid blur-2xl"></div>
+      </div>
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-16 animate-fade-in relative z-10">
+          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+            Teknologi Blockchain Terdepan
+          </h2>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            Transparansi penuh dari manufaktur hingga konsumen akhir dengan keamanan blockchain
+          </p>
+        </div>
+
+        {/* Process Steps */}
+        <div className="grid md:grid-cols-3 gap-8 mb-16 relative z-10">
+          {steps.map((step, index) => (
+            <div key={index} className="relative group animate-slide-up hover:scale-105 transition-all duration-500" style={{ animationDelay: `${index * 0.2}s` }}>
+              <div className="text-center">
+                <div className={`inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-gradient-to-r ${step.color} text-white text-2xl font-bold mb-6 group-hover:scale-125 transition-all duration-500 shadow-2xl border border-white/20 backdrop-blur-sm animate-glow`}>
+                  {step.number}
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-4 group-hover:text-brand-700 transition-all duration-300">
+                  {step.title}
+                </h3>
+                <p className="text-gray-600 leading-relaxed group-hover:text-gray-700 transition-colors duration-300">
+                  {step.description}
+                </p>
+              </div>
+              
+              {/* Arrow connector */}
+              {index < steps.length - 1 && (
+                <div className="hidden md:block absolute top-8 -right-4 z-10">
+                  <ArrowRight size={24} className="text-brand-300" />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Blockchain Features Grid */}
+        <div className="bg-white/40 backdrop-blur-xl rounded-3xl p-8 lg:p-12 border border-white/30 shadow-2xl relative z-10">
+          <h3 className="text-2xl font-bold text-gray-900 text-center mb-8 relative">
+            Fitur Blockchain Terintegrasi
+          </h3>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {blockchainFeatures.map((feature, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-3 bg-white/60 backdrop-blur-sm p-4 rounded-2xl border border-white/40 hover:border-brand-200/50 hover:shadow-lg hover:bg-white/80 transition-all duration-500 animate-slide-up hover:scale-105"
+                style={{ animationDelay: `${index * 0.05}s` }}
+              >
+                <CheckCircle className="text-brand-600 flex-shrink-0 group-hover:scale-110 transition-transform duration-300" size={20} />
+                <span className="text-gray-700 font-medium text-sm">
+                  {feature}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
     </div>
   );
 };

@@ -170,7 +170,7 @@ const MonitoringStok = () => {
                         {/* --- PERBAIKAN DI SINI --- */}
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{namaProdusen}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <button onClick={() => navigate(`/produsen/produksi/detail/${item.id}`)} className="text-emerald-600 hover:text-emerald-900">
+                          <button onClick={() => navigate(`/produsen/produksi/detailstok/${item.id}`)} className="text-emerald-600 hover:text-emerald-900">
                             <Eye size={20} />
                           </button>
                         </td>

@@ -14,6 +14,7 @@ import RiwayatProduksi from './pages/produsen/manajemenproduksi/RiwayatProduksi'
 
 import MonitoringStok from './pages/produsen/monitoringstok/MonitoringStok';
 import RiwayatDistribusi from './pages/produsen/monitoringstok/RiwayatDistribusi';
+import DetailStok from './pages/produsen/monitoringstok/DetailStok';
 
 import PengelolaanPengiriman from './pages/produsen/pengelolaanpengiriman/PengelolaanPengiriman';
 import PerluDikirim from './pages/produsen/pengelolaanpengiriman/PerluDikirim';
@@ -62,6 +63,8 @@ function App() {
 
       <Route path="/produsen/monitoring-stok" element={<MonitoringStok />} />
       <Route path="/produsen/riwayat-distribusi" element={<RiwayatDistribusi />} /> 
+      <Route path="/produsen/produksi/detailstok/:id" element={<DetailStok />} />
+    
 
        <Route path="/produsen/pengelolaan-pengiriman" element={<PengelolaanPengiriman />} />
        <Route path="/produsen/pengelolaanpengiriman/perlu-dikirim" element={<PerluDikirim />} />

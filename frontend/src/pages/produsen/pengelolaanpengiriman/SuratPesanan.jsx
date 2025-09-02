@@ -10,7 +10,7 @@ const SuratPesanan = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [pesanan, setPesanan] = useState(null);
+  const [pesananData, setPesananData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const contentRef = useRef(null); // Referensi untuk elemen yang akan dikonversi ke PDF
@@ -27,12 +27,13 @@ const SuratPesanan = () => {
         console.log('Fetching pesanan with ID:', cleanedId);
 
         const response = await axios.get(`http://localhost:5000/api/produsen/pesanan-masuk/${cleanedId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         if (!response.data.success) throw new Error(response.data.message || 'Gagal mengambil data pesanan');
-        setPesanan(response.data.data);
+        setPesananData(response.data.data);
       } catch (error) {
+        console.error('Error fetching pesanan:', error);
         setError(error.message);
         if (error.message.includes('login')) navigate('/login/produsen');
       } finally {
@@ -53,7 +54,7 @@ const SuratPesanan = () => {
       .from(element)
       .set({
         margin: [10, 10, 10, 10],
-        filename: `surat_pesanan_${pesanan?.id}.pdf`,
+        filename: `surat_pesanan_${pesananData?.pesanan?.id}.pdf`,
         html2canvas: { scale: 2 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
       })
@@ -71,45 +72,26 @@ const SuratPesanan = () => {
 
   if (isLoading) {
     return (
-      <div className="p-6 text-center text-gray-500">
-        <svg
-          className="animate-spin mx-auto h-8 w-8 text-emerald-600"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-          <path
-            className="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-          ></path>
-        </svg>
-        <p className="mt-2">Memuat data pesanan...</p>
+      <div className="flex min-h-screen bg-gray-100 items-center justify-center">
+        <p>Memuat data pesanan...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6 text-center text-red-500 flex items-center justify-center gap-2">
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-          <path
-            fillRule="evenodd"
-            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.732 6.732a1 1 0 011.414 0L10 7.586l.854-.854a1 1 0 111.414 1.414L11.414 9l.854.854a1 1 0 11-1.414 1.414L10 10.414l-.854.854a1 1 0 01-1.414-1.414L8.586 9l-.854-.854a1 1 0 010-1.414z"
-            clipRule="evenodd"
-          />
-        </svg>
-        <span>Error: {error}</span>
+      <div className="flex min-h-screen bg-gray-100 items-center justify-center text-red-500">
+        Error: {error}
       </div>
     );
   }
 
-  if (!pesanan || !pesanan.pesanan) {
+  if (!pesananData || !pesananData.pesanan) {
     return <div className="p-6 text-center text-gray-500">Data pesanan tidak ditemukan.</div>;
   }
 
-  const { pesanan: info, detail_pesanan: detail } = pesanan;
+  const { pesanan: info, detail_pesanan: detail } = pesananData;
+  const totalHargaKeseluruhan = detail.reduce((acc, item) => acc + (Number(item.total_harga) || 0), 0);
 
   return (
     <div className="flex min-h-screen bg-gray-100">
@@ -117,13 +99,13 @@ const SuratPesanan = () => {
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={handleLogout} />
         <main className="flex-1 pt-16 p-6">
-          <div className="max-w-5xl mx-auto">
+          <div className="max-w-4xl mx-auto">
             <div className="flex justify-between items-center mb-6">
               <button
-                onClick={() => navigate('/produsen/pengelolaan-pengiriman')}
+                onClick={() => navigate('/produsen/pesanan-masuk')}
                 className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition"
               >
-                <ArrowLeft size={18} /> Kembali ke Pengelolaan Pengiriman
+                <ArrowLeft size={18} /> Kembali ke Daftar Pesanan Masuk
               </button>
               <div className="flex gap-2">
                 <button
@@ -141,12 +123,11 @@ const SuratPesanan = () => {
               </div>
             </div>
 
-            <div ref={contentRef} className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+            <div ref={contentRef} className="bg-white p-8 md:p-12 rounded-lg shadow-lg border border-gray-200">
               <header className="text-center mb-8 border-b pb-4">
                 <h1 className="text-2xl font-bold text-gray-800">SURAT PESANAN</h1>
                 <p className="text-gray-500">
-                  Nomor: {String(info.id).padStart(6, '0')}/SP/PBF/{new Date(info.tanggal_pesanan).getMonth() + 1}/
-                  {new Date(info.tanggal_pesanan).getFullYear()}
+                  Nomor PO: {info.nomor_po || String(info.id).padStart(6, '0')}/SP/PBF/{new Date(info.tanggal_pesanan).getMonth() + 1}/{new Date(info.tanggal_pesanan).getFullYear()}
                 </p>
               </header>
 
@@ -160,7 +141,7 @@ const SuratPesanan = () => {
                   <p className="text-sm text-gray-600">SIUP: {info.nomor_siup}</p>
                   <p className="text-sm text-gray-600">SIA/SIKA: {info.nomor_sia_sika}</p>
                 </div>
-                <div className="text-right">
+                <div className="text-left md:text-right">
                   <h2 className="font-semibold text-gray-600 mb-2">Kepada Yth:</h2>
                   <p className="font-bold">{info.nama_produsen || 'Produsen'}</p>
                   <p className="text-sm text-gray-600">{info.alamat_produsen || '-'}</p>
@@ -180,7 +161,6 @@ const SuratPesanan = () => {
                         <th className="p-3 text-sm font-semibold text-gray-700 border">No.</th>
                         <th className="p-3 text-sm font-semibold text-gray-700 border">Nama Obat</th>
                         <th className="p-3 text-sm font-semibold text-gray-700 border">Bentuk Sediaan</th>
-                        <th className="p-3 text-sm font-semibold text-gray-700 border">Dosis</th>
                         <th className="p-3 text-sm font-semibold text-gray-700 border">Jumlah</th>
                         <th className="p-3 text-sm font-semibold text-gray-700 border">Harga Satuan</th>
                         <th className="p-3 text-sm font-semibold text-gray-700 border">Total</th>
@@ -193,15 +173,14 @@ const SuratPesanan = () => {
                             <td className="p-3 border">{index + 1}</td>
                             <td className="p-3 border">{item.nama_obat}</td>
                             <td className="p-3 border">{item.bentuk_sediaan || '-'}</td>
-                            <td className="p-3 border">{item.dosis || '-'}</td>
                             <td className="p-3 border">{item.jumlah_pesanan}</td>
-                            <td className="p-3 border">Rp {Number(item.harga_per_unit || 0).toLocaleString('id-ID')}</td>
-                            <td className="p-3 border">Rp {Number(item.total_harga || 0).toLocaleString('id-ID')}</td>
+                            <td className="p-3 border text-right">Rp {Number(item.harga_per_unit || 0).toLocaleString('id-ID')}</td>
+                            <td className="p-3 border text-right">Rp {Number(item.total_harga || 0).toLocaleString('id-ID')}</td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan="7" className="p-3 text-center text-gray-500">
+                          <td colSpan="6" className="p-3 text-center text-gray-500 border">
                             Tidak ada item pesanan.
                           </td>
                         </tr>
@@ -209,8 +188,10 @@ const SuratPesanan = () => {
                     </tbody>
                     <tfoot>
                       <tr className="bg-gray-50 font-semibold">
-                        <td colSpan="6" className="p-3 text-right">Total Harga:</td>
-                        <td className="p-3">Rp {(info.total_harga || 0).toLocaleString('id-ID')}</td>
+                        <td colSpan="5" className="p-3 text-right border">Total Harga Keseluruhan:</td>
+                        <td className="p-3 text-right border">
+                          Rp {totalHargaKeseluruhan.toLocaleString('id-ID')}
+                        </td>
                       </tr>
                     </tfoot>
                   </table>
@@ -232,22 +213,16 @@ const SuratPesanan = () => {
                   <p className="font-semibold">Hormat kami,</p>
                   <p className="mb-2">Apoteker Penanggung Jawab PBF,</p>
                   <div className="h-24 w-48 my-2 border rounded flex items-center justify-center bg-gray-50">
-                    {info.tanda_tangan_apoteker ? (
+                    {info.tanda_tangan_apoteker && (
                       <img
                         src={`http://localhost:5000/${info.tanda_tangan_apoteker.replace(/\\/g, '/')}`}
                         alt="Tanda Tangan"
                         className="h-full w-full object-contain"
-                        onError={() => console.error('Failed to load tanda tangan')}
                       />
-                    ) : (
-                      <span className="text-gray-500 text-sm">Tanda tangan tidak tersedia</span>
                     )}
                   </div>
                   <p className="font-bold underline">{info.nama_apoteker}</p>
                   <p className="text-sm text-gray-600">SIPA: {info.nomor_sipa}</p>
-                </div>
-                <div className="text-center self-end">
-                  <p className="font-semibold">(Cap Perusahaan)</p>
                 </div>
               </footer>
             </div>

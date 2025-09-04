@@ -116,10 +116,11 @@ const pesananController = {
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
             const paramsPesanan = [
-                nomor_po, id_pbf, id_produsen, nama_pbf, alamat_pbf, nomor_siup, nomor_sia_sika,
-                nama_apoteker, nomor_sipa, kontak_telepon, kontak_email, tanggal_pesanan,
-                tujuan_distribusi || null, catatan_khusus || null, filePath, 'Dipesan'
+            nomor_po, id_pbf, id_produsen, nama_pbf, alamat_pbf, nomor_siup, nomor_sia_sika,
+            nama_apoteker, nomor_sipa, kontak_telepon, kontak_email, tanggal_pesanan,
+            tujuan_distribusi || null, catatan_khusus || null, filePath, 'Perlu Dikirim'
             ];
+
             const [resultPesanan] = await dbConnection.query(sqlPesanan, paramsPesanan);
             const idPesanan = resultPesanan.insertId;
 

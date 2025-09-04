@@ -172,7 +172,7 @@ const DetailProduksi = () => {
                     className="w-full bg-emerald-600 text-white py-3 rounded-lg hover:bg-emerald-700 disabled:bg-gray-400 transition flex items-center justify-center gap-2 font-semibold"
                   >
                     {isRecording && <Loader2 className="animate-spin" size={18} />}
-                    {isRecording ? 'Mencatat...' : 'Catat Batch ini ke Blockchain & Hasilkan QR Code'}
+                    {isRecording ? 'Mencatat...' : 'Hasilkan QR Code'}
                   </button>
                 )}
                 {produksi.status === 'Tercatat di Blockchain' && (

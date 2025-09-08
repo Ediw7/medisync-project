@@ -263,6 +263,87 @@ const produksiController = {
     }
   },
 
+getQrData: async (req, res) => {
+    const { batch_id } = req.params;
+    let dbConnection;
+
+    try {
+      dbConnection = await db.getConnection();
+      const [rows] = await dbConnection.query('SELECT * FROM produksi WHERE batch_id = ?', [batch_id]);
+
+      if (rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
+      }
+
+      const prodData = rows[0];
+      const [userRows] = await dbConnection.query('SELECT nama_resmi FROM users WHERE id = ?', [prodData.id_produsen]);
+      const namaPerusahaan = userRows.length > 0 ? userRows[0].nama_resmi : 'PT Medisync';
+
+      const htmlResponse = `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Informasi Obat - ${prodData.batch_id}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              margin: 0;
+              padding: 20px;
+              background-color: #f4f4f4;
+              color: #333;
+            }
+            .container {
+              max-width: 600px;
+              margin: 0 auto;
+              background: white;
+              padding: 20px;
+              border-radius: 8px;
+              box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            }
+            h1 {
+              color: #2c3e50;
+              text-align: center;
+              margin-bottom: 20px;
+            }
+            .info-item {
+              margin-bottom: 15px;
+            }
+            .info-item label {
+              font-weight: bold;
+              color: #34495e;
+              display: block;
+            }
+            .info-item span {
+              color: #7f8c8d;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>Detail Obat</h1>
+            <div class="info-item"><label>Batch ID:</label> <span>${prodData.batch_id}</span></div>
+            <div class="info-item"><label>Nama Obat:</label> <span>${prodData.nama_obat || '-'}</span></div>
+            <div class="info-item"><label>Tanggal Produksi:</label> <span>${new Date(prodData.tanggal_produksi).toLocaleDateString('id-ID')}</span></div>
+            <div class="info-item"><label>Tanggal Kadaluarsa:</label> <span>${new Date(prodData.tanggal_kadaluarsa).toLocaleDateString('id-ID')}</span></div>
+            <div class="info-item"><label>Penanggung Jawab:</label> <span>${prodData.penanggung_jawab || '-'}</span></div>
+            <div class="info-item"><label>Nama Perusahaan:</label> <span>${namaPerusahaan}</span></div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      res.set('Content-Type', 'text/html');
+      res.send(htmlResponse);
+    } catch (error) {
+      console.error('Error in getQrData:', error);
+      res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+    } finally {
+      if (dbConnection) dbConnection.release();
+    }
+  },
+
   // Fungsi untuk mencatat ke blockchain
   recordToBlockchain: async (req, res) => {
     const { id } = req.params;
@@ -327,14 +408,13 @@ const produksiController = {
       await dbConnection.query('UPDATE produksi SET status = ? WHERE id = ?', ['Tercatat di Blockchain', id]);
       console.log('OFF-CHAIN status updated.');
 
-      // Generate QR code dengan data tambahan
-      const qrData = JSON.stringify({
-        batch_id: prodData.batch_id,
-        nama_obat: prodData.nama_obat,
-        bentuk_sediaan: prodData.bentuk_sediaan,
-        penanggung_jawab: prodData.penanggung_jawab,
-      });
-      const qrCodeDataUrl = await qrcode.toDataURL(qrData);
+      // Ambil nama perusahaan dari tabel users
+      const [userRows] = await dbConnection.query('SELECT nama_resmi FROM users WHERE id = ?', [id_produsen]);
+      const namaPerusahaan = userRows.length > 0 ? userRows[0].nama_resmi : 'PT Medisync';
+
+      // Generate QR code dengan URL lokal
+      const qrDataUrl = `http://localhost:5000/api/produksi/qr-data/${prodData.batch_id}`;
+      const qrCodeDataUrl = await qrcode.toDataURL(qrDataUrl);
 
       res.json({
         success: true,
@@ -349,6 +429,8 @@ const produksiController = {
       if (dbConnection) dbConnection.release();
     }
   },
+
+  // [Fungsi getAll, getById, create, update, delete tetap sama]
 };
 
 module.exports = produksiController;

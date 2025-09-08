@@ -38,14 +38,10 @@ function PilihRole() {
       <div className="flex flex-col items-center justify-center min-h-screen p-4 relative z-10">
         {/* Header Section */}
         <div className="text-center mb-16 animate-fade-in">
-          <div className="inline-flex items-center px-4 py-2 bg-white/30 backdrop-blur-md rounded-full text-emerald-700 text-sm font-medium mb-6 border border-white/40 shadow-lg">
-            <Shield size={16} className="mr-2" />
-            Platform Blockchain Farmasi
-          </div>
+         
           
           <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-            Pilih Peran
-            <span className="text-emerald-600 block">Anda</span>
+            Pilih Peran <span className="text-emerald-600">Anda</span>
           </h1>
           
           <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">

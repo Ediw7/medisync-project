@@ -295,23 +295,6 @@ const TambahPesanan = () => {
                 <h1 className="text-3xl font-bold text-gray-800">Buat Pesanan Obat</h1>
                 <p className="text-gray-500 mt-1">Isi detail pesanan sesuai regulasi BPOM/Kemenkes.</p>
               </div>
-              <div className="flex gap-4">
-                <button
-                  type="button"
-                  onClick={() => navigate('/pbf/pesan-obat')}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
-                >
-                  Kembali
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:bg-gray-400 flex items-center gap-2"
-                >
-                  {isSubmitting && <Loader2 className="animate-spin" size={18} />}
-                  {isSubmitting ? 'Menyimpan...' : 'Simpan Pesanan'}
-                </button>
-              </div>
             </div>
 
             {error && (
@@ -583,6 +566,25 @@ const TambahPesanan = () => {
                 </button>
               </div>
             </div>
+            
+            {/* Tombol-tombol dipindahkan ke sini */}
+            <div className="flex justify-end gap-4 mt-6">
+                <button
+                  type="button"
+                  onClick={() => navigate('/pbf/pesan-obat')}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+                >
+                  Kembali
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:bg-gray-400 flex items-center gap-2"
+                >
+                  {isSubmitting && <Loader2 className="animate-spin" size={18} />}
+                  {isSubmitting ? 'Menyimpan...' : 'Simpan Pesanan'}
+                </button>
+              </div>
           </form>
         </main>
       </div>

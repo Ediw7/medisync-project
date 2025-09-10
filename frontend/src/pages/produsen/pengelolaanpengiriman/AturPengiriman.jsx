@@ -87,8 +87,9 @@ const AturPengiriman = () => {
       setError('Data pesanan belum dimuat, tidak bisa melanjutkan.');
       return;
     }
+    
 
-    navigate(`/produsen/pengelolaanpengiriman/rincian-pengiriman/${id}`, {
+    navigate(`/produsen/pengelolaan-pengiriman/rincian-pengiriman/${id}`, {
       state: { pesanan, tanggalPengiriman, waktuPengiriman, catatan },
     });
   };

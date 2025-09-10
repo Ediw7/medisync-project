@@ -1,29 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
-
-const generateShippingDates = () => {
-  const dates = [];
-  const today = new Date('2025-09-04T11:32:00+07:00'); // Set to current date and time: Thursday, September 04, 2025, 11:32 AM WIB
-  const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-
-  for (let i = 0; i < 6; i++) {
-    const currentDate = new Date(today);
-    currentDate.setDate(today.getDate() + i);
-    
-    const day = String(currentDate.getDate()).padStart(2, '0');
-    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-    const year = currentDate.getFullYear();
-    
-    dates.push({
-      dayName: dayNames[currentDate.getDay()],
-      fullDate: `${day}-${month}-${year}`,
-      value: `${year}-${month}-${day}`,
-    });
-  }
-  return dates;
-};
+import { Loader2 } from 'lucide-react';
 
 const AturPengiriman = () => {
   const { id } = useParams();
@@ -32,11 +11,26 @@ const AturPengiriman = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pesanan, setPesanan] = useState(null);
-  const [tanggalPengiriman, setTanggalPengiriman] = useState('');
   const [waktuPengiriman, setWaktuPengiriman] = useState('01:00 PM');
+  const [opsiPengiriman, setOpsiPengiriman] = useState('kargo'); 
   const [catatan, setCatatan] = useState('');
+  
+  // Fungsi untuk menghitung tanggal pengiriman
+  const calculateShippingDates = (orderDate) => {
+    const dates = [];
+    const startDate = new Date(orderDate);
+    for (let i = 1; i <= 5; i++) {
+      const date = new Date(orderDate);
+      date.setDate(startDate.getDate() + i);
+      const day = date.toLocaleDateString('id-ID', { weekday: 'long' });
+      const formattedDate = date.toISOString().split('T')[0];
+      dates.push({ day, date: formattedDate });
+    }
+    return dates;
+  };
 
-  const shippingDates = generateShippingDates();
+  const [shippingDates, setShippingDates] = useState([]);
+  const [selectedDate, setSelectedDate] = useState('');
 
   useEffect(() => {
     const fetchPesananData = async () => {
@@ -44,7 +38,7 @@ const AturPengiriman = () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
-          navigate('/login');
+          navigate('/login/produsen');
           return;
         }
 
@@ -56,10 +50,9 @@ const AturPengiriman = () => {
         const result = await response.json();
         if (result.success) {
           setPesanan(result.data.pesanan);
-          // Set default alamat tujuan from pesanan data if available
-          if (result.data.pesanan.tujuan_distribusi) {
-            setPesanan(prev => ({ ...prev, alamat_pbf: result.data.pesanan.tujuan_distribusi }));
-          }
+          const dates = calculateShippingDates(result.data.pesanan.tanggal_pesanan);
+          setShippingDates(dates);
+          setSelectedDate(dates[0].date); // Set default ke tanggal pertama
         } else {
           throw new Error(result.message || 'Data pesanan tidak ditemukan.');
         }
@@ -71,14 +64,13 @@ const AturPengiriman = () => {
     };
 
     fetchPesananData();
-    if (shippingDates.length > 0) setTanggalPengiriman(shippingDates[0].value);
   }, [id, navigate]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setError(null);
 
-    if (!tanggalPengiriman || !waktuPengiriman) {
+    if (!selectedDate || !waktuPengiriman) {
       setError('Tanggal dan Waktu pengiriman wajib diisi.');
       return;
     }
@@ -88,14 +80,31 @@ const AturPengiriman = () => {
       return;
     }
     
-
     navigate(`/produsen/pengelolaan-pengiriman/rincian-pengiriman/${id}`, {
-      state: { pesanan, tanggalPengiriman, waktuPengiriman, catatan },
+      state: { 
+        pesanan, 
+        tanggalPengiriman: selectedDate, 
+        waktuPengiriman, 
+        catatan,
+        opsiPengiriman
+      },
     });
   };
 
-  if (isLoading) return <div className="flex justify-center items-center h-screen"><p>Loading data pesanan...</p></div>;
-  if (error && !pesanan) return <div className="flex justify-center items-center h-screen"><p className="text-red-500">Error: {error}</p></div>;
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="animate-spin h-8 w-8 text-emerald-600" />
+      </div>
+    );
+  }
+  if (error && !pesanan) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <p className="text-red-500">Error: {error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -121,29 +130,23 @@ const AturPengiriman = () => {
                   <p className="text-gray-500">Opsi Pengiriman: Kargo</p>
                 </div>
               </div>
-
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <label className="block text-base font-semibold text-gray-800 mb-3">Tanggal Pengiriman</label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-                    {shippingDates.map((date) => (
+                  <div className="flex space-x-2">
+                    {shippingDates.map((date, index) => (
                       <button
-                        key={date.value}
+                        key={index}
                         type="button"
-                        onClick={() => setTanggalPengiriman(date.value)}
-                        className={`p-3 rounded-lg border text-center transition-all duration-200 ${
-                          tanggalPengiriman === date.value
-                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
-                        }`}
+                        onClick={() => setSelectedDate(date.date)}
+                        className={`px-4 py-2 rounded-lg border ${selectedDate === date.date ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'}`}
                       >
-                        <span className="font-semibold block">{date.dayName}</span>
-                        <span className="text-sm">{date.fullDate}</span>
+                        {date.day.slice(0, 3)}<br />{date.date.split('-').reverse().join('-')}
                       </button>
                     ))}
                   </div>
                 </div>
-
+                
                 <div>
                   <label htmlFor="waktu-pengiriman" className="block text-base font-semibold text-gray-800 mb-3">Waktu Pengiriman</label>
                   <select
@@ -152,52 +155,51 @@ const AturPengiriman = () => {
                     onChange={(e) => setWaktuPengiriman(e.target.value)}
                     className="w-full sm:w-1/3 appearance-none bg-white border border-gray-300 rounded-lg p-3 pr-10 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   >
-                    <option value="01:00 PM">01:00 PM</option>
-                    <option value="09:00 AM">09:00 AM</option>
-                    <option value="10:00 AM">10:00 AM</option>
-                    <option value="11:00 AM">11:00 AM</option>
-                    <option value="12:00 PM">12:00 PM</option>
-                    <option value="02:00 PM">02:00 PM</option>
-                    <option value="03:00 PM">03:00 PM</option>
+                    <option value="09:00-12:00">09:00 AM - 12:00 PM</option>
+                    <option value="13:00-16:00">01:00 PM - 04:00 PM</option>
+                    <option value="16:00-19:00">04:00 PM - 07:00 PM</option>
                   </select>
                 </div>
 
-                <div>
-                  <label htmlFor="alamat-tujuan" className="block text-base font-semibold text-gray-800 mb-3">Alamat Tujuan</label>
-                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-300">
-                    <p><strong>{pesanan?.nama_pbf || 'Loading...'}</strong></p>
-                    <p>{pesanan?.alamat_pbf || 'Loading...'}</p>
-                    <p>{pesanan?.kontak_telepon || 'Loading...'}</p>
-                    <p>{pesanan?.tujuan_distribusi || 'Loading...'}</p>
+                <div className="flex flex-col sm:flex-row gap-6">
+                  <div className="sm:w-1/2">
+                    <label htmlFor="alamat-tujuan" className="block text-base font-semibold text-gray-800 mb-3">Alamat Tujuan</label>
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-300 h-full flex flex-col justify-center">
+                      <p><strong>{pesanan?.nama_pbf || 'Loading...'}</strong></p>
+                      <p>{pesanan?.alamat_pbf || 'Loading...'}</p>
+                      <p>{pesanan?.kontak_telepon || 'Loading...'}</p>
+                      <p>{pesanan?.tujuan_distribusi || 'Loading...'}</p>
+                    </div>
                   </div>
-                </div>
-
-                <div>
-                  <label htmlFor="catatan" className="block text-base font-semibold text-gray-800 mb-3">Catatan</label>
-                  <textarea
-                    id="catatan"
-                    value={catatan}
-                    onChange={(e) => setCatatan(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-300 rounded-lg p-3 h-28 resize-none"
-                    placeholder="Mohon masukan catatan ..."
-                  />
+                  <div className="sm:w-1/2">
+                    <label htmlFor="catatan" className="block text-base font-semibold text-gray-800 mb-3">Catatan</label>
+                    <textarea
+                      id="catatan"
+                      value={catatan}
+                      onChange={(e) => setCatatan(e.target.value)}
+                      className="w-full bg-gray-50 border border-gray-300 rounded-lg p-3 h-full resize-none"
+                      placeholder="Mohon masukan catatan ..."
+                    />
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-base font-semibold text-gray-800 mb-3">Detail Pesanan</label>
                   <div className="bg-gray-50 p-4 rounded-lg border border-gray-300">
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center flex-wrap gap-4">
                       <div>
-                        <p><strong>ID Pesanan</strong></p>
-                        <p>{pesanan?.id || 'Loading...'}</p>
+                        <p className="text-sm"><strong>ID Pesanan</strong></p>
+                        <p className="text-lg font-bold">{String(pesanan?.id).padStart(6, '0') || 'Loading...'}</p>
                       </div>
                       <div>
-                        <p><strong>Pesanan Produk</strong></p>
-                        <p><a href="#" className="text-emerald-600 hover:underline">Lihat Surat Pesanan</a></p>
+                        <p className="text-sm"><strong>Pesanan Produk</strong></p>
+                        <Link to={`/produsen/pengelolaan-pengiriman/detail/${pesanan?.id}/surat`} className="text-emerald-600 hover:underline">
+                          Lihat Surat Pesanan
+                        </Link>
                       </div>
                       <div>
-                        <p><strong>Total Harga</strong></p>
-                        <p>Rp. {pesanan?.total_harga?.toLocaleString() || 'Loading...'} <span className="text-gray-500">Via Transfer Bank</span></p>
+                        <p className="text-sm"><strong>Total Harga</strong></p>
+                        <p className="text-lg font-bold">Rp. {pesanan?.total_harga?.toLocaleString('id-ID') || 'Loading...'} <span className="text-gray-500 text-sm">Via Transfer Bank</span></p>
                       </div>
                     </div>
                   </div>

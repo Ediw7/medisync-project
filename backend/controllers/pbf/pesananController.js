@@ -65,23 +65,24 @@ async function fetchFromMySQL(idProdusen) {
 const pesananController = {
   // Mengambil daftar semua pesanan milik PBF yang sedang login
   getAll: async (req, res) => {
-    try {
-      const sql = `
-        SELECT 
-          p.id, p.nomor_po, p.tanggal_pesanan, p.status, 
-          u.nama_resmi AS nama_produsen, p.nama_pbf, p.alamat_pbf
-        FROM pesanan p
-        JOIN users u ON p.id_produsen = u.id
-        WHERE p.id_pbf = ? 
-        ORDER BY p.tanggal_pesanan DESC
-      `;
-      const [rows] = await db.query(sql, [req.user.id]);
-      res.json({ success: true, data: rows });
-    } catch (error) {
-      console.error('Error in getAll:', error);
-      res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
-    }
-  },
+        try {
+            const sql = `
+                SELECT 
+                    p.id, p.nomor_po, p.tanggal_pesanan, p.status_pesanan AS status, 
+                    u.nama_resmi AS nama_produsen, p.nama_pbf, p.alamat_pbf, p.total_harga
+                FROM pesanan p
+                JOIN users u ON p.id_produsen = u.id
+                WHERE p.id_pbf = ? 
+                ORDER BY p.tanggal_pesanan DESC
+            `;
+            const [rows] = await db.query(sql, [req.user.id]);
+            res.json({ success: true, data: rows });
+        } catch (error) {
+            console.error('Error in getAll:', error);
+            res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+        }
+    },
+
 
   // Mengambil detail pesanan berdasarkan ID
   getById: async (req, res) => {
@@ -156,121 +157,80 @@ const mappedData = onChainData.map(doc => ({
 
   // Membuat pesanan baru (tetap gunakan off-chain untuk stok, tapi bisa diubah ke on-chain jika diperlukan)
   create: async (req, res) => {
-    const {
-      nomor_po,
-      id_produsen,
-      nama_pbf,
-      alamat_pbf,
-      nomor_siup,
-      nomor_sia_sika,
-      nama_apoteker,
-      nomor_sipa,
-      kontak_telepon,
-      kontak_email,
-      tanggal_pesanan,
-      tujuan_distribusi,
-      catatan_khusus,
-      items, // Array of { id_produksi, jumlah_pesanan, harga_per_unit, total_harga }
-      tanda_tangan_data_url
-    } = req.body;
-    const id_pbf = req.user.id;
+        const {
+            nomor_po, id_produsen, nama_pbf, alamat_pbf, nomor_siup, nomor_sia_sika,
+            nama_apoteker, nomor_sipa, kontak_telepon, kontak_email, tanggal_pesanan,
+            tujuan_distribusi, catatan_khusus, items, tanda_tangan_data_url
+        } = req.body;
+        const id_pbf = req.user.id;
 
-    // Validasi field wajib
-    if (!nomor_po || !id_produsen || !nama_pbf || !alamat_pbf || !nomor_siup ||
-      !nomor_sia_sika || !nama_apoteker || !nomor_sipa || !kontak_telepon || !kontak_email ||
-      !tanggal_pesanan || !items || !Array.isArray(items) || items.length === 0 || !tanda_tangan_data_url) {
-      return res.status(400).json({ success: false, message: 'Semua field wajib diisi dan minimal satu item pesanan serta tanda tangan diperlukan.' });
+        let dbConnection;
+        try {
+            dbConnection = await db.getConnection();
+            await dbConnection.beginTransaction();
+
+            // 1. Validasi pesanan terhadap "sumber kebenaran" (blockchain)
+            const dbCouch = nano.use('medisyncchannel_medisync');
+            for (const item of items) {
+                const onChainDoc = await dbCouch.get(item.id_produksi); // id_produksi di sini adalah batch_id
+                if (!onChainDoc) {
+                    throw new Error(`Obat dengan Batch ID ${item.id_produksi} tidak ditemukan di blockchain.`);
+                }
+                if (item.jumlah_pesanan > onChainDoc.jumlah) {
+                    throw new Error(`Stok untuk ${onChainDoc.namaObat} (${onChainDoc.jumlah}) tidak mencukupi untuk pesanan (${item.jumlah_pesanan}).`);
+                }
+            }
+            
+            // 2. Simpan tanda tangan
+            const base64Data = tanda_tangan_data_url.replace(/^data:image\/png;base64,/, "");
+            const fileName = `ttd-pesanan-${Date.now()}.png`;
+            const filePath = path.join('uploads', 'tanda_tangan', fileName);
+            fs.mkdirSync(path.dirname(filePath), { recursive: true });
+            fs.writeFileSync(filePath, base64Data, 'base64');
+            
+            const total_harga = items.reduce((sum, item) => sum + item.total_harga, 0);
+
+            // 3. Simpan pesanan ke database operasional (off-chain)
+            const sqlPesanan = `
+                INSERT INTO pesanan (
+                    nomor_po, id_pbf, id_produsen, nama_pbf, alamat_pbf, nomor_siup, nomor_sia_sika,
+                    nama_apoteker, nomor_sipa, kontak_telepon, kontak_email, tanggal_pesanan,
+                    tujuan_distribusi, catatan_khusus, tanda_tangan_apoteker, status_pesanan, total_harga
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+            
+            const paramsPesanan = [
+                nomor_po, id_pbf, id_produsen, nama_pbf, alamat_pbf, nomor_siup, nomor_sia_sika,
+                nama_apoteker, nomor_sipa, kontak_telepon, kontak_email, tanggal_pesanan,
+                tujuan_distribusi || null, catatan_khusus || null, filePath, 'Dipesan', total_harga
+            ];
+            const [resultPesanan] = await dbConnection.query(sqlPesanan, paramsPesanan);
+            const idPesanan = resultPesanan.insertId;
+
+            // 4. Simpan detail pesanan ke database operasional (off-chain)
+            for (const item of items) {
+                const sqlDetail = `
+                    INSERT INTO detail_pesanan (
+                        id_pesanan, id_produksi, nama_obat, bentuk_sediaan, dosis, jumlah_pesanan, harga_per_unit, total_harga
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                `;
+                await dbConnection.query(sqlDetail, [
+                    idPesanan, item.id_produksi, item.nama_obat, item.bentuk_sediaan, 
+                    item.dosis, item.jumlah_pesanan, item.harga_per_unit, item.total_harga
+                ]);
+            }
+            
+            // TIDAK ADA PENGURANGAN STOK DI SINI. ITU TUGAS PRODUSEN.
+
+            await dbConnection.commit();
+            res.status(201).json({ success: true, message: 'Pesanan berhasil dibuat!', idPesanan });
+        } catch (error) {
+            if (dbConnection) await dbConnection.rollback();
+            console.error('Error in create:', error);
+            res.status(500).json({ success: false, message: `Kesalahan Server Internal: ${error.message}` });
+        } finally {
+            if (dbConnection) dbConnection.release();
+        }
     }
-
-    let dbConnection;
-    try {
-      dbConnection = await db.getConnection();
-      await dbConnection.beginTransaction();
-
-      // Validasi id_produsen
-      const [produsen] = await dbConnection.query("SELECT id FROM users WHERE id = ? AND role = 'produsen'", [id_produsen]);
-      if (produsen.length === 0) {
-        throw new Error('Produsen tidak ditemukan.');
-      }
-
-      // Simpan tanda tangan dari base64 ke file
-      const base64Data = tanda_tangan_data_url.replace(/^data:image\/png;base64,/, "");
-      const fileName = `ttd-pesanan-${Date.now()}.png`;
-      const filePath = path.join('uploads', 'tanda_tangan', fileName);
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-      fs.writeFileSync(filePath, base64Data, 'base64');
-
-      // Insert data pesanan
-      const sqlPesanan = `
-        INSERT INTO pesanan (
-          nomor_po, id_pbf, id_produsen, nama_pbf, alamat_pbf, nomor_siup, nomor_sia_sika,
-          nama_apoteker, nomor_sipa, kontak_telepon, kontak_email, tanggal_pesanan,
-          tujuan_distribusi, catatan_khusus, tanda_tangan_apoteker, status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `;
-      const paramsPesanan = [
-        nomor_po, id_pbf, id_produsen, nama_pbf, alamat_pbf, nomor_siup, nomor_sia_sika,
-        nama_apoteker, nomor_sipa, kontak_telepon, kontak_email, tanggal_pesanan,
-        tujuan_distribusi || null, catatan_khusus || null, filePath, 'Perlu Dikirim'
-      ];
-
-      const [resultPesanan] = await dbConnection.query(sqlPesanan, paramsPesanan);
-      const idPesanan = resultPesanan.insertId;
-
-      // Insert detail pesanan dan validasi stok dari CouchDB (on-chain)
-      for (const item of items) {
-        const { id_produksi, jumlah_pesanan, harga_per_unit, total_harga } = item;
-        if (!id_produksi || !jumlah_pesanan || jumlah_pesanan <= 0) {
-          throw new Error('ID produksi dan jumlah pesanan wajib diisi dan harus lebih dari 0.');
-        }
-
-        // Ambil data dari CouchDB (on-chain) untuk validasi
-        const onChainData = await fetchFromCouchDB(id_produsen);
-        const selectedObat = onChainData.find((o) => o.id === id_produksi);
-        if (!selectedObat) {
-          throw new Error(`Obat dengan ID ${id_produksi} tidak ditemukan di blockchain.`);
-        }
-        if (jumlah_pesanan > selectedObat.jumlah) {
-          throw new Error(`Jumlah pesanan (${jumlah_pesanan}) melebihi stok tersedia di blockchain (${selectedObat.jumlah}).`);
-        }
-
-        const sqlDetail = `
-          INSERT INTO detail_pesanan (
-            id_pesanan, id_produksi, nama_obat, bentuk_sediaan, dosis, jumlah_pesanan, harga_per_unit, total_harga
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `;
-        const paramsDetail = [
-          idPesanan,
-          id_produksi,
-          selectedObat.namaObat, // Dari on-chain
-          selectedObat.bentukSediaan, // Dari on-chain
-          selectedObat.dosis, // Dari on-chain
-          jumlah_pesanan,
-          harga_per_unit || null,
-          total_harga || null
-        ];
-        await dbConnection.query(sqlDetail, paramsDetail);
-
-        // Kurangi stok di off-chain (MySQL) untuk sinkronisasi, tapi on-chain tetap immutable
-        await dbConnection.query(
-          'UPDATE produksi SET jumlah = jumlah - ? WHERE id = ?',
-          [jumlah_pesanan, id_produksi]
-        );
-      }
-
-      await dbConnection.commit();
-      res.status(201).json({ success: true, message: 'Pesanan berhasil dibuat!', idPesanan });
-    } catch (error) {
-      if (dbConnection) await dbConnection.rollback();
-      console.error('Error in create:', error);
-      if (error.code === 'ER_DUP_ENTRY') {
-        return res.status(400).json({ success: false, message: 'Nomor PO sudah digunakan.' });
-      }
-      res.status(500).json({ success: false, message: `Kesalahan Server Internal: ${error.message}` });
-    } finally {
-      if (dbConnection) dbConnection.release();
-    }
-  }
 };
 
 module.exports = pesananController;

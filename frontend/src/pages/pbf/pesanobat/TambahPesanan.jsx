@@ -89,6 +89,7 @@ const TambahPesanan = () => {
         const result = await response.json();
         if (result.success) {
           setStokObat(result.data);
+          console.log('Stok loaded from:', result.source); // Log sumber data
         } else {
           throw new Error(result.message || 'Gagal memuat stok obat.');
         }
@@ -135,8 +136,8 @@ const TambahPesanan = () => {
         bentuk_sediaan: selected.bentuk_sediaan || '',
         dosis: selected.dosis || '',
         jumlah_pesanan: '1',
-        harga_per_unit: '',
-        total_harga: '',
+        harga_per_unit: selected.harga_per_unit || 0, // Ambil harga dari produksi
+        total_harga: '', // Reset total, akan dihitung ulang di handleItemChange
       });
     } else {
       setItemObat({
@@ -145,7 +146,7 @@ const TambahPesanan = () => {
         bentuk_sediaan: '',
         dosis: '',
         jumlah_pesanan: '',
-        harga_per_unit: '',
+        harga_per_unit: '', // Reset jika tidak ada obat dipilih
         total_harga: '',
       });
     }
@@ -177,7 +178,7 @@ const TambahPesanan = () => {
       bentuk_sediaan: '',
       dosis: '',
       jumlah_pesanan: '',
-      harga_per_unit: '',
+      harga_per_unit: '', // Reset harga setelah tambah
       total_harga: '',
     });
     setError('');
@@ -200,88 +201,87 @@ const TambahPesanan = () => {
   };
 
   // Handler untuk submit
-    const handleSubmit = async (e) => {
-       e.preventDefault();
-       setError('');
-       setIsSubmitting(true);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setIsSubmitting(true);
 
-       // Validasi info pemesanan
-       if (
-         !infoPemesanan.nomor_po ||
-         !infoPemesanan.nama_pbf ||
-         !infoPemesanan.alamat_pbf ||
-         !infoPemesanan.nomor_siup ||
-         !infoPemesanan.nomor_sia_sika ||
-         !infoPemesanan.nama_apoteker ||
-         !infoPemesanan.nomor_sipa ||
-         !infoPemesanan.kontak_telepon ||
-         !infoPemesanan.kontak_email ||
-         !infoPemesanan.tanggal_pesanan
-       ) {
-         setError('Semua informasi pemesanan wajib diisi.');
-         setIsSubmitting(false);
-         return;
-       }
+    // Validasi info pemesanan
+    if (
+      !infoPemesanan.nomor_po ||
+      !infoPemesanan.nama_pbf ||
+      !infoPemesanan.alamat_pbf ||
+      !infoPemesanan.nomor_siup ||
+      !infoPemesanan.nomor_sia_sika ||
+      !infoPemesanan.nama_apoteker ||
+      !infoPemesanan.nomor_sipa ||
+      !infoPemesanan.kontak_telepon ||
+      !infoPemesanan.kontak_email ||
+      !infoPemesanan.tanggal_pesanan
+    ) {
+      setError('Semua informasi pemesanan wajib diisi.');
+      setIsSubmitting(false);
+      return;
+    }
 
-       // Validasi detail obat
-       if (detailObat.length === 0) {
-         setError('Tambahkan setidaknya satu item obat.');
-         setIsSubmitting(false);
-         return;
-       }
+    // Validasi detail obat
+    if (detailObat.length === 0) {
+      setError('Tambahkan setidaknya satu item obat.');
+      setIsSubmitting(false);
+      return;
+    }
 
-       // Validasi tanda tangan
-       if (sigCanvas.current.isEmpty()) {
-         setError('Tanda tangan Apoteker Penanggung Jawab wajib diisi.');
-         setIsSubmitting(false);
-         return;
-       }
+    // Validasi tanda tangan
+    if (sigCanvas.current.isEmpty()) {
+      setError('Tanda tangan Apoteker Penanggung Jawab wajib diisi.');
+      setIsSubmitting(false);
+      return;
+    }
 
-       try {
-         const token = localStorage.getItem('token');
-         // Periksa apakah getTrimmedCanvas tersedia
-         if (typeof sigCanvas.current.getTrimmedCanvas !== 'function') {
-           throw new Error('getTrimmedCanvas bukan fungsi. Periksa versi react-signature-canvas.');
-         }
-         const tandaTanganDataUrl = sigCanvas.current.getTrimmedCanvas().toDataURL('image/png');
-         const formData = {
-           nomor_po: infoPemesanan.nomor_po,
-           id_produsen: Number(idProdusen),
-           nama_pbf: infoPemesanan.nama_pbf,
-           alamat_pbf: infoPemesanan.alamat_pbf,
-           nomor_siup: infoPemesanan.nomor_siup,
-           nomor_sia_sika: infoPemesanan.nomor_sia_sika,
-           nama_apoteker: infoPemesanan.nama_apoteker,
-           nomor_sipa: infoPemesanan.nomor_sipa,
-           kontak_telepon: infoPemesanan.kontak_telepon,
-           kontak_email: infoPemesanan.kontak_email,
-           tanggal_pesanan: infoPemesanan.tanggal_pesanan,
-           tujuan_distribusi: infoPemesanan.tujuan_distribusi || null,
-           catatan_khusus: infoPemesanan.catatan_khusus || null,
-           items: detailObat,
-           tanda_tangan_data_url: tandaTanganDataUrl,
-         };
+    try {
+      const token = localStorage.getItem('token');
+      if (typeof sigCanvas.current.getTrimmedCanvas !== 'function') {
+        throw new Error('getTrimmedCanvas bukan fungsi. Periksa versi react-signature-canvas.');
+      }
+      const tandaTanganDataUrl = sigCanvas.current.getTrimmedCanvas().toDataURL('image/png');
+      const formData = {
+        nomor_po: infoPemesanan.nomor_po,
+        id_produsen: Number(idProdusen),
+        nama_pbf: infoPemesanan.nama_pbf,
+        alamat_pbf: infoPemesanan.alamat_pbf,
+        nomor_siup: infoPemesanan.nomor_siup,
+        nomor_sia_sika: infoPemesanan.nomor_sia_sika,
+        nama_apoteker: infoPemesanan.nama_apoteker,
+        nomor_sipa: infoPemesanan.nomor_sipa,
+        kontak_telepon: infoPemesanan.kontak_telepon,
+        kontak_email: infoPemesanan.kontak_email,
+        tanggal_pesanan: infoPemesanan.tanggal_pesanan,
+        tujuan_distribusi: infoPemesanan.tujuan_distribusi || null,
+        catatan_khusus: infoPemesanan.catatan_khusus || null,
+        items: detailObat,
+        tanda_tangan_data_url: tandaTanganDataUrl,
+      };
 
-         const response = await fetch('http://localhost:5000/api/pbf/pesanan', {
-           method: 'POST',
-           headers: {
-             'Authorization': `Bearer ${token}`,
-             'Content-Type': 'application/json',
-           },
-           body: JSON.stringify(formData),
-         });
+      const response = await fetch('http://localhost:5000/api/pbf/pesanan', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
 
-         const result = await response.json();
-         if (!response.ok) throw new Error(result.message || 'Gagal membuat pesanan');
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Gagal membuat pesanan');
 
-         alert('Pesanan berhasil dibuat!');
-         navigate('/pbf/pesan-obat');
-       } catch (err) {
-         setError(err.message);
-       } finally {
-         setIsSubmitting(false);
-       }
-     };
+      alert('Pesanan berhasil dibuat!');
+      navigate('/pbf/pesan-obat');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-100">
@@ -531,6 +531,7 @@ const TambahPesanan = () => {
                     onChange={handleItemChange}
                     placeholder="Harga satuan"
                     className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                    readOnly // Tambahkan readOnly agar pengguna tidak ubah harga
                   />
                 </div>
                 <div className="md:col-span-2">

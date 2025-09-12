@@ -4,7 +4,7 @@ import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { Upload, Loader2 } from 'lucide-react';
+import { Upload, Loader2, CheckCircle, XCircle } from 'lucide-react';
 
 const TambahProduksi = () => {
   const navigate = useNavigate();
@@ -22,16 +22,22 @@ const TambahProduksi = () => {
     status: 'Terjadwal',
     komposisi_obat: '',
     penanggung_jawab: '',
+    harga_per_unit: '',
   });
   const [dokumenBpomFile, setDokumenBpomFile] = useState(null);
   const [sertifikatFile, setSertifikatFile] = useState(null);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // State untuk popup custom
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupMessage, setPopupMessage] = useState('');
+  const [popupType, setPopupType] = useState('success'); // 'success' or 'error'
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
-      alert('Anda harus login untuk mengakses halaman ini.');
+      showCustomAlert('Anda harus login untuk mengakses halaman ini.', 'error');
       navigate('/login/produsen');
     }
   }, [navigate]);
@@ -117,13 +123,28 @@ const TambahProduksi = () => {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || 'Gagal menambahkan data produksi.');
-      alert('Jadwal produksi berhasil dibuat!');
+      showCustomAlert('Jadwal produksi berhasil dibuat!', 'success');
       navigate('/produsen/manajemen-produksi');
     } catch (err) {
       setError(err.message);
+      showCustomAlert(err.message, 'error');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Fungsi untuk menampilkan popup custom
+  const showCustomAlert = (message, type) => {
+    setPopupMessage(message);
+    setPopupType(type);
+    setShowPopup(true);
+  };
+
+  // Fungsi untuk tutup popup
+  const closePopup = () => {
+    setShowPopup(false);
+    setPopupMessage('');
+    setPopupType('success');
   };
 
   return (
@@ -234,6 +255,19 @@ const TambahProduksi = () => {
                     dateFormat="dd/MM/yyyy"
                     className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                     required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Harga Satuan (Rp)</label>
+                  <input
+                    type="number"
+                    name="harga_per_unit"
+                    value={formData.harga_per_unit}
+                    onChange={handleInputChange}
+                    placeholder="Masukkan Harga Satuan"
+                    min="0"
+                    step="0.01"
+                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                   />
                 </div>
               </div>

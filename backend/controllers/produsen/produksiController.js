@@ -81,6 +81,7 @@ const produksiController = {
       status,
       komposisi_obat,
       penanggung_jawab,
+      harga_per_unit,
     } = req.body;
     const id_produsen = req.user.id;
 
@@ -123,8 +124,8 @@ const produksiController = {
       const sql = `INSERT INTO produksi (
         batch_id, nama_obat, nomor_izin_edar, dosis, bentuk_sediaan, jumlah,
         tanggal_produksi, tanggal_kadaluarsa, prioritas, status, komposisi_obat,
-        dokumen_bpom_path, sertifikat_analisis_path, hash_sertifikat_analisis, penanggung_jawab, id_produsen
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        dokumen_bpom_path, sertifikat_analisis_path, hash_sertifikat_analisis, penanggung_jawab,harga_per_unit, id_produsen
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
       const params = [
         batch_id,
@@ -142,6 +143,7 @@ const produksiController = {
         sertifikat_analisis_path,
         hash_sertifikat_analisis,
         penanggung_jawab,
+        harga_per_unit || 0,
         id_produsen,
       ];
 
@@ -171,6 +173,7 @@ const produksiController = {
       status,
       komposisi_obat,
       penanggung_jawab,
+      harga_per_unit,
     } = req.body;
 
     // Validasi field wajib
@@ -231,6 +234,7 @@ const produksiController = {
         sertifikat_analisis_path,
         hash_sertifikat_analisis,
         penanggung_jawab,
+        harga_per_unit,
         req.params.id,
         req.user.id,
       ];
@@ -346,89 +350,91 @@ getQrData: async (req, res) => {
 
   // Fungsi untuk mencatat ke blockchain
   recordToBlockchain: async (req, res) => {
-    const { id } = req.params;
-    const id_produsen = req.user.id;
-    let gateway;
-    let dbConnection;
+  const { id } = req.params;
+  const id_produsen = req.user.id;
+  let gateway;
+  let dbConnection;
 
-    try {
-      dbConnection = await db.getConnection();
-      const [rows] = await dbConnection.query('SELECT * FROM produksi WHERE id = ? AND id_produsen = ?', [
-        id,
-        id_produsen,
-      ]);
+  try {
+    dbConnection = await db.getConnection();
+    const [rows] = await dbConnection.query('SELECT * FROM produksi WHERE id = ? AND id_produsen = ?', [
+      id,
+      id_produsen,
+    ]);
 
-      if (rows.length === 0) {
-        return res.status(404).json({ success: false, message: 'Data produksi tidak ditemukan.' });
-      }
-
-      const prodData = rows[0];
-
-      // Validasi status
-      if (prodData.status === 'Tercatat di Blockchain') {
-        return res.status(400).json({ success: false, message: 'Batch ini sudah pernah dicatat.' });
-      }
-      if (prodData.status !== 'Selesai') {
-        return res.status(400).json({ success: false, message: 'Hanya batch yang sudah Selesai yang bisa dicatat ke blockchain.' });
-      }
-
-      // Validasi data penting untuk blockchain
-      if (!prodData.bentuk_sediaan) {
-        return res.status(400).json({ success: false, message: 'Bentuk sediaan wajib diisi untuk pencatatan blockchain.' });
-      }
-      if (!prodData.penanggung_jawab) {
-        return res.status(400).json({ success: false, message: 'Penanggung jawab wajib diisi untuk pencatatan blockchain.' });
-      }
-
-      gateway = await getGateway();
-      const network = await gateway.getNetwork('medisyncchannel');
-      const contract = network.getContract('medisync');
-
-      const transaction = contract.createTransaction('ProdusenContract:createObat');
-      transaction.setEndorsingOrganizations('ProdusenMSP', 'PBFMSP');
-
-      console.log('Submitting ON-CHAIN transaction for batch:', prodData.batch_id);
-
-      // Tambahkan bentuk_sediaan dan penanggung_jawab ke transaksi blockchain
-      await transaction.submit(
-        prodData.batch_id,
-        prodData.nama_obat,
-        prodData.nomor_izin_edar || 'TIDAK ADA DATA',
-        prodData.komposisi_obat || '',
-        prodData.dosis || 'N/A',
-        new Date(prodData.tanggal_produksi).toISOString().split('T')[0],
-        new Date(prodData.tanggal_kadaluarsa).toISOString().split('T')[0],
-        prodData.bentuk_sediaan,
-        prodData.penanggung_jawab,
-        prodData.hash_sertifikat_analisis || 'TIDAK ADA HASH'
-      );
-      console.log('ON-CHAIN transaction successful.');
-
-      // Update status di database
-      await dbConnection.query('UPDATE produksi SET status = ? WHERE id = ?', ['Tercatat di Blockchain', id]);
-      console.log('OFF-CHAIN status updated.');
-
-      // Ambil nama perusahaan dari tabel users
-      const [userRows] = await dbConnection.query('SELECT nama_resmi FROM users WHERE id = ?', [id_produsen]);
-      const namaPerusahaan = userRows.length > 0 ? userRows[0].nama_resmi : 'PT Medisync';
-
-      // Generate QR code dengan URL lokal
-      const qrDataUrl = `http://localhost:5000/api/produksi/qr-data/${prodData.batch_id}`;
-      const qrCodeDataUrl = await qrcode.toDataURL(qrDataUrl);
-
-      res.json({
-        success: true,
-        message: `Batch ${prodData.batch_id} berhasil dicatat ke blockchain.`,
-        qrCodeDataUrl: qrCodeDataUrl,
-      });
-    } catch (error) {
-      console.error('Error recording to blockchain:', error);
-      res.status(500).json({ success: false, message: `Gagal mencatat ke blockchain: ${error.message}` });
-    } finally {
-      if (gateway) gateway.disconnect();
-      if (dbConnection) dbConnection.release();
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Data produksi tidak ditemukan.' });
     }
-  },
+
+    const prodData = rows[0];
+
+    // Validasi status
+    if (prodData.status === 'Tercatat di Blockchain') {
+      return res.status(400).json({ success: false, message: 'Batch ini sudah pernah dicatat.' });
+    }
+    if (prodData.status !== 'Selesai') {
+      return res.status(400).json({ success: false, message: 'Hanya batch yang sudah Selesai yang bisa dicatat ke blockchain.' });
+    }
+
+    // Validasi data penting untuk blockchain
+    if (!prodData.bentuk_sediaan) {
+      return res.status(400).json({ success: false, message: 'Bentuk sediaan wajib diisi untuk pencatatan blockchain.' });
+    }
+    if (!prodData.penanggung_jawab) {
+      return res.status(400).json({ success: false, message: 'Penanggung jawab wajib diisi untuk pencatatan blockchain.' });
+    }
+
+    gateway = await getGateway();
+    const network = await gateway.getNetwork('medisyncchannel');
+    const contract = network.getContract('medisync');
+
+    const transaction = contract.createTransaction('ProdusenContract:createObat');
+    transaction.setEndorsingOrganizations('ProdusenMSP', 'PBFMSP');
+
+    console.log('Submitting ON-CHAIN transaction for batch:', prodData.batch_id);
+
+    // Tambahkan 'jumlah' sebagai parameter ke-11
+    await transaction.submit(
+      prodData.batch_id,
+      prodData.nama_obat,
+      prodData.nomor_izin_edar || 'TIDAK ADA DATA',
+      prodData.komposisi_obat || '',
+      prodData.dosis || 'N/A',
+      new Date(prodData.tanggal_produksi).toISOString().split('T')[0],
+      new Date(prodData.tanggal_kadaluarsa).toISOString().split('T')[0],
+      prodData.bentuk_sediaan,
+      prodData.penanggung_jawab,
+      prodData.jumlah, // Tambahkan jumlah di sini
+      prodData.harga_per_unit || 0,
+      prodData.hash_sertifikat_analisis || 'TIDAK ADA HASH'
+    );
+    console.log('ON-CHAIN transaction successful.');
+
+    // Update status di database
+    await dbConnection.query('UPDATE produksi SET status = ? WHERE id = ?', ['Tercatat di Blockchain', id]);
+    console.log('OFF-CHAIN status updated.');
+
+    // Ambil nama perusahaan dari tabel users
+    const [userRows] = await dbConnection.query('SELECT nama_resmi FROM users WHERE id = ?', [id_produsen]);
+    const namaPerusahaan = userRows.length > 0 ? userRows[0].nama_resmi : 'PT Medisync';
+
+    // Generate QR code dengan URL lokal
+    const qrDataUrl = `http://localhost:5000/api/produksi/qr-data/${prodData.batch_id}`;
+    const qrCodeDataUrl = await qrcode.toDataURL(qrDataUrl);
+
+    res.json({
+      success: true,
+      message: `Batch ${prodData.batch_id} berhasil dicatat ke blockchain.`,
+      qrCodeDataUrl: qrCodeDataUrl,
+    });
+  } catch (error) {
+    console.error('Error recording to blockchain:', error);
+    res.status(500).json({ success: false, message: `Gagal mencatat ke blockchain: ${error.message}` });
+  } finally {
+    if (gateway) gateway.disconnect();
+    if (dbConnection) dbConnection.release();
+  }
+},
 
   // [Fungsi getAll, getById, create, update, delete tetap sama]
 };

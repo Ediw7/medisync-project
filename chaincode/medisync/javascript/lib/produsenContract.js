@@ -9,8 +9,8 @@ class ProdusenContract extends Contract {
         return assetJSON && assetJSON.length > 0;
     }
 
-    // --- PERBAIKAN: Fungsi ini sekarang menerima 10 parameter sesuai controller ---
-    async createObat(ctx, id, namaObat, nomorIzinEdar, komposisi, dosis, tanggalProduksi, tanggalKadaluarsa, bentukSediaan, penanggungJawab, hashHasilUjiMutu) {
+    // Tambahkan parameter 'jumlah' (parameter ke-11)
+    async createObat(ctx, id, namaObat, nomorIzinEdar, komposisi, dosis, tanggalProduksi, tanggalKadaluarsa, bentukSediaan, penanggungJawab, jumlah, hargaPerUnit, hashHasilUjiMutu) {
         const mspID = ctx.clientIdentity.getMSPID();
         if (mspID !== 'ProdusenMSP') {
             throw new Error(`ERROR: Organisasi ${mspID} tidak diizinkan untuk membuat aset obat.`);
@@ -23,7 +23,7 @@ class ProdusenContract extends Contract {
 
         const timestamp = new Date(ctx.stub.getTxTimestamp().seconds.low * 1000).toISOString();
 
-        // Membuat objek aset sesuai dengan semua parameter yang diterima
+        // Tambahkan 'jumlah' ke objek obat
         const obat = {
             docType: 'obat',
             id: id,
@@ -35,6 +35,8 @@ class ProdusenContract extends Contract {
             tanggalProduksi: tanggalProduksi,
             tanggalKadaluarsa: tanggalKadaluarsa,
             penanggungJawab: penanggungJawab,
+            jumlah: Number(jumlah) || 0,
+            hargaPerUnit: Number(hargaPerUnit) || 0, // Simpan jumlah sebagai number
             pemilikSaatIni: mspID,
             statusSaatIni: 'DIPRODUKSI',
             hashDokumen: {
@@ -52,13 +54,13 @@ class ProdusenContract extends Contract {
         return JSON.stringify(obat);
     }
 
+    // Fungsi transferToPbf tetap sama, tapi update objek obat jika perlu
     async transferToPbf(ctx, idPesanan, hashSuratJalan) {
         const mspID = ctx.clientIdentity.getMSPID();
         if (mspID !== 'ProdusenMSP') {
             throw new Error(`ERROR: Hanya Produsen yang bisa mentransfer ke PBF.`);
         }
 
-        // Ambil data obat terkait pesanan (misalnya, ID obat dari detail pesanan)
         const obatIds = await this.getObatIdsByPesanan(ctx, idPesanan);
         if (obatIds.length === 0) {
             throw new Error(`ERROR: Tidak ada obat terkait dengan pesanan ID ${idPesanan}.`);
@@ -93,8 +95,6 @@ class ProdusenContract extends Contract {
     }
 
     async getObatIdsByPesanan(ctx, idPesanan) {
-        // Logika untuk mengambil ID obat dari detail pesanan (harus disesuaikan dengan state blockchain)
-        // Misalnya, simpan relasi pesanan-obat di blockchain
         const iterator = await ctx.stub.getStateByPartialCompositeKey('pesanan~obat', [idPesanan]);
         const results = [];
         let result = await iterator.next();
@@ -103,7 +103,7 @@ class ProdusenContract extends Contract {
             if (result.value && result.value.value.toString()) {
                 const strValue = result.value.value.toString('utf8');
                 const record = JSON.parse(strValue);
-                results.push(record.obatId); // Asumsi ada field obatId
+                results.push(record.obatId);
             }
             result = await iterator.next();
         }

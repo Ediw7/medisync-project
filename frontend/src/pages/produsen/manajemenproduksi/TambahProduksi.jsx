@@ -53,14 +53,14 @@ const TambahProduksi = () => {
 
     // Validasi field wajib
     if (!formData.batch_id || !formData.nama_obat || !formData.jumlah || !formData.tanggal_produksi || !formData.tanggal_kadaluarsa) {
-      setError('Semua field wajib harus diisi: Batch ID, Nama Obat, Jumlah, Tanggal Produksi, Tanggal Kadaluarsa.');
+      showCustomAlert('Semua field wajib harus diisi: Batch ID, Nama Obat, Jumlah, Tanggal Produksi, Tanggal Kadaluarsa.', 'error');
       setIsSubmitting(false);
       return;
     }
 
     // Validasi jumlah positif
     if (Number(formData.jumlah) <= 0) {
-      setError('Jumlah produksi harus lebih dari 0.');
+      showCustomAlert('Jumlah produksi harus lebih dari 0.', 'error');
       setIsSubmitting(false);
       return;
     }
@@ -71,26 +71,33 @@ const TambahProduksi = () => {
       formData.tanggal_kadaluarsa &&
       new Date(formData.tanggal_kadaluarsa) <= new Date(formData.tanggal_produksi)
     ) {
-      setError('Tanggal kadaluarsa harus setelah tanggal produksi.');
+      showCustomAlert('Tanggal kadaluarsa harus setelah tanggal produksi.', 'error');
       setIsSubmitting(false);
       return;
     }
 
     // Validasi bentuk_sediaan dan penanggung_jawab
     if (!formData.bentuk_sediaan) {
-      setError('Bentuk sediaan wajib dipilih.');
+      showCustomAlert('Bentuk sediaan wajib dipilih.', 'error');
       setIsSubmitting(false);
       return;
     }
     if (!formData.penanggung_jawab) {
-      setError('Penanggung jawab wajib diisi.');
+      showCustomAlert('Penanggung jawab wajib diisi.', 'error');
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Validasi dokumen wajib (pop-up khusus setelah klik submit)
+    if (!dokumenBpomFile || !sertifikatFile) {
+      showCustomAlert('Dokumen BPOM dan Sertifikat Analisis wajib diunggah untuk dapat menyimpan jadwal.', 'error');
       setIsSubmitting(false);
       return;
     }
 
     const token = localStorage.getItem('token');
     if (!token) {
-      setError('Sesi Anda telah berakhir, silakan login kembali.');
+      showCustomAlert('Sesi Anda telah berakhir, silakan login kembali.', 'error');
       setIsSubmitting(false);
       return;
     }
@@ -126,7 +133,6 @@ const TambahProduksi = () => {
       showCustomAlert('Jadwal produksi berhasil dibuat!', 'success');
       navigate('/produsen/manajemen-produksi');
     } catch (err) {
-      setError(err.message);
       showCustomAlert(err.message, 'error');
     } finally {
       setIsSubmitting(false);
@@ -147,8 +153,33 @@ const TambahProduksi = () => {
     setPopupType('success');
   };
 
+  // Render popup jika showPopup true
+  const renderPopup = () => {
+    if (!showPopup) return null;
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
+          <div className={`flex items-center gap-2 mb-4 ${popupType === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+            {popupType === 'success' ? <CheckCircle size={24} /> : <XCircle size={24} />}
+            <h3 className="font-semibold">{popupType === 'success' ? 'Sukses' : 'Error'}</h3>
+          </div>
+          <p className="text-gray-700 mb-6">{popupMessage}</p>
+          <div className="flex justify-end">
+            <button
+              onClick={closePopup}
+              className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition"
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-100">
+      {renderPopup()}
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={() => { localStorage.clear(); navigate('/'); }} />
@@ -328,7 +359,7 @@ const TambahProduksi = () => {
               <h2 className="text-lg font-semibold text-emerald-700">Dokumen Pendukung</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Dokumen BPOM (Opsional)</label>
+                  <label className="block text-sm font-medium text-gray-700">Dokumen BPOM (Wajib)</label>
                   <div className="mt-1 flex items-center gap-2">
                     <input
                       type="file"
@@ -337,6 +368,7 @@ const TambahProduksi = () => {
                       accept=".pdf,.png,.jpg"
                       className="hidden"
                       id="dokumen_bpom"
+                      required
                     />
                     <label
                       htmlFor="dokumen_bpom"
@@ -348,7 +380,7 @@ const TambahProduksi = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Sertifikat Analisis (Opsional)</label>
+                  <label className="block text-sm font-medium text-gray-700">Sertifikat Analisis (Wajib)</label>
                   <div className="mt-1 flex items-center gap-2">
                     <input
                       type="file"
@@ -357,6 +389,7 @@ const TambahProduksi = () => {
                       accept=".pdf,.png,.jpg"
                       className="hidden"
                       id="sertifikat_analisis"
+                      required
                     />
                     <label
                       htmlFor="sertifikat_analisis"

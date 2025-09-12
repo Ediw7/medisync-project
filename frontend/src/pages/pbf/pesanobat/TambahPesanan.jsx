@@ -90,6 +90,7 @@ const TambahPesanan = () => {
         if (result.success) {
           setStokObat(result.data);
           console.log('Stok loaded from:', result.source); // Log sumber data
+          console.log('Sample stok with harga:', result.data[0]); // Log untuk debug harga
         } else {
           throw new Error(result.message || 'Gagal memuat stok obat.');
         }
@@ -130,38 +131,36 @@ const TambahPesanan = () => {
     const selectedId = e.target.value;
     const selected = stokObat.find((o) => o.id.toString() === selectedId);
     if (selected) {
+      const harga = Number(selected.harga_per_unit) || 0;
+      const jumlah = 1; // Jumlah default saat item dipilih
       setItemObat({
         id_produksi: selected.id,
         nama_obat: selected.nama_obat,
         bentuk_sediaan: selected.bentuk_sediaan || '',
         dosis: selected.dosis || '',
-        jumlah_pesanan: '1',
-        harga_per_unit: selected.harga_per_unit || 0, // Ambil harga dari produksi
-        total_harga: '', // Reset total, akan dihitung ulang di handleItemChange
+        jumlah_pesanan: jumlah.toString(),
+        harga_per_unit: harga,
+        total_harga: jumlah * harga, // Langsung hitung total
       });
     } else {
-      setItemObat({
-        id_produksi: '',
-        nama_obat: '',
-        bentuk_sediaan: '',
-        dosis: '',
-        jumlah_pesanan: '',
-        harga_per_unit: '', // Reset jika tidak ada obat dipilih
-        total_harga: '',
-      });
+      setItemObat({ id_produksi: '', nama_obat: '', bentuk_sediaan: '', dosis: '', jumlah_pesanan: '1', harga_per_unit: 0, total_harga: 0 });
     }
   };
 
   // Handler untuk tambah item
   const handleAddItem = () => {
-    if (!itemObat.id_produksi || !itemObat.jumlah_pesanan || Number(itemObat.jumlah_pesanan) <= 0 || !itemObat.harga_per_unit) {
-      setError('Pilih obat, masukkan jumlah dan harga satuan yang valid.');
+    if (!itemObat.id_produksi || !itemObat.jumlah_pesanan || Number(itemObat.jumlah_pesanan) <= 0) {
+      setError('Pilih obat dan masukkan jumlah yang valid.');
       return;
     }
     const selectedObat = stokObat.find((o) => o.id.toString() === itemObat.id_produksi.toString());
     if (Number(itemObat.jumlah_pesanan) > selectedObat.jumlah) {
       setError(`Jumlah pesanan (${itemObat.jumlah_pesanan}) melebihi stok tersedia (${selectedObat.jumlah}).`);
       return;
+    }
+    // Jika harga_per_unit 0 dari produksi, izinkan dengan catatan
+    if (Number(itemObat.harga_per_unit) === 0) {
+      console.warn('Harga satuan 0 dari produksi, lanjutkan dengan hati-hati.');
     }
     setDetailObat([...detailObat, {
       id_produksi: Number(itemObat.id_produksi),
@@ -274,7 +273,7 @@ const TambahPesanan = () => {
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || 'Gagal membuat pesanan');
 
-      alert('Pesanan berhasil dibuat!');
+      console.log('Pesanan berhasil dibuat!'); // Ganti alert dengan log sementara
       navigate('/pbf/pesan-obat');
     } catch (err) {
       setError(err.message);
@@ -295,6 +294,7 @@ const TambahPesanan = () => {
                 <h1 className="text-3xl font-bold text-gray-800">Buat Pesanan Obat</h1>
                 <p className="text-gray-500 mt-1">Isi detail pesanan sesuai regulasi BPOM/Kemenkes.</p>
               </div>
+              
             </div>
 
             {error && (
@@ -539,6 +539,7 @@ const TambahPesanan = () => {
                     type="button"
                     onClick={handleAddItem}
                     className="mt-6 w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition flex items-center justify-center gap-2"
+                    disabled={!itemObat.id_produksi || !itemObat.jumlah_pesanan || Number(itemObat.jumlah_pesanan) <= 0}
                   >
                     <Plus size={18} /> Tambah
                   </button>
@@ -567,25 +568,25 @@ const TambahPesanan = () => {
                 </button>
               </div>
             </div>
-            
-            {/* Tombol-tombol dipindahkan ke sini */}
+
+            {/* Tombol-tombol */}
             <div className="flex justify-end gap-4 mt-6">
-                <button
-                  type="button"
-                  onClick={() => navigate('/pbf/pesan-obat')}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
-                >
-                  Kembali
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:bg-gray-400 flex items-center gap-2"
-                >
-                  {isSubmitting && <Loader2 className="animate-spin" size={18} />}
-                  {isSubmitting ? 'Menyimpan...' : 'Simpan Pesanan'}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/pbf/pesan-obat')}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+              >
+                Kembali
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:bg-gray-400 flex items-center gap-2"
+              >
+                {isSubmitting && <Loader2 className="animate-spin" size={18} />}
+                {isSubmitting ? 'Menyimpan...' : 'Simpan Pesanan'}
+              </button>
+            </div>
           </form>
         </main>
       </div>

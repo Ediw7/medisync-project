@@ -3,53 +3,64 @@
 const db = require('../../config/db');
 const fs = require('fs');
 const path = require('path');
-const nano = require('nano')('http://admin:admin@127.0.0.1:5984'); // Koneksi ke CouchDB lokal (sesuaikan port jika CouchDB di port lain)
+const nano = require('nano')('http://admin:admin@127.0.0.1:5984'); 
+
 
 // Fungsi untuk mengambil data produksi dari CouchDB (on-chain)
 async function fetchFromCouchDB(idProdusen) {
   try {
-    const dbName = 'medisyncchannel_'; // Nama database CouchDB untuk channel
+    const dbName = 'medisyncchannel_';
     const dbInstance = nano.use(dbName);
     const result = await dbInstance.find({
       selector: {
         docType: 'obat',
-        pemilikSaatIni: 'ProdusenMSP', // Asumsi data masih di ProdusenMSP
-        // Tambahkan filter berdasarkan id_produsen jika ada field tersebut di CouchDB
-        // Misalnya: id_produsen: idProdusen
+        pemilikSaatIni: 'ProdusenMSP',
       },
-      fields: ['id', 'namaObat', 'bentukSediaan', 'dosis', 'tanggalProduksi', 'tanggalKadaluarsa', 'penanggungJawab', 'jumlah'], // Fields yang diperlukan
-      limit: 50, // Limit hasil
+      fields: ['id', 'namaObat', 'bentukSediaan', 'dosis', 'tanggalProduksi', 'tanggalKadaluarsa', 'penanggungJawab', 'jumlah', 'hargaPerUnit'],
+      limit: 50,
+      skip: 0,
     });
-    // Map hasil ke format yang mirip MySQL
-    return result.docs.map(doc => ({
-      id: doc.id,
-      batch_id: doc.id, // Asumsi batch_id sama dengan id di CouchDB
+    console.log('CouchDB query result:', result.docs.length, 'documents');
+    const mappedData = result.docs.map(doc => ({
+      id: doc.id, // _id dari CouchDB
+      batch_id: doc.id, // batch_id = id di CouchDB
       nama_obat: doc.namaObat,
       bentuk_sediaan: doc.bentukSediaan,
       dosis: doc.dosis,
-      jumlah: doc.jumlah || 100, // Default jika tidak ada
+      jumlah: doc.jumlah || 0,
       tanggal_produksi: doc.tanggalProduksi,
       tanggal_kadaluarsa: doc.tanggalKadaluarsa,
       penanggung_jawab: doc.penanggungJawab,
-      nama_perusahaan: 'PT Medisync', // Atau ambil dari users jika perlu
+      harga_per_unit: doc.hargaPerUnit || 0,
+      nama_perusahaan: 'PT Medisync',
     }));
+    console.log('Mapped CouchDB data sample:', mappedData[0]); // Log untuk debug
+    return mappedData;
   } catch (error) {
-    console.error('Error fetching from CouchDB:', error);
-    return []; // Fallback ke array kosong jika CouchDB gagal
+    console.error('Error fetching from CouchDB:', error.message, error.stack);
+    return [];
   }
 }
 
 // Fungsi fallback ke XAMPP/MySQL jika CouchDB kosong
 async function fetchFromMySQL(idProdusen) {
-  const [rows] = await db.query(`
-    SELECT p.id, p.batch_id, p.nama_obat, p.bentuk_sediaan, p.dosis, p.jumlah, 
-           p.tanggal_produksi, p.tanggal_kadaluarsa, p.penanggung_jawab
-    FROM produksi p
-    WHERE p.id_produsen = ? AND p.status = 'Tercatat di Blockchain'
-    ORDER BY p.tanggal_produksi DESC
-  `, [idProdusen]);
-  return rows;
+  try {
+    const [rows] = await db.query(`
+      SELECT p.id, p.batch_id, p.nama_obat, p.bentuk_sediaan, p.dosis, p.jumlah, 
+             p.tanggal_produksi, p.tanggal_kadaluarsa, p.penanggung_jawab, p.harga_per_unit
+      FROM produksi p
+      WHERE p.id_produsen = ? AND p.status = 'Tercatat di Blockchain'
+      ORDER BY p.tanggal_produksi DESC
+    `, [idProdusen]);
+    console.log('MySQL fallback data sample:', rows[0]); // Log untuk debug
+    return rows;
+  } catch (error) {
+    console.error('Error fetching from MySQL:', error.message, error.stack);
+    return [];
+  }
 }
+
+
 
 const pesananController = {
   // Mengambil daftar semua pesanan milik PBF yang sedang login
@@ -121,21 +132,20 @@ const pesananController = {
       const offChainData = await fetchFromMySQL(idProdusen);
       return res.json({ success: true, data: offChainData, source: 'off-chain' });
     }
-    
-    // Map field CouchDB ke format yang diharapkan frontend (jumlah sekarang ada)
-    const mappedData = onChainData.map(doc => ({
-      id: doc.id,
-      batch_id: doc.id,
-      nama_obat: doc.namaObat,
-      bentuk_sediaan: doc.bentukSediaan,
-      dosis: doc.dosis,
-      jumlah: doc.jumlah || 0, // Sekarang ada di CouchDB
-      tanggal_produksi: doc.tanggalProduksi,
-      tanggal_kadaluarsa: doc.tanggalKadaluarsa,
-      penanggung_jawab: doc.penanggungJawab,
-      harga_per_unit: doc.hargaPerUnit || 0,
-      nama_perusahaan: 'PT Medisync', // Atau ambil dari users
-    }));
+  
+const mappedData = onChainData.map(doc => ({
+  id: doc.id,
+  batch_id: doc.id,
+  nama_obat: doc.namaObat,
+  bentuk_sediaan: doc.bentukSediaan,
+  dosis: doc.dosis,
+  jumlah: doc.jumlah || 0,
+  tanggal_produksi: doc.tanggalProduksi,
+  tanggal_kadaluarsa: doc.tanggalKadaluarsa,
+  penanggung_jawab: doc.penanggungJawab,
+  harga_per_unit: doc.harga_per_unit || 0, // Pastikan ini diambil
+  nama_perusahaan: 'PT Medisync',
+}));
     
     res.json({ success: true, data: mappedData, source: 'on-chain' });
   } catch (error) {

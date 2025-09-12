@@ -15,20 +15,20 @@ const pbfController = {
     },
 
     // Mengambil stok yang tersedia dari tabel 'produksi' untuk produsen tertentu
-    getAvailableStockByProdusen: async (req, res) => {
+   getAvailableStockByProdusen: async (req, res) => {
         try {
             const { idProdusen } = req.params;
             const sql = `
-                SELECT id, batch_id, nama_obat, jumlah, dosis, bentuk_sediaan, tanggal_kadaluarsa
+                SELECT id, batch_id, nama_obat, jumlah, dosis, bentuk_sediaan, harga_per_unit 
                 FROM produksi 
                 WHERE id_produsen = ? AND status IN ('Selesai', 'Tercatat di Blockchain') AND jumlah > 0
             `;
             const [rows] = await db.query(sql, [idProdusen]);
             res.json({ success: true, data: rows });
         } catch (error) {
-            console.error('Error in getAvailableStockByProdusen:', error);
-            res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+            res.status(500).json({ success: false, message: error.message });
         }
+    
     },
 
     // Mengambil profil PBF yang sedang login

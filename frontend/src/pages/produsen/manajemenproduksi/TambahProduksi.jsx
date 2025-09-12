@@ -297,9 +297,9 @@ const TambahProduksi = () => {
                     className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                     required
                   >
-                    <option value="Terjadwal">Terjadwal</option>
-                    <option value="Dalam Produksi">Dalam Produksi</option>
-                    <option value="Selesai">Selesai</option>
+                    <option value="Terjadwal" disabled={formData.status !== "Terjadwal"}>Terjadwal</option>
+                    <option value="Dalam Produksi" disabled={formData.status === "Terjadwal"}>Dalam Produksi</option>
+                    <option value="Selesai" disabled={formData.status !== "Selesai" && formData.status !== "Dalam Produksi"}>Selesai</option>
                   </select>
                 </div>
                 <div>

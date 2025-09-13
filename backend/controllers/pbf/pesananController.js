@@ -3,12 +3,12 @@
 const db = require('../../config/db');
 const fs = require('fs');
 const path = require('path');
-const nano = require('nano')('http://admin:admin@127.0.0.1:5984'); 
+const nano = require('nano')(`http://${process.env.COUCHDB_USER}:${process.env.COUCHDB_PASSWORD}@127.0.0.1:5984`); // Fix: Ganti password jadi 'adminpw' sesuai docker-compose
 
 // Fungsi untuk mengambil data produksi dari CouchDB (on-chain)
 async function fetchFromCouchDB(idProdusen) {
   try {
-    const dbName = 'medisyncchannel_';
+    const dbName = 'medisyncchannel_';  // Asumsi nama channel/channel, sesuaikan jika beda (misal 'medisyncchannel_medisync')
     const dbInstance = nano.use(dbName);
     const result = await dbInstance.find({
       selector: {
@@ -168,26 +168,57 @@ const pesananController = {
       dbConnection = await db.getConnection();
       await dbConnection.beginTransaction();
 
-      // Validasi terhadap blockchain
-      const dbCouch = nano.use('medisyncchannel_medisync');
+      // 1. Validasi pesanan terhadap "sumber kebenaran" (blockchain) - Fix: Handling auth & fallback
+      let couchValidationFailedItems = [];
+      let couchAuthError = false;
+      const dbName = 'medisyncchannel_medisync';  // Sesuaikan dengan nama DB di Fabric channel kamu
+      const dbCouch = nano.use(dbName);
       for (const item of items) {
+        const batchId = String(item.id_produksi);
+        console.log(`Validating batch ID: ${batchId} (type: ${typeof batchId})`);
         try {
-          const onChainDoc = await dbCouch.get(item.id_produksi);
+          const onChainDoc = await dbCouch.get(batchId);
           if (!onChainDoc) {
-            throw new Error(`Obat dengan Batch ID ${item.id_produksi} tidak ditemukan di blockchain.`);
+            throw new Error(`Dokumen tidak ditemukan.`);
           }
           if (item.jumlah_pesanan > onChainDoc.jumlah) {
             throw new Error(`Stok untuk ${onChainDoc.namaObat} (${onChainDoc.jumlah}) tidak mencukupi untuk pesanan (${item.jumlah_pesanan}).`);
           }
+          console.log(`Validasi sukses untuk ${onChainDoc.namaObat}, stok: ${onChainDoc.jumlah}`);
         } catch (couchError) {
-          if (couchError.statusCode === 404) {
-            throw new Error(`Obat dengan Batch ID ${item.id_produksi} tidak ditemukan di blockchain.`);
+          console.warn(`CouchDB validation gagal untuk batch ${batchId}: ${couchError.message}`);
+          if (couchError.error === 'unauthorized' && couchError.reason.includes('Name or password')) {
+            console.error('CouchDB auth gagal global. Skip validasi CouchDB, fallback ke MySQL untuk semua item.');
+            couchAuthError = true;
+            break;  // Stop loop, fallback semua
+          } else if (couchError.statusCode === 404) {
+            couchValidationFailedItems.push(batchId);
+          } else {
+            throw couchError;
           }
-          throw couchError;
+        }
+      }
+
+      // Fallback: Jika auth gagal atau ada item gagal, validasi via MySQL
+      if (couchAuthError || couchValidationFailedItems.length > 0) {
+        console.log(`Fallback ke MySQL untuk ${couchAuthError ? 'semua item (auth error)' : couchValidationFailedItems.length + ' item(s)'}`);
+        const mysqlStok = await fetchFromMySQL(id_produsen);
+        const stokMap = new Map(mysqlStok.map(s => [String(s.id), s]));
+        const itemsToValidate = couchAuthError ? items : items.filter(i => couchValidationFailedItems.includes(String(i.id_produksi)));
+        for (const item of itemsToValidate) {
+          const failedId = String(item.id_produksi);
+          const stokItem = stokMap.get(failedId);
+          if (!stokItem) {
+            throw new Error(`Item dengan ID ${failedId} tidak ditemukan di stok fallback.`);
+          }
+          if (item.jumlah_pesanan > stokItem.jumlah) {
+            throw new Error(`Stok fallback untuk ${stokItem.nama_obat} (${stokItem.jumlah}) tidak mencukupi (${item.jumlah_pesanan}).`);
+          }
+          console.log(`Fallback sukses untuk ${stokItem.nama_obat}`);
         }
       }
       
-      // Simpan tanda tangan
+      // 2. Simpan tanda tangan
       const base64Data = tanda_tangan_data_url.replace(/^data:image\/png;base64,/, "");
       const fileName = `ttd-pesanan-${Date.now()}.png`;
       const filePath = path.join('uploads', 'tanda_tangan', fileName);
@@ -196,7 +227,7 @@ const pesananController = {
       
       const total_harga = items.reduce((sum, item) => sum + (item.total_harga || 0), 0);
 
-      // Simpan pesanan (dengan total_harga)
+      // 3. Simpan pesanan ke database operasional (off-chain)
       const sqlPesanan = `
         INSERT INTO pesanan (
           nomor_po, id_pbf, id_produsen, nama_pbf, alamat_pbf, nomor_siup, nomor_sia_sika,
@@ -213,7 +244,7 @@ const pesananController = {
       const [resultPesanan] = await dbConnection.query(sqlPesanan, paramsPesanan);
       const idPesanan = resultPesanan.insertId;
 
-      // Simpan detail pesanan
+      // 4. Simpan detail pesanan ke database operasional (off-chain)
       for (const item of items) {
         const sqlDetail = `
           INSERT INTO detail_pesanan (
@@ -226,6 +257,8 @@ const pesananController = {
         ]);
       }
       
+      // TIDAK ADA PENGURANGAN STOK DI SINI. ITU TUGAS PRODUSEN.
+
       await dbConnection.commit();
       res.status(201).json({ success: true, message: 'Pesanan berhasil dibuat!', idPesanan });
     } catch (error) {

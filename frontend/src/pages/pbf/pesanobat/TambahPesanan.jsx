@@ -134,7 +134,7 @@ const TambahPesanan = () => {
       const harga = Number(selected.harga_per_unit) || 0;
       const jumlah = 1; // Jumlah default saat item dipilih
       setItemObat({
-        id_produksi: selected.id,
+        id_produksi: String(selected.id), // Fix: Pastikan string
         nama_obat: selected.nama_obat,
         bentuk_sediaan: selected.bentuk_sediaan || '',
         dosis: selected.dosis || '',
@@ -163,7 +163,7 @@ const TambahPesanan = () => {
       console.warn('Harga satuan 0 dari produksi, lanjutkan dengan hati-hati.');
     }
     setDetailObat([...detailObat, {
-      id_produksi: Number(itemObat.id_produksi),
+      id_produksi: String(itemObat.id_produksi), // Fix: Pastikan string saat tambah ke detail
       nama_obat: itemObat.nama_obat,
       bentuk_sediaan: itemObat.bentuk_sediaan,
       dosis: itemObat.dosis,
@@ -257,9 +257,11 @@ const TambahPesanan = () => {
         tanggal_pesanan: infoPemesanan.tanggal_pesanan,
         tujuan_distribusi: infoPemesanan.tujuan_distribusi || null,
         catatan_khusus: infoPemesanan.catatan_khusus || null,
-        items: detailObat,
+        items: detailObat, // Sekarang id_produksi sudah string
         tanda_tangan_data_url: tandaTanganDataUrl,
       };
+
+      console.log('Submitting formData items sample:', formData.items[0]?.id_produksi); // Debug: Cek tipe string
 
       const response = await fetch('http://localhost:5000/api/pbf/pesanan', {
         method: 'POST',
@@ -294,7 +296,6 @@ const TambahPesanan = () => {
                 <h1 className="text-3xl font-bold text-gray-800">Buat Pesanan Obat</h1>
                 <p className="text-gray-500 mt-1">Isi detail pesanan sesuai regulasi BPOM/Kemenkes.</p>
               </div>
-              
             </div>
 
             {error && (

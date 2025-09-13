@@ -4,6 +4,7 @@ import LandingPage from './pages/LandingPage';
 import PilihRole from './pages/PilihRole';
 import LoginPage from './pages/LoginPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage'; 
 import RegisterPage from './pages/RegisterPage';
 
 import ProdusenDashboard from './pages/produsen/ProdusenDashboard';
@@ -52,6 +53,7 @@ function App() {
       <Route path="/roles" element={<PilihRole />} />
       <Route path="/login/:role" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
       <Route path="/register/:role" element={<RegisterPage />} />
       
        {/* Rute Produsen */}

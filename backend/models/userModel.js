@@ -24,6 +24,12 @@ const User = {
         const sql = 'SELECT * FROM users WHERE email = ?';
         const [results] = await db.execute(sql, [email]);
         return results[0];
+    },
+    updatePassword: async (userId, newPassword) => {
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        const sql = 'UPDATE users SET password = ? WHERE id = ?';
+        const [result] = await db.execute(sql, [hashedPassword, userId]);
+        return result;
     }
 };
 

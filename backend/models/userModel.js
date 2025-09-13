@@ -18,6 +18,12 @@ const User = {
 
     comparePassword: async (password, hashedPassword) => {
         return await bcrypt.compare(password, hashedPassword);
+    },
+    
+    findByEmail: async (email) => {
+        const sql = 'SELECT * FROM users WHERE email = ?';
+        const [results] = await db.execute(sql, [email]);
+        return results[0];
     }
 };
 

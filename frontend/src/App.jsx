@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import PilihRole from './pages/PilihRole';
 import LoginPage from './pages/LoginPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import RegisterPage from './pages/RegisterPage';
 
 import ProdusenDashboard from './pages/produsen/ProdusenDashboard';
@@ -50,6 +51,7 @@ function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/roles" element={<PilihRole />} />
       <Route path="/login/:role" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/register/:role" element={<RegisterPage />} />
       
        {/* Rute Produsen */}

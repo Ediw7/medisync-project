@@ -126,9 +126,14 @@ const SuratPesanan = () => {
             <div ref={contentRef} className="bg-white p-8 md:p-12 rounded-lg shadow-lg border border-gray-200">
               <header className="text-center mb-8 border-b pb-4">
                 <h1 className="text-2xl font-bold text-gray-800">SURAT PESANAN</h1>
+                
+                {/* --- PERUBAHAN DI SINI --- */}
+                {/* Kita hapus logika fallback yang salah, dan hanya tampilkan info.nomor_po */}
                 <p className="text-gray-500">
-                  Nomor PO: {info.nomor_po || String(info.id).padStart(6, '0')}/SP/PBF/{new Date(info.tanggal_pesanan).getMonth() + 1}/{new Date(info.tanggal_pesanan).getFullYear()}
+                  Nomor PO: {info.nomor_po}
                 </p>
+                {/* --- AKHIR PERUBAHAN --- */}
+
               </header>
 
               <section className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">

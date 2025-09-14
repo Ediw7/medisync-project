@@ -155,8 +155,10 @@ const pesananController = {
 
   // Membuat pesanan baru
   create: async (req, res) => {
+        // PERUBAHAN DI SINI: Kita HAPUS 'nomor_po' dari req.body
         const {
-            nomor_po, id_produsen, nama_pbf, alamat_pbf, nomor_siup, nomor_sia_sika,
+            /* nomor_po DIHAPUS DARI SINI */
+            id_produsen, nama_pbf, alamat_pbf, nomor_siup, nomor_sia_sika,
             nama_apoteker, nomor_sipa, kontak_telepon, kontak_email, tanggal_pesanan,
             tujuan_distribusi, catatan_khusus, items, tanda_tangan_data_url
         } = req.body;
@@ -169,9 +171,39 @@ const pesananController = {
             
             const dbCouch = nano.use('medisyncchannel_medisync');
 
+            // --- AWAL BLOK GENERATOR NOMOR PO ---
+            // 1. Tentukan prefix sesuai permintaan Anda
+            const prefix = 'PBF/IV/2025/';
+            
+            // 2. Cari nomor PO terakhir DENGAN PREFIX YANG SAMA di dalam transaksi
+            // Kita urutkan berdasarkan ID (asumsi ID auto-increment) untuk mendapatkan yang terbaru
+            const [lastOrder] = await dbConnection.query(
+                "SELECT nomor_po FROM pesanan WHERE nomor_po LIKE ? ORDER BY id DESC LIMIT 1",
+                [`${prefix}%`]
+            );
+
+            let nextSeqNumber = 1; // Default jika ini adalah order pertama dengan prefix tsb
+
+            if (lastOrder.length > 0) {
+                // 3. Jika ditemukan (misal: "PBF/IV/2025/0012")
+                const lastPoNumber = lastOrder[0].nomor_po; 
+                // 4. Ambil bagian angka nya saja (misal: "0012")
+                const lastSeqStr = lastPoNumber.substring(prefix.length); 
+                // 5. Ubah ke integer, tambahkan 1 (misal: 12 + 1 = 13)
+                const lastSeqInt = parseInt(lastSeqStr, 10);
+                nextSeqNumber = lastSeqInt + 1;
+            }
+
+            // 6. Format kembali ke string 4 digit (misal: 13 -> "0013")
+            const newSequenceString = String(nextSeqNumber).padStart(4, '0');
+            // 7. Gabungkan menjadi nomor PO baru (misal: "PBF/IV/2025/0013")
+            const generated_nomor_po = prefix + newSequenceString;
+            // --- AKHIR BLOK GENERATOR NOMOR PO ---
+
+
             // Validasi setiap item pesanan terhadap "sumber kebenaran" (blockchain)
             for (const item of items) {
-                // `item.id_produksi` yang dikirim dari frontend sebenarnya adalah batch_id on-chain
+                // ... (sisa logika validasi Anda tetap sama)
                 const batchIdOnChain = item.id_produksi;
                 
                 try {
@@ -202,8 +234,10 @@ const pesananController = {
                     tujuan_distribusi, catatan_khusus, tanda_tangan_apoteker, status, total_harga
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
             
+            // PERUBAHAN DI SINI: Gunakan 'generated_nomor_po'
             const paramsPesanan = [
-                nomor_po, id_pbf, id_produsen, nama_pbf, alamat_pbf, nomor_siup, nomor_sia_sika,
+                generated_nomor_po, // Menggunakan variabel yang kita buat
+                id_pbf, id_produsen, nama_pbf, alamat_pbf, nomor_siup, nomor_sia_sika,
                 nama_apoteker, nomor_sipa, kontak_telepon, kontak_email, tanggal_pesanan,
                 tujuan_distribusi || null, catatan_khusus || null, filePath, 'Perlu Dikirim', total_harga
             ];
@@ -212,7 +246,7 @@ const pesananController = {
 
             // Simpan detail pesanan dan kurangi stok di off-chain
             for (const item of items) {
-                // Ambil ID integer dari tabel produksi berdasarkan batch_id
+                // ... (sisa logika Anda tetap sama)
                 const [produksiRows] = await dbConnection.query('SELECT id, nama_obat, bentuk_sediaan, dosis FROM produksi WHERE batch_id = ?', [item.id_produksi]);
                 if (produksiRows.length === 0) {
                      throw new Error(`Referensi produk off-chain untuk batch ID ${item.id_produksi} tidak ditemukan.`);
@@ -225,7 +259,6 @@ const pesananController = {
                     item.dosis, item.jumlah_pesanan, item.harga_per_unit, item.total_harga
                 ]);
                 
-                // Kurangi stok di tabel produksi menggunakan ID integer
                 await dbConnection.query('UPDATE produksi SET jumlah = jumlah - ? WHERE id = ?', [item.jumlah_pesanan, idProduksiInteger]);
             }
 

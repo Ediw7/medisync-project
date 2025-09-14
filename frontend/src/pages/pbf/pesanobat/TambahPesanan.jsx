@@ -13,7 +13,7 @@ const TambahPesanan = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [stokObat, setStokObat] = useState([]);
   const [infoPemesanan, setInfoPemesanan] = useState({
-    nomor_po: '',
+    // nomor_po: '',  // <-- 1. DIHAPUS DARI STATE
     nama_pbf: '',
     alamat_pbf: '',
     nomor_siup: '',
@@ -207,7 +207,7 @@ const TambahPesanan = () => {
 
     // Validasi info pemesanan
     if (
-      !infoPemesanan.nomor_po ||
+      // !infoPemesanan.nomor_po || // <-- 2. DIHAPUS DARI VALIDASI
       !infoPemesanan.nama_pbf ||
       !infoPemesanan.alamat_pbf ||
       !infoPemesanan.nomor_siup ||
@@ -244,7 +244,7 @@ const TambahPesanan = () => {
       }
       const tandaTanganDataUrl = sigCanvas.current.getTrimmedCanvas().toDataURL('image/png');
       const formData = {
-        nomor_po: infoPemesanan.nomor_po,
+        // nomor_po: infoPemesanan.nomor_po, // <-- 3. DIHAPUS DARI PAYLOAD
         id_produsen: Number(idProdusen),
         nama_pbf: infoPemesanan.nama_pbf,
         alamat_pbf: infoPemesanan.alamat_pbf,
@@ -308,17 +308,9 @@ const TambahPesanan = () => {
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               <h2 className="text-lg font-semibold text-emerald-700 mb-4">Informasi Pemesanan</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Nomor Purchase Order (PO)</label>
-                  <input
-                    name="nomor_po"
-                    value={infoPemesanan.nomor_po}
-                    onChange={handleInfoChange}
-                    placeholder="Masukkan nomor PO"
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    required
-                  />
-                </div>
+                
+                {/* 4. BLOK INPUT NOMOR PO DIHAPUS SELURUHNYA DARI SINI */}
+                
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Nama PBF</label>
                   <input

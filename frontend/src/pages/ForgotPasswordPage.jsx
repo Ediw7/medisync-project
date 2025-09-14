@@ -51,21 +51,31 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Decorative background circles */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-emerald-200/30 rounded-full blur-3xl animate-pulse"></div>
-      <div
-        className="absolute bottom-0 right-0 w-96 h-96 bg-teal-200/30 rounded-full blur-3xl animate-pulse"
+    <div className="min-h-screen bg-gray-200 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute top-0 left-0 w-96 h-96 bg-emerald-200 rounded-full blur-3xl animate-pulse"></div>
+      <div className="absolute bottom-1 left-1/2 -translate-x-1/2 -translate-y-1 w-96 h-96 bg-green-200/70 rounded-full blur-3xl animate-spin"></div>
+      <div className="absolute top-1 left-1/2 -translate-x-1/2 -translate-y-1 w-48 h-64 bg-green-200/80 rounded-full blur-3xl animate-spin"></div>
+      <div  
+        className="absolute bottom-0 right-0 w-96 h-96 bg-green-200 rounded-full blur-3xl animate-pulse"
         style={{ animationDelay: "2s" }}
+      ></div>
+      <div
+        className="absolute top-1/2 left-1/4 w-64 h-64 bg-blue-200/20 rounded-full blur-2xl animate-pulse"
+        style={{ animationDelay: "1s" }}
+      ></div>
+      <div
+        className="absolute bottom-1/4 left-1/2 w-48 h-48 bg-purple-200/20 rounded-full blur-2xl animate-pulse"
+        style={{ animationDelay: "3s" }}
       ></div>
 
       {/* Main card */}
       <div className="relative z-10 w-full max-w-4xl rounded-2xl shadow-2xl grid md:grid-cols-2 overflow-hidden border border-gray-200">
         {/* Left branding column */}
-        <div className="hidden md:block p-10 bg-gradient-to-br from-emerald-600 to-teal-600 text-white">
+        <div className="hidden md:block p-10 bg-gradient-to-br from-emerald-600/90 to-[#047857] text-white">
           <div className="h-full flex flex-col justify-center">
             <h2 className="text-3xl font-bold mb-2">Welcome Back</h2>
-            <p className="text-emerald-100 mb-8">Access your secure dashboard with enterprise-grade features</p>
+            <p className="text-[#F9FDFE] mb-8">Access your secure dashboard with enterprise-grade features</p>
 
             <div className="space-y-6">
               <div className="flex items-center space-x-3">
@@ -74,7 +84,7 @@ export default function ForgotPasswordPage() {
                 </div>
                 <div>
                   <h3 className="font-semibold">Enterprise Security</h3>
-                  <p className="text-sm text-emerald-100">Advanced encryption and compliance</p>
+                  <p className="text-sm text-[#F9FDFE]">Advanced encryption and compliance</p>
                 </div>
               </div>
 
@@ -84,7 +94,7 @@ export default function ForgotPasswordPage() {
                 </div>
                 <div>
                   <h3 className="font-semibold">Version Control</h3>
-                  <p className="text-sm text-emerald-100">Track changes and collaborate</p>
+                  <p className="text-sm text-[#F9FDFE]">Track changes and collaborate</p>
                 </div>
               </div>
 
@@ -94,7 +104,7 @@ export default function ForgotPasswordPage() {
                 </div>
                 <div>
                   <h3 className="font-semibold">Smart Search</h3>
-                  <p className="text-sm text-emerald-100">Find anything instantly</p>
+                  <p className="text-sm text-[#F9FDFE]">Find anything instantly</p>
                 </div>
               </div>
             </div>
@@ -117,8 +127,8 @@ export default function ForgotPasswordPage() {
 
             {/* Icon and heading */}
             <div className="text-center mb-8">
-              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Mail className="w-8 h-8 text-emerald-600" />
+              <div className="w-16 h-16 bg-[#047857]/90 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-8 h-8 text-gray-100/90" />
               </div>
               <h1 className="text-2xl font-bold text-gray-900 mb-2">Reset Password</h1>
               <p className="text-gray-600">Enter your account email and we'll send a reset link.</p>
@@ -152,7 +162,7 @@ export default function ForgotPasswordPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Enter your email"
                     disabled={isSubmitting}
-                    className="w-full pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 border border-gray-300 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full pl-10 pr-4 py-3 bg-white/40 backdrop-blur-xl rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 border border-gray-200/80 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     required
                   />
                 </div>

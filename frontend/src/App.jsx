@@ -16,6 +16,7 @@ import RiwayatProduksi from './pages/produsen/manajemenproduksi/RiwayatProduksi'
 
 import MonitoringStok from './pages/produsen/monitoringstok/MonitoringStok';
 import RiwayatDistribusi from './pages/produsen/monitoringstok/RiwayatDistribusi';
+import DetailStok from './pages/produsen/monitoringstok/DetailStok';
 
 import PengelolaanPengiriman from './pages/produsen/pengelolaanpengiriman/PengelolaanPengiriman';
 import PerluDikirim from './pages/produsen/pengelolaanpengiriman/PerluDikirim';
@@ -66,19 +67,21 @@ function App() {
 
       <Route path="/produsen/monitoring-stok" element={<MonitoringStok />} />
       <Route path="/produsen/riwayat-distribusi" element={<RiwayatDistribusi />} /> 
+      <Route path="/produsen/produksi/detailstok/:id" element={<DetailStok />} />
+    
 
        <Route path="/produsen/pengelolaan-pengiriman" element={<PengelolaanPengiriman />} />
-       <Route path="/produsen/pengelolaanpengiriman/perlu-dikirim" element={<PerluDikirim />} />
-        <Route path="/produsen/pengelolaanpengiriman/dikirim" element={<Dikirim />} />
-        <Route path="/produsen/pengelolaanpengiriman/selesai" element={<Selesai />} />
-        <Route path="/produsen/pengelolaanpengiriman/pembatalan" element={<Pembatalan />} />
-        <Route path="/produsen/pengelolaanpengiriman/pengembalian" element={<Pengembalian />} />
-        <Route path="/produsen/pengelolaanpengiriman/detail/:id/surat" element={<SuratPesanan />} />
-        <Route path="/produsen/pengelolaanpengiriman/atur-pengiriman/:id" element={<AturPengiriman />} />
-        <Route path="/produsen/pengelolaanpengiriman/rincian-pengiriman/:id" element={<RincianPengiriman />} />
-        <Route path="/produsen/pengelolaanpengiriman/surat-jalan/:id" element={<SuratJalanProdusen />} />
-        <Route path="/produsen/pengelolaanpengiriman/lihat-status/:id" element={<LihatStatus />} />
-        <Route path="/produsen/pengelolaanpengiriman/lihat-riwayat/:id" element={<LihatRiwayat />} /> 
+<Route path="/produsen/pengelolaan-pengiriman/perlu-dikirim" element={<PerluDikirim />} />
+<Route path="/produsen/pengelolaan-pengiriman/dikirim" element={<Dikirim />} />
+<Route path="/produsen/pengelolaan-pengiriman/selesai" element={<Selesai />} />
+<Route path="/produsen/pengelolaan-pengiriman/pembatalan" element={<Pembatalan />} />
+<Route path="/produsen/pengelolaan-pengiriman/pengembalian" element={<Pengembalian />} />
+<Route path="/produsen/pengelolaan-pengiriman/detail/:id/surat" element={<SuratPesanan />} />
+<Route path="/produsen/pengelolaan-pengiriman/atur-pengiriman/:id" element={<AturPengiriman />} />
+<Route path="/produsen/pengelolaan-pengiriman/rincian-pengiriman/:id" element={<RincianPengiriman />} />
+<Route path="/produsen/pengelolaan-pengiriman/surat-jalan/:id" element={<SuratJalanProdusen />} />
+<Route path="/produsen/pengelolaan-pengiriman/lihat-status/:id" element={<LihatStatus />} />
+<Route path="/produsen/pengelolaan-pengiriman/lihat-riwayat/:id" element={<LihatRiwayat />} />
 
 
         <Route path="/produsen/laporan-analitik" element={<LaporanAnalitik />} />

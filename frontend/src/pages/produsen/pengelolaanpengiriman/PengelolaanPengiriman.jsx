@@ -93,7 +93,7 @@ const PengelolaanPengiriman = () => {
       case 'Perlu Dikirim': return 'bg-orange-100 text-orange-800';
       case 'Dikirim': return 'bg-blue-100 text-blue-800';
       case 'Selesai': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800'; // Untuk status lain jika ada
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -122,11 +122,11 @@ const PengelolaanPengiriman = () => {
             <div className="p-4 border-b flex justify-between items-center">
               <div className="flex space-x-2">
                 <NavItem to="/produsen/pengelolaan-pengiriman">Semua</NavItem>
-                <NavItem to="/produsen/pengelolaanpengiriman/perlu-dikirim">Perlu dikirim</NavItem>
-                <NavItem to="/produsen/pengelolaanpengiriman/dikirim">Dikirim</NavItem>
-                <NavItem to="/produsen/pengelolaanpengiriman/selesai">Selesai</NavItem>
-                <NavItem to="/produsen/pengelolaanpengiriman/pembatalan">Pembatalan</NavItem>
-                <NavItem to="/produsen/pengelolaanpengiriman/pengembalian">Pengembalian</NavItem>
+                <NavItem to="/produsen/pengelolaan-pengiriman/perlu-dikirim">Perlu dikirim</NavItem>
+                <NavItem to="/produsen/pengelolaan-pengiriman/dikirim">Dikirim</NavItem>
+                <NavItem to="/produsen/pengelolaan-pengiriman/selesai">Selesai</NavItem>
+                <NavItem to="/produsen/pengelolaan-pengiriman/pembatalan">Pembatalan</NavItem>
+                <NavItem to="/produsen/pengelolaan-pengiriman/pengembalian">Pengembalian</NavItem>
               </div>
               <div className="relative">
                 <input
@@ -186,7 +186,7 @@ const PengelolaanPengiriman = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.nama_pbf}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{String(item.id).padStart(6, '0')}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 hover:underline">
-                          <Link to={`/produsen/pengelolaanpengiriman/detail/${item.id}/surat`}>Lihat Surat</Link>
+                          <Link to={`/produsen/pengelolaan-pengiriman/detail/${item.id}/surat`}>Lihat Surat</Link>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp. {item.total_harga.toLocaleString('id-ID')}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -196,21 +196,20 @@ const PengelolaanPengiriman = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           {item.status === 'Perlu Dikirim' && (
-                            <Link to={`/produsen/pengelolaanpengiriman/atur-pengiriman/${item.id}`} className="text-emerald-600 hover:text-emerald-800">
+                            <Link to={`/produsen/pengelolaan-pengiriman/atur-pengiriman/${item.id}`} className="text-emerald-600 hover:text-emerald-800">
                               Atur Pengiriman
                             </Link>
                           )}
                           {item.status === 'Dikirim' && (
-                            <Link to={`/produsen/pengelolaanpengiriman/lihat-status/${item.id}`} className="text-emerald-600 hover:text-emerald-800">
+                            <Link to={`/produsen/pengelolaan-pengiriman/lihat-status/${item.id}`} className="text-emerald-600 hover:text-emerald-800">
                               Lihat Status
                             </Link>
                           )}
                           {item.status === 'Selesai' && (
-                            <Link to={`/produsen/pengelolaanpengiriman/lihat-riwayat/${item.id}`} className="text-emerald-600 hover:text-emerald-800">
+                            <Link to={`/produsen/pengelolaan-pengiriman/lihat-riwayat/${item.id}`} className="text-emerald-600 hover:text-emerald-800">
                               Lihat Riwayat
                             </Link>
                           )}
-                          {/* Jika status tidak sesuai dengan 3 di atas, tidak ada aksi */}
                         </td>
                       </tr>
                     )) : (

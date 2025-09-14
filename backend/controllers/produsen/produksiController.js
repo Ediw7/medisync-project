@@ -81,6 +81,7 @@ const produksiController = {
       status,
       komposisi_obat,
       penanggung_jawab,
+      harga_per_unit,
     } = req.body;
     const id_produsen = req.user.id;
 
@@ -123,8 +124,8 @@ const produksiController = {
       const sql = `INSERT INTO produksi (
         batch_id, nama_obat, nomor_izin_edar, dosis, bentuk_sediaan, jumlah,
         tanggal_produksi, tanggal_kadaluarsa, prioritas, status, komposisi_obat,
-        dokumen_bpom_path, sertifikat_analisis_path, hash_sertifikat_analisis, penanggung_jawab, id_produsen
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        dokumen_bpom_path, sertifikat_analisis_path, hash_sertifikat_analisis, penanggung_jawab, harga_per_unit, id_produsen
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
       const params = [
         batch_id,
@@ -142,6 +143,7 @@ const produksiController = {
         sertifikat_analisis_path,
         hash_sertifikat_analisis,
         penanggung_jawab,
+        harga_per_unit || 0,
         id_produsen,
       ];
 
@@ -156,7 +158,7 @@ const produksiController = {
     }
   },
 
-  // Mengupdate data produksi
+  // Mengupdate data produksi (DIPERBAIKI: Tambah koma setelah penanggung_jawab, tambah harga_per_unit di SQL)
   update: async (req, res) => {
     const {
       batch_id,
@@ -171,6 +173,7 @@ const produksiController = {
       status,
       komposisi_obat,
       penanggung_jawab,
+      harga_per_unit,
     } = req.body;
 
     // Validasi field wajib
@@ -209,10 +212,12 @@ const produksiController = {
         hash_sertifikat_analisis = await calculateFileHash(sertifikat_analisis_path);
       }
 
+      // DIPERBAIKI: Tambah koma setelah penanggung_jawab = ?, dan tambah harga_per_unit = ? (total 16 ? di SET + 2 di WHERE = 18 params)
       const sql = `UPDATE produksi SET 
         batch_id = ?, nama_obat = ?, nomor_izin_edar = ?, dosis = ?, bentuk_sediaan = ?, jumlah = ?,
         tanggal_produksi = ?, tanggal_kadaluarsa = ?, prioritas = ?, status = ?, komposisi_obat = ?,
-        dokumen_bpom_path = ?, sertifikat_analisis_path = ?, hash_sertifikat_analisis = ?, penanggung_jawab = ?
+        dokumen_bpom_path = ?, sertifikat_analisis_path = ?, hash_sertifikat_analisis = ?, 
+        penanggung_jawab = ?, harga_per_unit = ?
         WHERE id = ? AND id_produsen = ?`;
 
       const params = [
@@ -231,9 +236,13 @@ const produksiController = {
         sertifikat_analisis_path,
         hash_sertifikat_analisis,
         penanggung_jawab,
+        harga_per_unit || 0,  // DIPERBAIKI: Pastikan ini di akhir SET
         req.params.id,
         req.user.id,
       ];
+
+      console.log('Update SQL placeholders count:', sql.split('?').length - 1); // Debug: Harus 18
+      console.log('Update params length:', params.length); // Debug: Harus 18
 
       const [result] = await db.query(sql, params);
       if (result.affectedRows === 0) {
@@ -242,7 +251,13 @@ const produksiController = {
       res.json({ success: true, message: 'Data produksi berhasil diperbarui' });
     } catch (error) {
       console.error('Error in update:', error);
-      res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+      if (error.code === 'ER_DUP_ENTRY') {
+        return res.status(400).json({ success: false, message: 'Batch ID sudah ada.' });
+      }
+      if (error.code === 'ER_PARSE_ERROR') {
+        return res.status(500).json({ success: false, message: 'Error sintaks SQL. Periksa data input.' });
+      }
+      res.status(500).json({ success: false, message: `Kesalahan Server Internal: ${error.message}` });
     }
   },
 
@@ -260,6 +275,87 @@ const produksiController = {
     } catch (error) {
       console.error('Error in delete:', error);
       res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+    }
+  },
+
+  getQrData: async (req, res) => {
+    const { batch_id } = req.params;
+    let dbConnection;
+
+    try {
+      dbConnection = await db.getConnection();
+      const [rows] = await dbConnection.query('SELECT * FROM produksi WHERE batch_id = ?', [batch_id]);
+
+      if (rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
+      }
+
+      const prodData = rows[0];
+      const [userRows] = await dbConnection.query('SELECT nama_resmi FROM users WHERE id = ?', [prodData.id_produsen]);
+      const namaPerusahaan = userRows.length > 0 ? userRows[0].nama_resmi : 'PT Medisync';
+
+      const htmlResponse = `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Informasi Obat - ${prodData.batch_id}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              margin: 0;
+              padding: 20px;
+              background-color: #f4f4f4;
+              color: #333;
+            }
+            .container {
+              max-width: 600px;
+              margin: 0 auto;
+              background: white;
+              padding: 20px;
+              border-radius: 8px;
+              box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            }
+            h1 {
+              color: #2c3e50;
+              text-align: center;
+              margin-bottom: 20px;
+            }
+            .info-item {
+              margin-bottom: 15px;
+            }
+            .info-item label {
+              font-weight: bold;
+              color: #34495e;
+              display: block;
+            }
+            .info-item span {
+              color: #7f8c8d;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>Detail Obat</h1>
+            <div class="info-item"><label>Batch ID:</label> <span>${prodData.batch_id}</span></div>
+            <div class="info-item"><label>Nama Obat:</label> <span>${prodData.nama_obat || '-'}</span></div>
+            <div class="info-item"><label>Tanggal Produksi:</label> <span>${new Date(prodData.tanggal_produksi).toLocaleDateString('id-ID')}</span></div>
+            <div class="info-item"><label>Tanggal Kadaluarsa:</label> <span>${new Date(prodData.tanggal_kadaluarsa).toLocaleDateString('id-ID')}</span></div>
+            <div class="info-item"><label>Penanggung Jawab:</label> <span>${prodData.penanggung_jawab || '-'}</span></div>
+            <div class="info-item"><label>Nama Perusahaan:</label> <span>${namaPerusahaan}</span></div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      res.set('Content-Type', 'text/html');
+      res.send(htmlResponse);
+    } catch (error) {
+      console.error('Error in getQrData:', error);
+      res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+    } finally {
+      if (dbConnection) dbConnection.release();
     }
   },
 
@@ -308,7 +404,6 @@ const produksiController = {
 
       console.log('Submitting ON-CHAIN transaction for batch:', prodData.batch_id);
 
-      // Tambahkan bentuk_sediaan dan penanggung_jawab ke transaksi blockchain
       await transaction.submit(
         prodData.batch_id,
         prodData.nama_obat,
@@ -319,6 +414,8 @@ const produksiController = {
         new Date(prodData.tanggal_kadaluarsa).toISOString().split('T')[0],
         prodData.bentuk_sediaan,
         prodData.penanggung_jawab,
+        prodData.jumlah,
+        prodData.harga_per_unit || 0,
         prodData.hash_sertifikat_analisis || 'TIDAK ADA HASH'
       );
       console.log('ON-CHAIN transaction successful.');
@@ -327,14 +424,13 @@ const produksiController = {
       await dbConnection.query('UPDATE produksi SET status = ? WHERE id = ?', ['Tercatat di Blockchain', id]);
       console.log('OFF-CHAIN status updated.');
 
-      // Generate QR code dengan data tambahan
-      const qrData = JSON.stringify({
-        batch_id: prodData.batch_id,
-        nama_obat: prodData.nama_obat,
-        bentuk_sediaan: prodData.bentuk_sediaan,
-        penanggung_jawab: prodData.penanggung_jawab,
-      });
-      const qrCodeDataUrl = await qrcode.toDataURL(qrData);
+      // Ambil nama perusahaan dari tabel users
+      const [userRows] = await dbConnection.query('SELECT nama_resmi FROM users WHERE id = ?', [id_produsen]);
+      const namaPerusahaan = userRows.length > 0 ? userRows[0].nama_resmi : 'PT Medisync';
+
+      // Generate QR code dengan URL lokal
+      const qrDataUrl = `http://localhost:5000/api/produksi/qr-data/${prodData.batch_id}`;
+      const qrCodeDataUrl = await qrcode.toDataURL(qrDataUrl);
 
       res.json({
         success: true,

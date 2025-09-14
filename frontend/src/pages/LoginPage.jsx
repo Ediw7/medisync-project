@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import { Eye, EyeOff, User, Lock } from 'lucide-react';
+import { Eye, EyeOff, User, Lock, ArrowLeft, ShieldCheck, GitBranch, PackageSearch } from 'lucide-react';
 
-function LoginPage() {
+const LoginPage = () => {
     const [form, setForm] = useState({ username: '', password: '' });
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const { role } = useParams();
     const navigate = useNavigate();
 
@@ -17,6 +18,7 @@ function LoginPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setIsSubmitting(true);
         try {
             const res = await axios.post('http://localhost:5000/api/auth/login', form);
             localStorage.setItem('token', res.data.token);
@@ -35,80 +37,141 @@ function LoginPage() {
             
         } catch (error) {
             setError(error.response?.data?.message || 'Terjadi kesalahan saat login');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const displayRole = role.charAt(0).toUpperCase() + role.slice(1);
 
     return (
-        <div className="min-h-screen bg-green-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-8">
-                <div className="flex justify-center mb-6">
-                    <div className="bg-green-100 rounded-full p-4">
-                        <Lock className="h-8 w-8 text-green-600" />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 relative overflow-hidden">
+            {/* Background decorative elements */}
+            <div className="absolute top-0 left-0 w-96 h-96 bg-emerald-200/30 rounded-full blur-3xl animate-pulse"></div>
+            <div className="absolute bottom-0 right-0 w-96 h-96 bg-teal-200/30 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
+            
+            <div className="relative z-10 w-full max-w-4xl bg-white rounded-2xl shadow-2xl grid md:grid-cols-2 overflow-hidden border border-gray-200">
+                {/* Kolom Kiri - Branding */}
+                <div className="hidden md:block p-10 bg-gradient-to-br from-emerald-600 to-teal-600 text-white">
+                    <h2 className="text-3xl font-bold mb-4">Selamat Datang di MediSync</h2>
+                    <p className="text-emerald-100 mb-8">Platform terdesentralisasi untuk rantai pasok farmasi yang aman dan transparan.</p>
+                    <div className="space-y-6">
+                        <div className="flex items-start gap-4">
+                            <ShieldCheck className="h-8 w-8 text-emerald-300 mt-1 flex-shrink-0" />
+                            <div>
+                                <h3 className="font-semibold">Keamanan Terjamin</h3>
+                                <p className="text-sm text-emerald-200">Setiap transaksi dicatat di ledger yang tidak dapat diubah.</p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-4">
+                            <GitBranch className="h-8 w-8 text-emerald-300 mt-1 flex-shrink-0" />
+                            <div>
+                                <h3 className="font-semibold">Transparansi Penuh</h3>
+                                <p className="text-sm text-emerald-200">Lacak setiap langkah perjalanan produk dari hulu ke hilir.</p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-4">
+                            <PackageSearch className="h-8 w-8 text-emerald-300 mt-1 flex-shrink-0" />
+                            <div>
+                                <h3 className="font-semibold">Verifikasi Instan</h3>
+                                <p className="text-sm text-emerald-200">Pastikan keaslian obat dengan pemindaian QR code yang cepat.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-800">Login {displayRole}</h1>
-                    <p className="text-gray-500 mt-2">Masuk ke dashboard untuk mengelola produk Anda</p>
-                </div>
-
-                {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">{error}</div>}
-
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                        <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                        <div className="relative">
-                            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                            <input
-                                id="username"
-                                name="username"
-                                type="text"
-                                value={form.username}
-                                onChange={handleChange}
-                                placeholder="Masukkan username Anda"
-                                required
-                                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                        <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                            <input
-                                id="password"
-                                name="password"
-                                type={showPassword ? "text" : "password"}
-                                value={form.password}
-                                onChange={handleChange}
-                                placeholder="********"
-                                required
-                                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                            />
-                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                            </button>
-                        </div>
-                        <div className="text-right mt-2">
-                            <Link to="/forgot-password" className="text-sm text-green-600 hover:underline">Lupa Password?</Link>
-                        </div>
-                    </div>
-
-                    <button
-                        type="submit"
-                        className="w-full bg-green-600 text-white py-3 rounded-md hover:bg-green-700 font-semibold transition duration-300"
+                {/* Kolom Kanan - Form Login */}
+                <div className="p-8">
+                    <Link 
+                        to="/roles" 
+                        className="inline-flex items-center text-emerald-600 hover:text-emerald-700 transition-colors mb-6 text-sm"
                     >
-                        Login
-                    </button>
-                </form>
+                        <ArrowLeft size={16} className="mr-1" />
+                        Kembali ke Pilih Peran
+                    </Link>
 
-                <div className="text-center mt-6">
-                    <p className="text-sm text-gray-600">
-                        Belum punya akun? <Link to={`/register/${role}`} className="text-green-600 hover:underline font-medium">Daftar Sekarang</Link>
-                    </p>
+                    <div className="text-center mb-8">
+                        <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 rounded-full mb-4">
+                            <Lock size={24} className="text-emerald-600" />
+                        </div>
+                        <h1 className="text-2xl font-bold text-gray-900 mb-2">Login {displayRole}</h1>
+                        <p className="text-gray-600">Masuk ke dashboard Anda</p>
+                    </div>
+
+                    {error && (
+                        <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm mb-6 border border-red-200">
+                            {error}
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                            <div className="relative">
+                                <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <input
+                                    name="username"
+                                    type="text"
+                                    value={form.username}
+                                    onChange={handleChange}
+                                    placeholder="Masukkan username"
+                                    required
+                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                            <div className="relative">
+                                <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <input
+                                    name="password"
+                                    type={showPassword ? "text" : "password"}
+                                    value={form.password}
+                                    onChange={handleChange}
+                                    placeholder="Masukkan password"
+                                    required
+                                    className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                />
+                                <button 
+                                    type="button" 
+                                    onClick={() => setShowPassword(!showPassword)} 
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                >
+                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                            </div>
+                            <div className="text-right mt-2">
+                                <Link 
+                                    to="/forgot-password" 
+                                    className="text-sm text-emerald-600 hover:text-emerald-700 hover:underline"
+                                >
+                                    Lupa Password?
+                                </Link>
+                            </div>
+                        </div>
+
+                        <button 
+                            type="submit" 
+                            disabled={isSubmitting}
+                            className="w-full bg-emerald-600 text-white py-3 rounded-lg hover:bg-emerald-700 font-semibold transition-colors duration-200 mt-6 disabled:bg-gray-400"
+                        >
+                            {isSubmitting ? 'Memproses...' : 'Masuk'}
+                        </button>
+                    </form>
+
+                    <div className="text-center mt-6">
+                        <p className="text-sm text-gray-600">
+                            Belum punya akun? 
+                            <Link 
+                                to={`/register/${role}`} 
+                                className="text-emerald-600 hover:text-emerald-700 font-medium ml-1 hover:underline"
+                            >
+                                Daftar Sekarang
+                            </Link>
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>

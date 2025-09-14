@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
+import { Loader2 } from 'lucide-react';
 
 const RincianPengiriman = () => {
   const { id } = useParams();
@@ -18,12 +19,30 @@ const RincianPengiriman = () => {
   const [tanggalPengiriman, setTanggalPengiriman] = useState('');
   const [alamatTujuan, setAlamatTujuan] = useState('');
   const [waktuPengiriman, setWaktuPengiriman] = useState('09:00-12:00');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const currentDate = new Date().toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
+
+  // Fungsi untuk menghasilkan nomor profesional dengan kombinasi ID pesanan dan timestamp
+  const generateProNumber = (prefix, orderId) => {
+    const date = new Date();
+    const year = date.getFullYear().toString().slice(-2);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const timestamp = date.getTime().toString().slice(-4);
+    return `${prefix}-${year}${month}${day}-${orderId}-${timestamp}`;
+  };
+
+  useEffect(() => {
+    if (id) {
+      setNomorResi(generateProNumber('RES', id));
+      setNomorSuratJalan(generateProNumber('SJ', id));
+    }
+  }, [id]);
 
   useEffect(() => {
     const { state } = location;
@@ -62,7 +81,16 @@ const RincianPengiriman = () => {
 
   const handleCetakSuratJalan = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsSubmitting(true);
+    setError(null);
+
+    // Validasi tambahan
+    if (!tanggalPengiriman || !alamatTujuan || !waktuPengiriman) {
+      setError('Harap isi semua informasi pengiriman yang diperlukan.');
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       const hashSuratJalan = `HASH_${Date.now()}_${id}`;
@@ -85,18 +113,35 @@ const RincianPengiriman = () => {
         }),
       });
 
-      if (!response.ok) throw new Error('Gagal menyimpan data pengiriman');
-      const result = await response.json();
-      if (result.success) {
-        alert('Surat jalan berhasil disimpan!');
-        navigate(`/produsen/pengelolaanpengiriman/surat-jalan/${id}`); // Navigasi ke halaman baru
-      } else {
-        throw new Error(result.message || 'Gagal mengatur pengiriman');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Gagal menyimpan data pengiriman.');
       }
-    } catch (error) {
-      setError(error.message);
+      const result = await response.json();
+
+      if (result.success) {
+        alert('Surat jalan berhasil dibuat dan data disimpan.');
+        
+        // Mengarahkan ke halaman surat jalan baru dengan data yang sudah diisi
+        navigate(`/produsen/pengelolaan-pengiriman/surat-jalan/${id}`, { 
+          state: {
+            nomorResi,
+            nomorSuratJalan,
+            pesanan: pesanan,
+            tanggalPengiriman,
+            alamatTujuan,
+            waktuPengiriman,
+            catatan,
+            hashSuratJalan
+          }
+        });
+      } else {
+        throw new Error(result.message || 'Gagal mengatur pengiriman.');
+      }
+    } catch (err) {
+      setError(err.message);
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -116,7 +161,7 @@ const RincianPengiriman = () => {
     );
   }
 
-  if (error) {
+  if (error && !isSubmitting) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
         <div className="p-4 bg-red-100 text-red-700 rounded-lg flex items-center gap-2">
@@ -163,28 +208,27 @@ const RincianPengiriman = () => {
 
           <div className="bg-white rounded-lg shadow-lg p-6">
             <form onSubmit={handleCetakSuratJalan} className="space-y-6">
+              {/* Kolom Nomor Resi */}
               <div>
                 <label className="block text-sm font-medium text-gray-700">Nomor Resi</label>
                 <input
                   type="text"
                   value={nomorResi}
-                  onChange={(e) => setNomorResi(e.target.value)}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 p-2"
-                  placeholder="Masukkan nomor resi"
-                  required
+                  readOnly
+                  className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-800 font-semibold"
                 />
               </div>
+              {/* Kolom Nomor Surat Jalan */}
               <div>
                 <label className="block text-sm font-medium text-gray-700">Nomor Surat Jalan</label>
                 <input
                   type="text"
                   value={nomorSuratJalan}
-                  onChange={(e) => setNomorSuratJalan(e.target.value)}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 p-2"
-                  placeholder="Masukkan nomor surat jalan"
-                  required
+                  readOnly
+                  className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-800 font-semibold"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700">Informasi Rincian Pengiriman</label>
                 <textarea
@@ -249,10 +293,15 @@ const RincianPengiriman = () => {
               <div className="flex space-x-4">
                 <button
                   type="submit"
-                  className="w-full bg-emerald-600 text-white py-3 px-6 rounded-lg hover:bg-emerald-700 transition duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                  disabled={isLoading}
+                  className="w-full bg-emerald-600 text-white py-3 px-6 rounded-lg hover:bg-emerald-700 transition duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  disabled={isSubmitting}
                 >
-                  {isLoading ? 'Menyimpan...' : 'Cetak Surat Jalan'}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="animate-spin h-5 w-5" />
+                      Menyimpan...
+                    </>
+                  ) : 'Cetak Surat Jalan'}
                 </button>
                 <Link
                   to="/produsen/pengelolaan-pengiriman"

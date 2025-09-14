@@ -38,6 +38,7 @@ const EditProduksi = () => {
           tanggal_kadaluarsa: data.tanggal_kadaluarsa ? new Date(data.tanggal_kadaluarsa) : null,
           bentuk_sediaan: data.bentuk_sediaan || '',
           penanggung_jawab: data.penanggung_jawab || '',
+          harga_per_unit: data.harga_per_unit || '', // DIPERBAIKI: Pastikan field ini loaded sebagai string untuk input
         });
       } catch (err) {
         setError(err.message);
@@ -63,6 +64,16 @@ const EditProduksi = () => {
       setIsSubmitting(false);
       return;
     }
+    if (!formData.bentuk_sediaan) {
+      setError('Bentuk sediaan wajib diisi.');
+      setIsSubmitting(false);
+      return;
+    }
+    if (!formData.penanggung_jawab) {
+      setError('Penanggung jawab wajib diisi.');
+      setIsSubmitting(false);
+      return;
+    }
 
     // Validasi jumlah positif
     if (Number(formData.jumlah) <= 0) {
@@ -82,6 +93,13 @@ const EditProduksi = () => {
       return;
     }
 
+    // DIPERBAIKI: Validasi harga_per_unit jika dikirim (opsional, tapi pastikan numeric)
+    if (formData.harga_per_unit && (isNaN(formData.harga_per_unit) || Number(formData.harga_per_unit) < 0)) {
+      setError('Harga per unit harus angka valid >= 0.');
+      setIsSubmitting(false);
+      return;
+    }
+
     const token = localStorage.getItem('token');
     if (!token) {
       setError('Sesi Anda telah berakhir, silakan login kembali.');
@@ -90,13 +108,13 @@ const EditProduksi = () => {
     }
 
     const data = new FormData();
-    // Append text fields
+    // Append semua field (skip created_at, updated_at, id_produsen, id)
     Object.keys(formData).forEach((key) => {
       if (key === 'tanggal_produksi' || key === 'tanggal_kadaluarsa') {
         if (formData[key]) {
           data.append(key, formData[key].toISOString().split('T')[0]);
         }
-      } else if (key !== 'id' && key !== 'created_at' && key !== 'updated_at' && key !== 'id_produsen') {
+      } else if (key !== 'created_at' && key !== 'updated_at' && key !== 'id_produsen' && key !== 'id') {
         data.append(key, formData[key] || '');
       }
     });
@@ -104,28 +122,37 @@ const EditProduksi = () => {
     // Append files and existing paths
     if (dokumenBpomFile) {
       data.append('dokumen_bpom', dokumenBpomFile);
-    } else {
-      data.append('dokumen_bpom_path_existing', formData.dokumen_bpom_path || '');
+    } else if (formData.dokumen_bpom_path) {
+      data.append('dokumen_bpom_path_existing', formData.dokumen_bpom_path);
     }
     if (sertifikatFile) {
       data.append('sertifikat_analisis', sertifikatFile);
-    } else {
-      data.append('sertifikat_analisis_path_existing', formData.sertifikat_analisis_path || '');
+    } else if (formData.sertifikat_analisis_path) {
+      data.append('sertifikat_analisis_path_existing', formData.sertifikat_analisis_path);
       data.append('hash_sertifikat_analisis_existing', formData.hash_sertifikat_analisis || '');
     }
+
+    console.log('FormData contents:', Array.from(data.entries())); // Debug log
 
     try {
       const response = await fetch(`http://localhost:5000/api/produksi/${id}`, {
         method: 'PUT',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         body: data,
       });
+
       const result = await response.json();
-      if (!response.ok) throw new Error(result.message || 'Gagal mengupdate data');
+      if (!response.ok) {
+        throw new Error(result.message || 'Gagal mengupdate data produksi.');
+      }
+
       alert('Jadwal produksi berhasil diperbarui!');
       navigate('/produsen/manajemen-produksi');
     } catch (err) {
       setError(err.message);
+      console.error('Error details:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -153,7 +180,7 @@ const EditProduksi = () => {
                   <label className="block text-sm font-medium text-gray-700">Batch ID</label>
                   <input
                     name="batch_id"
-                    value={formData.batch_id}
+                    value={formData.batch_id || ''}
                     onChange={handleInputChange}
                     placeholder="Masukkan Batch ID Unik"
                     className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
@@ -164,7 +191,7 @@ const EditProduksi = () => {
                   <label className="block text-sm font-medium text-gray-700">Nama Obat (Merek/Generik)</label>
                   <input
                     name="nama_obat"
-                    value={formData.nama_obat}
+                    value={formData.nama_obat || ''}
                     onChange={handleInputChange}
                     placeholder="Masukkan Nama Obat"
                     className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
@@ -195,9 +222,10 @@ const EditProduksi = () => {
                   <label className="block text-sm font-medium text-gray-700">Bentuk Sediaan</label>
                   <select
                     name="bentuk_sediaan"
-                    value={formData.bentuk_sediaan}
+                    value={formData.bentuk_sediaan || ''}
                     onChange={handleInputChange}
                     className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                    required
                   >
                     <option value="">-- Pilih Bentuk Sediaan --</option>
                     <option value="Tablet">Tablet</option>
@@ -214,7 +242,7 @@ const EditProduksi = () => {
                   <input
                     type="number"
                     name="jumlah"
-                    value={formData.jumlah}
+                    value={formData.jumlah || ''}
                     onChange={handleInputChange}
                     placeholder="Masukkan Jumlah (pcs)"
                     min="1"
@@ -242,6 +270,20 @@ const EditProduksi = () => {
                     required
                   />
                 </div>
+                {/* DIPERBAIKI: Tambah field harga_per_unit */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Harga per Unit (Rp)</label>
+                  <input
+                    type="number"
+                    name="harga_per_unit"
+                    value={formData.harga_per_unit || ''}
+                    onChange={handleInputChange}
+                    placeholder="Masukkan Harga per Unit"
+                    min="0"
+                    step="0.01"
+                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                </div>
               </div>
 
               <h2 className="text-lg font-semibold text-emerald-700">Detail Produksi</h2>
@@ -250,10 +292,9 @@ const EditProduksi = () => {
                   <label className="block text-sm font-medium text-gray-700">Prioritas</label>
                   <select
                     name="prioritas"
-                    value={formData.prioritas}
+                    value={formData.prioritas || 'Medium'}
                     onChange={handleInputChange}
                     className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    required
                   >
                     <option value="High">Tinggi</option>
                     <option value="Medium">Sedang</option>
@@ -264,24 +305,24 @@ const EditProduksi = () => {
                   <label className="block text-sm font-medium text-gray-700">Status</label>
                   <select
                     name="status"
-                    value={formData.status}
+                    value={formData.status || 'Terjadwal'}
                     onChange={handleInputChange}
                     className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    required
                   >
                     <option value="Terjadwal">Terjadwal</option>
                     <option value="Dalam Produksi">Dalam Produksi</option>
                     <option value="Selesai">Selesai</option>
                   </select>
                 </div>
-                <div>
+                <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700">Penanggung Jawab</label>
                   <input
                     name="penanggung_jawab"
-                    value={formData.penanggung_jawab}
+                    value={formData.penanggung_jawab || ''}
                     onChange={handleInputChange}
                     placeholder="Masukkan Nama Penanggung Jawab"
                     className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                    required
                   />
                 </div>
               </div>
@@ -293,6 +334,7 @@ const EditProduksi = () => {
                   onChange={handleInputChange}
                   placeholder="Masukkan komposisi obat (misalnya: Paracetamol 500 mg, Laktosa, Pati)"
                   className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                  rows={3}
                 />
               </div>
 
@@ -303,7 +345,6 @@ const EditProduksi = () => {
                   <div className="mt-1 flex items-center gap-2">
                     <input
                       type="file"
-                      name="dokumen_bpom"
                       onChange={(e) => setDokumenBpomFile(e.target.files[0])}
                       accept=".pdf,.png,.jpg"
                       className="hidden"
@@ -336,7 +377,6 @@ const EditProduksi = () => {
                   <div className="mt-1 flex items-center gap-2">
                     <input
                       type="file"
-                      name="sertifikat_analisis"
                       onChange={(e) => setSertifikatFile(e.target.files[0])}
                       accept=".pdf,.png,.jpg"
                       className="hidden"

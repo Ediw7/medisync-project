@@ -35,11 +35,6 @@ const DetailProduksi = () => {
           bentuk_sediaan: result.data.bentuk_sediaan || '',
           penanggung_jawab: result.data.penanggung_jawab || '',
         });
-
-        if (result.data && result.data.status === 'Tercatat di Blockchain') {
-          const qrUrl = await qrcode.toDataURL(result.data.batch_id);
-          setQrCode(qrUrl);
-        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -56,9 +51,13 @@ const DetailProduksi = () => {
 
     try {
       const token = localStorage.getItem('token');
+      if (!token) throw new Error('Token autentikasi tidak ditemukan. Silakan login kembali.');
       const response = await fetch(`http://localhost:5000/api/produksi/${id}/record`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || 'Gagal mencatat ke blockchain');
@@ -73,6 +72,25 @@ const DetailProduksi = () => {
       setError(err.message);
     } finally {
       setIsRecording(false);
+    }
+  };
+
+  // Fungsi untuk memuat data QR secara langsung (opsional, untuk pengujian)
+  const fetchQrData = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('Token autentikasi tidak ditemukan. Silakan login kembali.');
+      return;
+    }
+    try {
+      const response = await fetch(`http://localhost:5000/api/produksi/qr-data/${produksi.batch_id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error('Gagal memuat data QR');
+      // Jika Anda ingin menampilkan halaman di iframe atau tab baru, arahkan ke URL
+      window.open(`http://localhost:5000/api/produksi/qr-data/${produksi.batch_id}`, '_blank');
+    } catch (err) {
+      setError(err.message);
     }
   };
 
@@ -172,7 +190,7 @@ const DetailProduksi = () => {
                     className="w-full bg-emerald-600 text-white py-3 rounded-lg hover:bg-emerald-700 disabled:bg-gray-400 transition flex items-center justify-center gap-2 font-semibold"
                   >
                     {isRecording && <Loader2 className="animate-spin" size={18} />}
-                    {isRecording ? 'Mencatat...' : 'Catat Batch ini ke Blockchain & Hasilkan QR Code'}
+                    {isRecording ? 'Mencatat...' : 'Hasilkan QR Code'}
                   </button>
                 )}
                 {produksi.status === 'Tercatat di Blockchain' && (
@@ -185,6 +203,12 @@ const DetailProduksi = () => {
                         <h3 className="font-semibold text-lg mb-2">QR Code</h3>
                         <img src={qrCode} alt="QR Code" className="mx-auto max-w-[200px]" />
                         <p className="text-sm text-gray-500 mt-2">Pindai untuk verifikasi. Berisi: {produksi.batch_id}</p>
+                        <button
+                          onClick={fetchQrData}
+                          className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                        >
+                          Lihat Detail QR
+                        </button>
                       </div>
                     )}
                   </>

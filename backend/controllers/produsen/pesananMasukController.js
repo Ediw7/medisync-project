@@ -65,6 +65,7 @@ const pesananMasukController = {
     try {
       const { id } = req.params;
       const idProdusen = req.user.id;
+      console.log(`Fetching pesanan with id: ${id} for produsen: ${idProdusen}`);
       const sqlPesanan = `
         SELECT 
           p.id,
@@ -128,6 +129,7 @@ const pesananMasukController = {
     try {
       const { id } = req.params;
       const idProdusen = req.user.id;
+      console.log(`Fetching surat jalan for pesanan id: ${id} for produsen: ${idProdusen}`);
       const sql = `
         SELECT sjp.*
         FROM surat_jalan_produsen sjp
@@ -177,7 +179,7 @@ const pesananMasukController = {
       console.log('Request params:', req.params);
       console.log('Request body:', req.body);
       const { id } = req.params;
-      const { status, nomorResi, nomorSuratJalan, tanggalPengiriman, alamatTujuan, waktuPengiriman, catatan, hashSuratJalan } = req.body;
+      const { status, nomorResi, nomorSuratJalan, tanggalPengiriman, alamatTujuan, waktuPengiriman, catatan, hashSuratJalan, opsiPengiriman } = req.body;
       const idProdusen = req.user.id;
       const validStatuses = ['Dikirim', 'Selesai'];
 
@@ -189,24 +191,47 @@ const pesananMasukController = {
         return res.status(400).json({ success: false, message: 'Tanggal pengiriman, nomor resi, nomor surat jalan, dan alamat tujuan wajib diisi.' });
       }
 
-      // Simpan ke tabel surat_jalan_produsen
-      const sqlSuratJalan = `
-        INSERT INTO surat_jalan_produsen (id_pesanan, nomor_resi, nomor_surat_jalan, tanggal_pengiriman, alamat_tujuan, waktu_pengiriman, catatan, hash_surat_jalan, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
-      `;
-      await db.query(sqlSuratJalan, [id, nomorResi, nomorSuratJalan, tanggalPengiriman, alamatTujuan, waktuPengiriman, catatan || null, hashSuratJalan || null]);
+      const tanggalPengirimanDate = new Date(tanggalPengiriman);
+      if (isNaN(tanggalPengirimanDate.getTime())) {
+        return res.status(400).json({ success: false, message: 'Format tanggal pengiriman tidak valid.' });
+      }
 
-      // Update status dan catatan_khusus di tabel pesanan
-      const [result] = await db.query(
-        `UPDATE pesanan SET status = ?, catatan_khusus = ? WHERE id = ? AND id_produsen = ?`,
-        [status, catatan || null, id, idProdusen]
-      );
+      // opsiPengiriman sekarang diatur oleh ENUM di database, jadi tidak perlu validasi tambahan
+      const opsi = opsiPengiriman?.toLowerCase() || 'standar';
 
-      if (result.affectedRows === 0) {
+      // Periksa apakah pesanan sudah ada
+      const [existing] = await db.query('SELECT id FROM pesanan WHERE id = ? AND id_produsen = ?', [id, idProdusen]);
+      if (existing.length === 0) {
         return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan atau Anda tidak memiliki akses.' });
       }
 
-      res.json({ success: true, message: `Status pesanan berhasil diubah menjadi ${status} dan surat jalan disimpan.` });
+      // Simpan ke tabel surat_jalan_produsen
+      const sqlSuratJalan = `
+        INSERT INTO surat_jalan_produsen (id_pesanan, nomor_resi, nomor_surat_jalan, tanggal_pengiriman, alamat_tujuan, waktu_pengiriman, catatan, hash_surat_jalan, opsi_pengiriman, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        ON DUPLICATE KEY UPDATE 
+          nomor_resi = VALUES(nomor_resi),
+          nomor_surat_jalan = VALUES(nomor_surat_jalan),
+          tanggal_pengiriman = VALUES(tanggal_pengiriman),
+          alamat_tujuan = VALUES(alamat_tujuan),
+          waktu_pengiriman = VALUES(waktu_pengiriman),
+          catatan = VALUES(catatan),
+          hash_surat_jalan = VALUES(hash_surat_jalan),
+          opsi_pengiriman = VALUES(opsi_pengiriman)
+      `;
+      await db.query(sqlSuratJalan, [id, nomorResi, nomorSuratJalan, tanggalPengiriman, alamatTujuan, waktuPengiriman || null, catatan || null, hashSuratJalan || null, opsi]);
+
+      // Update status di tabel pesanan
+      const [result] = await db.query(
+        `UPDATE pesanan SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND id_produsen = ?`,
+        [status, id, idProdusen]
+      );
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ success: false, message: 'Gagal memperbarui status pesanan.' });
+      }
+
+      res.json({ success: true, message: `Status pesanan berhasil diubah menjadi ${status} dan surat jalan diperbarui. Opsi pengiriman: ${opsi}` });
     } catch (error) {
       console.error('Error in updateStatusWithDetails:', error);
       res.status(500).json({ success: false, message: 'Kesalahan Server Internal: ' + error.message });
@@ -222,7 +247,7 @@ const pesananMasukController = {
     try {
       dbConnection = await db.getConnection();
       const [rows] = await dbConnection.query(
-        `SELECT p.id, p.nomor_po, sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman, sjp.alamat_tujuan, sjp.waktu_pengiriman, sjp.catatan, sjp.hash_surat_jalan, pbf.id as id_pbf
+        `SELECT p.id, p.nomor_po, sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman, sjp.alamat_tujuan, sjp.waktu_pengiriman, sjp.catatan, sjp.hash_surat_jalan, sjp.opsi_pengiriman, pbf.id as id_pbf
          FROM pesanan p
          JOIN surat_jalan_produsen sjp ON p.id = sjp.id_pesanan
          JOIN users pbf ON p.id_pbf = pbf.id
@@ -255,7 +280,7 @@ const pesananMasukController = {
         return res.status(404).json({ success: false, message: 'Tidak ada obat terkait dengan pesanan ini.' });
       }
       
-      const obatIds = detailRows.map(row => row.batch_id).filter(Boolean); // Hanya ambil batch_id yang valid
+      const obatIds = detailRows.map(row => row.batch_id).filter(Boolean);
       if (obatIds.length === 0) {
         return res.status(404).json({ success: false, message: 'Tidak ada ID batch obat yang valid untuk pesanan ini.' });
       }
@@ -264,32 +289,25 @@ const pesananMasukController = {
       const network = await gateway.getNetwork('medisyncchannel');
       const contract = network.getContract('medisync');
 
-      // Ambil ID PBF dari tabel 'pesanan'
-      const [pbfRows] = await dbConnection.query('SELECT id_pbf FROM pesanan WHERE id = ?', [id]);
-      const idPbf = pbfRows[0].id_pbf;
-      
-      // Ambil data PBF dari tabel 'users'
-      const [pbfData] = await dbConnection.query('SELECT nama_resmi FROM users WHERE id = ?', [idPbf]);
+      const [pbfData] = await dbConnection.query('SELECT nama_resmi FROM users WHERE id = ?', [shipmentData.id_pbf]);
       const namaPbf = pbfData[0].nama_resmi;
 
       const transaction = contract.createTransaction('ProdusenContract:transferToPbf');
-      // Set endorsing organizations to ensure proper endorsement from both parties
       transaction.setEndorsingOrganizations('ProdusenMSP', 'PBFMSP');
       
-      console.log('Submitting ON-CHAIN transaction for shipment:', shipmentData.nomor_surat_jalan, 'with obatIds:', obatIds);
+      console.log('Submitting ON-CHAIN transaction for shipment:', shipmentData.nomor_surat_jalan, 'with obatIds:', obatIds, 'opsi:', shipmentData.opsi_pengiriman);
       
       const args = [
-        shipmentData.nomor_surat_jalan, 
+        shipmentData.nomor_surat_jalan,
         shipmentData.hash_surat_jalan || 'TIDAK ADA HASH',
         namaPbf,
-        JSON.stringify(obatIds)
+        JSON.stringify(obatIds),
+        shipmentData.opsi_pengiriman || 'standar', // Menggunakan nilai dari database
       ];
 
-      // Kirim transaksi ke blockchain
       await transaction.submit(...args);
       console.log('ON-CHAIN transaction for shipment successful!');
 
-      // Perbarui status di database jika berhasil
       await dbConnection.query('UPDATE pesanan SET status = ? WHERE id = ?', ['Selesai', id]);
       await dbConnection.query('UPDATE surat_jalan_produsen SET status_blockchain = ? WHERE id_pesanan = ?', ['Tercatat', id]);
 

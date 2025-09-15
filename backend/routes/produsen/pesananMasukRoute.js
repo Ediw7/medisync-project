@@ -15,7 +15,8 @@ router.get('/:id', pesananMasukController.getPesananById);
 // Mengambil data surat jalan berdasarkan ID pesanan
 router.get('/:id/surat-jalan', pesananMasukController.getSuratJalanById);
 
-// Mengubah status pesanan dengan detail tambahan (misalnya untuk atur pengiriman)
+// --- PERBAIKAN UTAMA DI SINI ---
+// Mengubah status pesanan dengan detail tambahan. Path diubah agar cocok dengan frontend.
 router.put('/:id/status', pesananMasukController.updateStatusWithDetails);
 
 // Mencatat pengiriman ke blockchain

@@ -4,65 +4,36 @@ import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
 import { Loader2 } from 'lucide-react';
 
+// Definisikan generateProNumber di atas
+const generateProNumber = (prefix, orderId) => {
+  const date = new Date();
+  const year = date.getFullYear().toString().slice(-2);
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  const timestamp = date.getTime().toString().slice(-4);
+  return `${prefix}-${year}${month}${day}-${orderId}-${timestamp}`;
+};
+
 const RincianPengiriman = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  // --- PERUBAHAN 1: Dapatkan location di sini ---
-  const location = useLocation(); 
+  const location = useLocation();
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [pesanan, setPesanan] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [nomorResi, setNomorResi] = useState('');
-  const [nomorSuratJalan, setNomorSuratJalan] = useState('');
-  
-  // Ini adalah satu-satunya state yang dapat diedit sesuai permintaan
-  const [opsiPengiriman, setOpsiPengiriman] = useState('standar'); 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // --- PERUBAHAN 2: Inisialisasi state menggunakan location.state ---
-  // Ambil data dari halaman sebelumnya. Jika halaman di-refresh (location.state hilang),
-  // gunakan fallback string kosong atau nilai default.
+
+  const [nomorResi] = useState(() => generateProNumber('RES', id));
+  const [nomorSuratJalan] = useState(() => generateProNumber('SJ', id));
+  const [opsiPengiriman, setOpsiPengiriman] = useState('standar'); // Default ke 'standar'
   const [catatan, setCatatan] = useState(location.state?.catatan || '');
   const [tanggalPengiriman, setTanggalPengiriman] = useState(location.state?.tanggalPengiriman || '');
   const [waktuPengiriman, setWaktuPengiriman] = useState(location.state?.waktuPengiriman || '09:00-12:00');
-  
-  // Alamat tujuan akan diisi oleh fetch call
   const [alamatTujuan, setAlamatTujuan] = useState('');
 
-  const currentDate = new Date().toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-
-  // Fungsi untuk menghasilkan nomor profesional
-  const generateProNumber = (prefix, orderId) => {
-    const date = new Date();
-    const year = date.getFullYear().toString().slice(-2);
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    const timestamp = date.getTime().toString().slice(-4);
-    return `${prefix}-${year}${month}${day}-${orderId}-${timestamp}`;
-  };
-
-  useEffect(() => {
-    if (id) {
-      setNomorResi(generateProNumber('RES', id));
-      setNomorSuratJalan(generateProNumber('SJ', id));
-    }
-  }, [id]);
-
-  // --- PERUBAHAN 3: Hapus useEffect yang mengatur tanggal & catatan ---
-  // useEffect(() => {
-  //   const { state } = location;
-  //   if (state) {
-  //     setTanggalPengiriman(state.tanggalPengiriman || '');
-  //     setCatatan(state.catatan || '');
-  //   }
-  // }, [location]); 
-  // (Ini dihapus karena state sudah diinisialisasi di atas)
+  const currentDate = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -72,16 +43,22 @@ const RincianPengiriman = () => {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('Silakan login terlebih dahulu');
 
-        const response = await fetch(`http://localhost:5000/api/produsen/pesanan-masuk/${id}`, {
+        const pesananId = String(id).padStart(6, '0');
+        const response = await fetch(`http://localhost:5000/api/produsen/pesanan-masuk/${pesananId}`, {
           headers: { 'Authorization': `Bearer ${token}` },
         });
 
-        if (!response.ok) throw new Error('Gagal mengambil data pesanan');
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(`Gagal: ${response.status} - ${text}`);
+        }
+        if (!response.headers.get('content-type')?.includes('application/json')) {
+          throw new Error('Respons bukan JSON');
+        }
         const result = await response.json();
         if (!result.success) throw new Error(result.message || 'Data pesanan tidak tersedia');
         setPesanan(result.data);
-        // Alamat tujuan di-set dari data fetch, BUKAN dari input pengguna
-        setAlamatTujuan(result.data.pesanan.alamat_pbf || ''); 
+        setAlamatTujuan(result.data.pesanan.alamat_pbf || 'Alamat tidak tersedia');
       } catch (error) {
         setError(error.message);
         if (error.message.includes('login')) navigate('/login/produsen');
@@ -97,50 +74,54 @@ const RincianPengiriman = () => {
     setIsSubmitting(true);
     setError(null);
 
-    // Validasi: data yang dikunci (dari state) harus ada
-    if (!tanggalPengiriman || !alamatTujuan || !waktuPengiriman) {
-      setError('Data pengiriman penting (tanggal, alamat, waktu) tidak ada. Harap kembali dan atur pengiriman.');
+    const tanggalPengirimanDate = new Date(tanggalPengiriman);
+    if (!tanggalPengiriman || isNaN(tanggalPengirimanDate.getTime()) || tanggalPengirimanDate < new Date()) {
+      setError('Tanggal pengiriman harus valid dan tidak boleh sebelum hari ini.');
       setIsSubmitting(false);
       return;
     }
-    
+    if (!alamatTujuan || alamatTujuan === 'Alamat tidak tersedia') {
+      setError('Alamat tujuan tidak tersedia. Hubungi admin.');
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       const token = localStorage.getItem('token');
       const hashSuratJalan = `HASH_${Date.now()}_${id}`;
-
-      const response = await fetch(`http://localhost:5000/api/produsen/pesanan-masuk/${id}/status`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          status: 'Dikirim',
-          nomorResi,
-          nomorSuratJalan,
-          tanggalPengiriman, // Nilai dari state (readOnly)
-          alamatTujuan,       // Nilai dari state (readOnly)
-          waktuPengiriman,    // Nilai dari state (disabled)
-          catatan,            // Nilai dari state (readOnly)
-          hashSuratJalan,
-        }),
-      });
+      const pesananId = String(id).padStart(6, '0');
+      const response = await fetch(`http://localhost:5000/api/produsen/pesanan-masuk/${pesananId}/status`, {
+  method: 'PUT',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    status: 'Dikirim',
+    nomorResi,
+    nomorSuratJalan,
+    tanggalPengiriman,
+    alamatTujuan,
+    waktuPengiriman,
+    catatan,
+    hashSuratJalan,
+    opsiPengiriman,
+  }),
+});
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Gagal menyimpan data pengiriman.');
+        const text = await response.text();
+        throw new Error(`Gagal: ${response.status} - ${text}`);
       }
       const result = await response.json();
-
-      if (result.success) {
+if (result.success) {
         alert('Surat jalan berhasil dibuat dan data disimpan.');
-        
+        // --- PERBAIKAN UTAMA DI SINI ---
         navigate(`/produsen/pengelolaan-pengiriman/surat-jalan/${id}`, { 
           state: {
             nomorResi,
             nomorSuratJalan,
-            pesanan: pesanan,
+            pesanan,
             tanggalPengiriman,
             alamatTujuan,
             waktuPengiriman,
@@ -163,7 +144,6 @@ const RincianPengiriman = () => {
     navigate('/');
   };
 
-  // ... (Blok rendering isLoading, error, !pesanan tetap sama) ...
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
@@ -196,15 +176,12 @@ const RincianPengiriman = () => {
     );
   }
 
-
   return (
     <div className="flex min-h-screen bg-gray-50">
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={handleLogout} />
         <main className="pt-16 p-6">
-
-
           <div className="flex justify-between items-center mb-6">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Rincian Pengiriman</h1>
@@ -220,7 +197,6 @@ const RincianPengiriman = () => {
 
           <div className="bg-white rounded-lg shadow-lg p-6">
             <form onSubmit={handleCetakSuratJalan} className="space-y-6">
-              {/* Nomor Resi (Read Only) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700">Nomor Resi</label>
                 <input
@@ -230,7 +206,6 @@ const RincianPengiriman = () => {
                   className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-800 font-semibold"
                 />
               </div>
-              {/* Nomor Surat Jalan (Read Only) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700">Nomor Surat Jalan</label>
                 <input
@@ -240,7 +215,6 @@ const RincianPengiriman = () => {
                   className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-800 font-semibold"
                 />
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700">Informasi Rincian Pengiriman</label>
                 <textarea
@@ -249,70 +223,59 @@ const RincianPengiriman = () => {
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100 p-2 h-24 resize-none"
                 />
               </div>
-              
-              {/* --- PERUBAHAN 4: Ini SATU-SATUNYA field yang bisa diedit --- */}
               <div>
-                <label className="block text-sm font-medium text-gray-700">Opsi Pengiriman </label>
+                <label className="block text-sm font-medium text-gray-700">Opsi Pengiriman</label>
                 <select
                   value={opsiPengiriman}
-                  onChange={(e) => setOpsiPengiriman(e.target.value)} // Tetap aktif
+                  onChange={(e) => setOpsiPengiriman(e.target.value)}
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 p-2"
                 >
                   <option value="standar">Standar (2-3 hari)</option>
                   <option value="ekspres">Ekspres (1 hari)</option>
                 </select>
               </div>
-              
-              {/* --- PERUBAHAN 5: Buat ReadOnly --- */}
               <div>
-                <label className="block text-sm font-medium text-gray-700">Catatan </label>
+                <label className="block text-sm font-medium text-gray-700">Catatan</label>
                 <textarea
                   value={catatan}
-                  readOnly // Dibuat ReadOnly
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 h-24 resize-none bg-gray-100" // Tambah bg-gray-100
+                  readOnly
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 h-24 resize-none bg-gray-100"
                   placeholder="Tidak ada catatan."
                 />
               </div>
-              
-              {/* --- PERUBAHAN 6: Buat ReadOnly --- */}
               <div>
-                <label className="block text-sm font-medium text-gray-700">Tanggal Pengiriman </label>
+                <label className="block text-sm font-medium text-gray-700">Tanggal Pengiriman</label>
                 <input
                   type="date"
                   value={tanggalPengiriman}
-                  readOnly // Dibuat ReadOnly
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 bg-gray-100" // Tambah bg-gray-100
+                  readOnly
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 bg-gray-100"
                   required
                 />
               </div>
-              
-              {/* --- PERUBAHAN 7: Buat ReadOnly (diisi dari fetch) --- */}
               <div>
                 <label className="block text-sm font-medium text-gray-700">Alamat Tujuan (Otomatis)</label>
                 <input
                   type="text"
                   value={alamatTujuan}
-                  readOnly // Dibuat ReadOnly
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 bg-gray-100" // Tambah bg-gray-100
+                  readOnly
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 bg-gray-100"
                   placeholder="Memuat alamat..."
                   required
                 />
               </div>
-              
-              {/* --- PERUBAHAN 8: Buat Disabled --- */}
               <div>
-                <label className="block text-sm font-medium text-gray-700">Waktu Pengiriman </label>
+                <label className="block text-sm font-medium text-gray-700">Waktu Pengiriman</label>
                 <select
                   value={waktuPengiriman}
-                  disabled // Gunakan 'disabled' untuk select
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 bg-gray-100 disabled:opacity-75" // Tambah style disabled
+                  disabled
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 bg-gray-100 disabled:opacity-75"
                 >
                   <option value="09:00-12:00">09:00 - 12:00</option>
                   <option value="13:00-16:00">13:00 - 16:00</option>
                   <option value="16:00-19:00">16:00 - 19:00</option>
                 </select>
               </div>
-              
               <div className="flex space-x-4">
                 <button
                   type="submit"

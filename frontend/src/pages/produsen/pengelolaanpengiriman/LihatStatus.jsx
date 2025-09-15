@@ -39,7 +39,9 @@ const LihatStatus = () => {
         // Menghitung Estimasi Sampai
         const tanggalPengiriman = new Date(sjResult.data.tanggal_pengiriman);
         const estimasiSampai = new Date(tanggalPengiriman);
-        const pengirimanEkspres = sjResult.data.opsi_pengiriman === 'ekspres'; // Asumsi opsi_pengiriman disimpan di DB
+        // Memeriksa opsi pengiriman dari data surat jalan
+        const pengirimanEkspres = sjResult.data.opsi_pengiriman === 'ekspres'; 
+        // Menambahkan +1 hari untuk ekspres, atau +3 hari untuk standar
         estimasiSampai.setDate(tanggalPengiriman.getDate() + (pengirimanEkspres ? 1 : 3));
 
         const mergedData = {
@@ -52,7 +54,7 @@ const LihatStatus = () => {
           tanggalPengiriman: tanggalPengiriman,
           waktuPengiriman: sjResult.data.waktu_pengiriman,
           statusPengiriman: pesananResult.data.pesanan.status,
-          estimasiSampai: estimasiSampai,
+          estimasiSampai: estimasiSampai, // Data estimasi yang sudah dihitung
         };
 
         setShippingData(mergedData);

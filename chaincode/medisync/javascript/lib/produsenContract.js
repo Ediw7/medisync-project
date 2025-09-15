@@ -9,7 +9,6 @@ class ProdusenContract extends Contract {
         return assetJSON && assetJSON.length > 0;
     }
 
-    // Tambahkan parameter 'jumlah' (parameter ke-11)
     async createObat(ctx, id, namaObat, nomorIzinEdar, komposisi, dosis, tanggalProduksi, tanggalKadaluarsa, bentukSediaan, penanggungJawab, jumlah, hargaPerUnit, hashHasilUjiMutu) {
         const mspID = ctx.clientIdentity.getMSPID();
         if (mspID !== 'ProdusenMSP') {
@@ -23,7 +22,6 @@ class ProdusenContract extends Contract {
 
         const timestamp = new Date(ctx.stub.getTxTimestamp().seconds.low * 1000).toISOString();
 
-        // Tambahkan 'jumlah' ke objek obat
         const obat = {
             docType: 'obat',
             id: id,
@@ -36,7 +34,7 @@ class ProdusenContract extends Contract {
             tanggalKadaluarsa: tanggalKadaluarsa,
             penanggungJawab: penanggungJawab,
             jumlah: Number(jumlah) || 0,
-            hargaPerUnit: Number(hargaPerUnit) || 0, // Simpan jumlah sebagai number
+            hargaPerUnit: Number(hargaPerUnit) || 0,
             pemilikSaatIni: mspID,
             statusSaatIni: 'DIPRODUKSI',
             hashDokumen: {
@@ -54,16 +52,16 @@ class ProdusenContract extends Contract {
         return JSON.stringify(obat);
     }
 
-    // Fungsi transferToPbf tetap sama, tapi update objek obat jika perlu
-    async transferToPbf(ctx, idPesanan, hashSuratJalan) {
+    async transferToPbf(ctx, idPesanan, hashSuratJalan, namaPbf, obatIdsJson, jumlahPesananJson) {
         const mspID = ctx.clientIdentity.getMSPID();
         if (mspID !== 'ProdusenMSP') {
             throw new Error(`ERROR: Hanya Produsen yang bisa mentransfer ke PBF.`);
         }
 
-        const obatIds = await this.getObatIdsByPesanan(ctx, idPesanan);
-        if (obatIds.length === 0) {
-            throw new Error(`ERROR: Tidak ada obat terkait dengan pesanan ID ${idPesanan}.`);
+        const obatIds = JSON.parse(obatIdsJson);
+        const jumlahPesananList = JSON.parse(jumlahPesananJson); // Array [{obatId, jumlah}, ...]
+        if (!obatIds || obatIds.length === 0 || !jumlahPesananList || jumlahPesananList.length === 0) {
+            throw new Error(`ERROR: Tidak ada ID obat atau jumlah pesanan yang valid untuk pesanan ${idPesanan}.`);
         }
 
         for (const obatId of obatIds) {
@@ -77,21 +75,32 @@ class ProdusenContract extends Contract {
                 throw new Error(`ERROR: Obat dengan ID ${obatId} tidak dimiliki oleh Produsen.`);
             }
 
+            // Cari jumlah pesanan untuk obat ini
+            const pesananItem = jumlahPesananList.find(item => item.obatId === obatId);
+            const jumlah = pesananItem ? Number(pesananItem.jumlah) : 0;
+            if (jumlah <= 0) {
+                throw new Error(`ERROR: Jumlah pesanan untuk obat ${obatId} tidak valid.`);
+            }
+            if (obat.jumlah < jumlah) {
+                throw new Error(`ERROR: Stok obat ${obatId} (${obat.jumlah}) tidak cukup untuk pesanan ${jumlah}.`);
+            }
+
             const timestamp = new Date(ctx.stub.getTxTimestamp().seconds.low * 1000).toISOString();
             obat.pemilikSaatIni = 'PBFMSP';
             obat.statusSaatIni = 'DIKIRIM_KE_PBF';
             obat.hashDokumen.suratJalan = hashSuratJalan;
+            obat.jumlah -= jumlah; // Kurangi jumlah
             obat.riwayat.push({
                 pemilik: 'PBFMSP',
                 status: 'DIKIRIM_KE_PBF',
                 timestamp: timestamp,
-                detail: `Surat Jalan hash: ${hashSuratJalan}`
+                detail: `Surat Jalan hash: ${hashSuratJalan}, Jumlah dikirim: ${jumlah}, Penerima: ${namaPbf}`
             });
 
             await ctx.stub.putState(obatId, Buffer.from(JSON.stringify(obat)));
         }
 
-        return JSON.stringify({ success: true, message: `Transfer berhasil untuk pesanan ID ${idPesanan}` });
+        return JSON.stringify({ success: true, message: `Transfer berhasil untuk pesanan ID ${idPesanan} ke ${namaPbf}` });
     }
 
     async getObatIdsByPesanan(ctx, idPesanan) {

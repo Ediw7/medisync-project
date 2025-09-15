@@ -27,7 +27,7 @@ const RincianPengiriman = () => {
 
   const [nomorResi] = useState(() => generateProNumber('RES', id));
   const [nomorSuratJalan] = useState(() => generateProNumber('SJ', id));
-  const [opsiPengiriman, setOpsiPengiriman] = useState('standar'); // Default ke 'standar'
+  const [opsiPengiriman, setOpsiPengiriman] = useState('standar');
   const [catatan, setCatatan] = useState(location.state?.catatan || '');
   const [tanggalPengiriman, setTanggalPengiriman] = useState(location.state?.tanggalPengiriman || '');
   const [waktuPengiriman, setWaktuPengiriman] = useState(location.state?.waktuPengiriman || '09:00-12:00');
@@ -91,43 +91,42 @@ const RincianPengiriman = () => {
       const hashSuratJalan = `HASH_${Date.now()}_${id}`;
       const pesananId = String(id).padStart(6, '0');
       const response = await fetch(`http://localhost:5000/api/produsen/pesanan-masuk/${pesananId}/status`, {
-  method: 'PUT',
-  headers: {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    status: 'Dikirim',
-    nomorResi,
-    nomorSuratJalan,
-    tanggalPengiriman,
-    alamatTujuan,
-    waktuPengiriman,
-    catatan,
-    hashSuratJalan,
-    opsiPengiriman,
-  }),
-});
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: 'Dikirim',
+          nomorResi,
+          nomorSuratJalan,
+          tanggalPengiriman,
+          alamatTujuan,
+          waktuPengiriman,
+          catatan,
+          hashSuratJalan,
+          opsiPengiriman,
+        }),
+      });
 
       if (!response.ok) {
         const text = await response.text();
         throw new Error(`Gagal: ${response.status} - ${text}`);
       }
       const result = await response.json();
-if (result.success) {
-        alert('Surat jalan berhasil dibuat dan data disimpan.');
-        // --- PERBAIKAN UTAMA DI SINI ---
-        navigate(`/produsen/pengelolaan-pengiriman/surat-jalan/${id}`, { 
+      if (result.success) {
+        alert('Surat jalan berhasil dibuat, stok diperbarui, dan data disimpan ke blockchain.');
+        navigate(`/produsen/pengelolaan-pengiriman/surat-jalan/${id}`, {
           state: {
             nomorResi,
             nomorSuratJalan,
-            pesanan,
+            pesanan: pesanan,
             tanggalPengiriman,
             alamatTujuan,
             waktuPengiriman,
             catatan,
-            hashSuratJalan
-          }
+            hashSuratJalan,
+          },
         });
       } else {
         throw new Error(result.message || 'Gagal mengatur pengiriman.');
@@ -238,9 +237,9 @@ if (result.success) {
                 <label className="block text-sm font-medium text-gray-700">Catatan</label>
                 <textarea
                   value={catatan}
-                  readOnly
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 h-24 resize-none bg-gray-100"
-                  placeholder="Tidak ada catatan."
+                  onChange={(e) => setCatatan(e.target.value)}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 h-24 resize-none"
+                  placeholder="Masukkan catatan jika ada."
                 />
               </div>
               <div>
@@ -248,28 +247,30 @@ if (result.success) {
                 <input
                   type="date"
                   value={tanggalPengiriman}
-                  readOnly
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 bg-gray-100"
+                  onChange={(e) => setTanggalPengiriman(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 focus:ring-emerald-500 focus:border-emerald-500"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Alamat Tujuan (Otomatis)</label>
+                <label className="block text-sm font-medium text-gray-700">Alamat Tujuan</label>
                 <input
                   type="text"
                   value={alamatTujuan}
-                  readOnly
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 bg-gray-100"
-                  placeholder="Memuat alamat..."
+                  onChange={(e) => setAlamatTujuan(e.target.value)}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  placeholder="Masukkan alamat tujuan"
                   required
+                  disabled={alamatTujuan === 'Alamat tidak tersedia'}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Waktu Pengiriman</label>
                 <select
                   value={waktuPengiriman}
-                  disabled
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 bg-gray-100 disabled:opacity-75"
+                  onChange={(e) => setWaktuPengiriman(e.target.value)}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 focus:ring-emerald-500 focus:border-emerald-500"
                 >
                   <option value="09:00-12:00">09:00 - 12:00</option>
                   <option value="13:00-16:00">13:00 - 16:00</option>
@@ -280,7 +281,7 @@ if (result.success) {
                 <button
                   type="submit"
                   className="w-full bg-emerald-600 text-white py-3 px-6 rounded-lg hover:bg-emerald-700 transition duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !tanggalPengiriman || !alamatTujuan || alamatTujuan === 'Alamat tidak tersedia'}
                 >
                   {isSubmitting ? (
                     <>

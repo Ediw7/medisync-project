@@ -56,15 +56,15 @@ const PesanObat = () => {
   }, [pesananData, searchTerm, statusFilter]);
 
   const getStatusBadge = (status) => {
-  switch (status) {
-    case 'Perlu Dikirim': return 'bg-yellow-100 text-yellow-800';  // Fix: Ganti dari 'Dipesan'
-    case 'Dikirim': return 'bg-blue-100 text-blue-800';
-    case 'Selesai': return 'bg-green-100 text-green-800';
-    case 'Ditolak': return 'bg-red-100 text-red-800';
-    case 'Dikembalikan': return 'bg-purple-100 text-purple-800';
-    default: return 'bg-gray-100 text-gray-800';
-  }
-};
+    switch (status) {
+      case 'Perlu Dikirim': return 'bg-yellow-100 text-yellow-800';
+      case 'Dikirim': return 'bg-blue-100 text-blue-800';
+      case 'Selesai': return 'bg-green-100 text-green-800';
+      case 'Ditolak': return 'bg-red-100 text-red-800';
+      case 'Dikembalikan': return 'bg-purple-100 text-purple-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   const formatDate = (dateString) => {
     if (!dateString) return '-';
@@ -120,10 +120,11 @@ const PesanObat = () => {
                   className="p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
                 >
                   <option>Semua Status</option>
-                  <option>Dipesan</option>
-                  <option>Diproses</option>
+                  <option>Perlu Dikirim</option>
                   <option>Dikirim</option>
-                  <option>Diterima</option>
+                  <option>Selesai</option>
+                  <option>Ditolak</option>
+                  <option>Dikembalikan</option>
                 </select>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -178,15 +179,31 @@ const PesanObat = () => {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            
+                            {/* --- PERBAIKAN LOGIKA SESUAI PERMINTAAN --- */}
                             <div className="flex gap-4">
-                              {/* --- PERBAIKAN DI SINI --- */}
-                              <Link to={`/pbf/pesanan/${item.id}/detail`} className="text-blue-600 hover:text-blue-800">
-                                Detail
-                              </Link>
-                              <Link to={`/pbf/pesanan/${item.id}/lacak`} className="text-blue-600 hover:text-blue-800">
-                                Lacak
-                              </Link>
+                              {item.status === 'Perlu Dikirim' ? (
+                                // JIKA Perlu Dikirim: Tampilkan HANYA Batalkan Pesanan (warna biru)
+                                <Link 
+                                  to={`/pbf/pesanan/${item.id}/batalkan`} 
+                                  className="text-blue-600 hover:text-blue-800 font-medium"
+                                >
+                                  Batalkan Pesanan
+                                </Link>
+                              ) : (
+                                // JIKA status LAIN: Tampilkan Detail dan Lacak
+                                <>
+                                  <Link to={`/pbf/pesanan/${item.id}/detail`} className="text-blue-600 hover:text-blue-800">
+                                    Detail
+                                  </Link>
+                                  <Link to={`/pbf/pesanan/${item.id}/lacak`} className="text-blue-600 hover:text-blue-800">
+                                    Lacak
+                                  </Link>
+                                </>
+                              )}
                             </div>
+                            {/* --- AKHIR PERBAIKAN --- */}
+
                           </td>
                         </tr>
                       ))

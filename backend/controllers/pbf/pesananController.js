@@ -3,7 +3,8 @@
 const db = require('../../config/db');
 const fs = require('fs');
 const path = require('path');
-const nano = require('nano')(`http://${process.env.COUCHDB_USER}:${process.env.COUCHDB_PASSWORD}@127.0.0.1:5984`); // Fix: Ganti password jadi 'adminpw' sesuai docker-compose
+// Pastikan Anda menginstal nano: npm install nano
+const nano = require('nano')(`http://${process.env.COUCHDB_USER}:${process.env.COUCHDB_PASSWORD}@127.0.0.1:5984`);
 
 
 async function fetchFromCouchDB(idProdusen) {
@@ -13,13 +14,15 @@ async function fetchFromCouchDB(idProdusen) {
     const result = await dbInstance.find({
       selector: {
         docType: 'obat',
-        pemilikSaatIni: 'ProdusenMSP',
+        pemilikSaatIni: 'ProdusenMSP', // Hanya ambil stok milik Produsen
       },
+      // Sesuaikan fields dengan data yang Anda butuhkan di frontend
       fields: ['id', 'namaObat', 'bentukSediaan', 'dosis', 'tanggalProduksi', 'tanggalKadaluarsa', 'penanggungJawab', 'jumlah', 'hargaPerUnit'],
-      limit: 50,
+      limit: 50, // Batasi jumlah data untuk performa
       skip: 0,
     });
     console.log('CouchDB query result:', result.docs.length, 'documents');
+    // Mapping nama field CouchDB (camelCase) ke nama field yang diharapkan frontend (snake_case)
     const mappedData = result.docs.map(doc => ({
       id: doc.id,
       batch_id: doc.id,
@@ -31,7 +34,7 @@ async function fetchFromCouchDB(idProdusen) {
       tanggal_kadaluarsa: doc.tanggalKadaluarsa,
       penanggung_jawab: doc.penanggungJawab,
       harga_per_unit: doc.hargaPerUnit || 0,
-      nama_perusahaan: 'PT Medisync',
+      nama_perusahaan: 'PT Medisync', // Asumsi statis
     }));
     console.log('Mapped CouchDB data sample:', mappedData[0]);
     return mappedData;
@@ -97,7 +100,7 @@ const pesananController = {
       const sqlDetail = `
         SELECT dp.*, pr.batch_id
         FROM detail_pesanan dp
-        LEFT JOIN produksi pr ON dp.id_produksi = pr.id OR pr.batch_id = dp.id_produksi  -- Fix: Handle string batch_id
+        LEFT JOIN produksi pr ON dp.id_produksi = pr.id OR pr.batch_id = dp.id_produksi
         WHERE dp.id_pesanan = ?
       `;
       const [detail] = await db.query(sqlDetail, [id]);
@@ -132,21 +135,9 @@ const pesananController = {
         return res.json({ success: true, data: offChainData, source: 'off-chain' });
       }
 
-      const mappedData = onChainData.map(doc => ({
-        id: doc.id,
-        batch_id: doc.id,
-        nama_obat: doc.namaObat,
-        bentuk_sediaan: doc.bentukSediaan,
-        dosis: doc.dosis,
-        jumlah: doc.jumlah || 0,
-        tanggal_produksi: doc.tanggalProduksi,
-        tanggal_kadaluarsa: doc.tanggalKadaluarsa,
-        penanggung_jawab: doc.penanggungJawab,
-        harga_per_unit: doc.harga_per_unit || 0,
-        nama_perusahaan: 'PT Medisync',
-      }));
-      
-      res.json({ success: true, data: mappedData, source: 'on-chain' });
+      // Note: Data dari CouchDB sudah di-map di dalam helper fetchFromCouchDB
+      // Kita kembalikan langsung data yang sudah di-map.
+      res.json({ success: true, data: onChainData, source: 'on-chain' });
     } catch (error) {
       console.error('Error in getStokFromBlockchain:', error);
       res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
@@ -155,7 +146,6 @@ const pesananController = {
 
   // Membuat pesanan baru
   create: async (req, res) => {
-        // PERUBAHAN DI SINI: Kita HAPUS 'nomor_po' dari req.body
         const {
             /* nomor_po DIHAPUS DARI SINI */
             id_produsen, nama_pbf, alamat_pbf, nomor_siup, nomor_sia_sika,
@@ -169,43 +159,28 @@ const pesananController = {
             dbConnection = await db.getConnection();
             await dbConnection.beginTransaction();
             
-            const dbCouch = nano.use('medisyncchannel_medisync');
+            const dbCouch = nano.use('medisyncchannel_medisync'); // Pastikan nama DB Couch benar
 
             // --- AWAL BLOK GENERATOR NOMOR PO ---
-            // 1. Tentukan prefix sesuai permintaan Anda
             const prefix = 'PBF/IV/2025/';
-            
-            // 2. Cari nomor PO terakhir DENGAN PREFIX YANG SAMA di dalam transaksi
-            // Kita urutkan berdasarkan ID (asumsi ID auto-increment) untuk mendapatkan yang terbaru
             const [lastOrder] = await dbConnection.query(
                 "SELECT nomor_po FROM pesanan WHERE nomor_po LIKE ? ORDER BY id DESC LIMIT 1",
                 [`${prefix}%`]
             );
-
-            let nextSeqNumber = 1; // Default jika ini adalah order pertama dengan prefix tsb
-
+            let nextSeqNumber = 1; 
             if (lastOrder.length > 0) {
-                // 3. Jika ditemukan (misal: "PBF/IV/2025/0012")
                 const lastPoNumber = lastOrder[0].nomor_po; 
-                // 4. Ambil bagian angka nya saja (misal: "0012")
                 const lastSeqStr = lastPoNumber.substring(prefix.length); 
-                // 5. Ubah ke integer, tambahkan 1 (misal: 12 + 1 = 13)
                 const lastSeqInt = parseInt(lastSeqStr, 10);
                 nextSeqNumber = lastSeqInt + 1;
             }
-
-            // 6. Format kembali ke string 4 digit (misal: 13 -> "0013")
             const newSequenceString = String(nextSeqNumber).padStart(4, '0');
-            // 7. Gabungkan menjadi nomor PO baru (misal: "PBF/IV/2025/0013")
             const generated_nomor_po = prefix + newSequenceString;
             // --- AKHIR BLOK GENERATOR NOMOR PO ---
 
-
-            // Validasi setiap item pesanan terhadap "sumber kebenaran" (blockchain)
+            // Validasi stok di blockchain
             for (const item of items) {
-                // ... (sisa logika validasi Anda tetap sama)
                 const batchIdOnChain = item.id_produksi;
-                
                 try {
                     const onChainDoc = await dbCouch.get(batchIdOnChain);
                     if (item.jumlah_pesanan > onChainDoc.jumlah) {
@@ -215,10 +190,11 @@ const pesananController = {
                     if (couchError.statusCode === 404) {
                         throw new Error(`Obat dengan Batch ID ${batchIdOnChain} tidak ditemukan di blockchain.`);
                     }
-                    throw couchError;
+                    throw couchError; // Lempar error lain (koneksi, dll)
                 }
             }
             
+            // Simpan Tanda Tangan
             const base64Data = tanda_tangan_data_url.replace(/^data:image\/png;base64,/, "");
             const fileName = `ttd-pesanan-${Date.now()}.png`;
             const filePath = path.join('uploads', 'tanda_tangan', fileName);
@@ -227,6 +203,7 @@ const pesananController = {
             
             const total_harga = items.reduce((sum, item) => sum + (Number(item.jumlah_pesanan) * Number(item.harga_per_unit)), 0);
 
+            // Insert data pesanan
             const sqlPesanan = `
                 INSERT INTO pesanan (
                     nomor_po, id_pbf, id_produsen, nama_pbf, alamat_pbf, nomor_siup, nomor_sia_sika,
@@ -234,9 +211,8 @@ const pesananController = {
                     tujuan_distribusi, catatan_khusus, tanda_tangan_apoteker, status, total_harga
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
             
-            // PERUBAHAN DI SINI: Gunakan 'generated_nomor_po'
             const paramsPesanan = [
-                generated_nomor_po, // Menggunakan variabel yang kita buat
+                generated_nomor_po, 
                 id_pbf, id_produsen, nama_pbf, alamat_pbf, nomor_siup, nomor_sia_sika,
                 nama_apoteker, nomor_sipa, kontak_telepon, kontak_email, tanggal_pesanan,
                 tujuan_distribusi || null, catatan_khusus || null, filePath, 'Perlu Dikirim', total_harga
@@ -244,10 +220,9 @@ const pesananController = {
             const [resultPesanan] = await dbConnection.query(sqlPesanan, paramsPesanan);
             const idPesanan = resultPesanan.insertId;
 
-            // Simpan detail pesanan dan kurangi stok di off-chain
+            // Simpan detail pesanan dan kurangi stok di MySQL (sebagai referensi)
             for (const item of items) {
-                // ... (sisa logika Anda tetap sama)
-                const [produksiRows] = await dbConnection.query('SELECT id, nama_obat, bentuk_sediaan, dosis FROM produksi WHERE batch_id = ?', [item.id_produksi]);
+                const [produksiRows] = await dbConnection.query('SELECT id FROM produksi WHERE batch_id = ?', [item.id_produksi]);
                 if (produksiRows.length === 0) {
                      throw new Error(`Referensi produk off-chain untuk batch ID ${item.id_produksi} tidak ditemukan.`);
                 }
@@ -259,11 +234,12 @@ const pesananController = {
                     item.dosis, item.jumlah_pesanan, item.harga_per_unit, item.total_harga
                 ]);
                 
+                // Kurangi juga stok di MySQL (meskipun sumber utamanya CouchDB, ini untuk sinkronisasi data internal)
                 await dbConnection.query('UPDATE produksi SET jumlah = jumlah - ? WHERE id = ?', [item.jumlah_pesanan, idProduksiInteger]);
             }
 
             await dbConnection.commit();
-            res.status(201).json({ success: true, message: 'Pesanan berhasil dibuat!', idPesanan });
+            res.status(201).json({ success: true, message: 'Pesanan berhasil dibuat!', idPesanan, nomorPo: generated_nomor_po });
         } catch (error) {
             if (dbConnection) await dbConnection.rollback();
             console.error('Error in create:', error);
@@ -271,7 +247,58 @@ const pesananController = {
         } finally {
             if (dbConnection) dbConnection.release();
         }
+    },
+
+  // ==============================================================
+  // ========= FUNGSI BARU UNTUK BATAL PESANAN DITAMBAHKAN DI SINI =
+  // ==============================================================
+  batalkanPesanan: async (req, res) => {
+    try {
+      const { id } = req.params;       // ID Pesanan dari URL (misal: /pesanan/14/batalkan)
+      const idPbf = req.user.id;       // ID PBF yang sedang login (dari token JWT)
+      const { alasanPembatalan } = req.body; // Data dari frontend BatalPesanan.jsx
+
+      if (!alasanPembatalan || alasanPembatalan.length === 0) {
+        return res.status(400).json({ success: false, message: 'Alasan pembatalan wajib diisi.' });
+      }
+
+      // Gabungkan array alasan menjadi satu string untuk disimpan di kolom catatan
+      const catatan = "Dibatalkan oleh PBF. Alasan: " + alasanPembatalan.join(', ');
+
+      // Query SQL untuk UPDATE status DAN menyimpan alasan pembatalan
+      // Penting: Kita tambahkan cek AND id_pbf = ? DAN status = 'Perlu Dikirim'
+      // Ini memastikan PBF hanya bisa membatalkan pesanannya sendiri, 
+      // dan HANYA jika statusnya belum diproses oleh Produsen.
+      const sql = `
+        UPDATE pesanan 
+        SET 
+          status = 'Dikembalikan',  -- Set status ke Dikembalikan (pastikan 'Dikembalikan' ada di ENUM Anda)
+          catatan_khusus = ?      -- Simpan alasannya di catatan
+        WHERE 
+          id = ? AND                
+          id_pbf = ? AND            
+          status = 'Perlu Dikirim'  
+      `;
+
+      const [result] = await db.query(sql, [catatan, id, idPbf]);
+
+      // Jika tidak ada baris yang terpengaruh (affectedRows == 0)
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Gagal membatalkan pesanan. Pesanan mungkin tidak ditemukan, bukan milik Anda, atau statusnya sudah berubah (sudah dikirim).' 
+        });
+      }
+
+      // Jika berhasil
+      res.json({ success: true, message: 'Pesanan telah berhasil dibatalkan.' });
+
+    } catch (error) {
+      console.error('Error in pbf.batalkanPesanan:', error);
+      res.status(500).json({ success: false, message: 'Kesalahan Server Internal: ' + error.message });
     }
+  }
+  
 };
 
 module.exports = pesananController;

@@ -2,14 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import SidebarPbf from '../../../components/SidebarPbf';
 import NavbarPbf from '../../../components/NavbarPbf';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react'; // Impor Loader2
 
 const BatalPesanan = () => {
   const navigate = useNavigate();
   const { id } = useParams(); // ID Pesanan yang akan dibatalkan
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Daftar alasan dari screenshot
   const reasonsList = [
     'Ingin mengubah alamat pengiriman',
     'Ingin memesan ulang dengan detail yang berbeda',
@@ -17,41 +16,76 @@ const BatalPesanan = () => {
     'Lainnya/ berubah pikiran',
   ];
 
-  // State untuk menyimpan alasan yang dipilih (sesuai screenshot, "Lainnya" tercentang)
   const [selectedReasons, setSelectedReasons] = useState(['Lainnya/ berubah pikiran']);
+  
+  // State untuk error dinamis dari API
   const [error, setError] = useState(
     'Mohon pilih alasan pematalan. Pesananmu akan langsung dibatalkan setelah alasan pembatalan diajukan'
   );
+  const [isSubmitting, setIsSubmitting] = useState(false); // State untuk loading
 
   const handleLogout = () => {
     localStorage.clear();
     navigate('/');
   };
 
-  // Handler untuk mengelola state checkbox
   const handleCheckboxChange = (reason) => {
     setSelectedReasons((prev) => {
       if (prev.includes(reason)) {
-        // Jika sudah ada, hapus dari array (uncheck)
         return prev.filter((r) => r !== reason);
       } else {
-        // Jika belum ada, tambahkan ke array (check)
         return [...prev, reason];
       }
     });
   };
 
-  const handleSubmit = (e) => {
+  // --- INI ADALAH FUNGSI PENTING YANG MEMANGGIL BACKEND ---
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null); // Bersihkan error sebelumnya
+    setIsSubmitting(true);
+
     if (selectedReasons.length === 0) {
       setError('Anda harus memilih setidaknya satu alasan pembatalan.');
+      setIsSubmitting(false);
       return;
     }
-    // TODO: Logika untuk mengirim pembatalan ke API
-    console.log(`Membatalkan Pesanan ID: ${id}`);
-    console.log('Alasan:', selectedReasons);
-    alert('Pesanan (pura-pura) berhasil dibatalkan!');
-    navigate('/pbf/pesan-obat'); // Kembali ke daftar pesanan
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login/pbf'); // Jika token tidak ada, lempar ke login
+        return;
+      }
+
+      // Memanggil API Backend (fungsi batalkanPesanan di pesananController.js)
+      const response = await fetch(`http://localhost:5000/api/pbf/pesanan/${id}/batalkan`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          alasanPembatalan: selectedReasons, // Kirim array alasan
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        // Tampilkan error dari backend (misal: "Pesanan sudah dikirim")
+        throw new Error(result.message || 'Gagal terhubung ke server.');
+      }
+
+      // Jika sukses
+      alert('Pesanan berhasil dibatalkan dan status diubah menjadi Dikembalikan.');
+      navigate('/pbf/pesan-obat'); // Kembali ke daftar pesanan
+
+    } catch (err) {
+      setError(err.message); // Tampilkan error di kotak merah
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -67,7 +101,7 @@ const BatalPesanan = () => {
               <p className="text-gray-500 mt-1">Pesanan ID: {String(id).padStart(6, '0')}</p>
             </div>
 
-            {/* Alert Box Merah dari Screenshot */}
+            {/* Alert Box Merah (sekarang dinamis) */}
             {error && (
               <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg flex items-center gap-3">
                 <AlertCircle className="h-5 w-5 flex-shrink-0" />
@@ -79,7 +113,6 @@ const BatalPesanan = () => {
               <form onSubmit={handleSubmit}>
                 <div className="space-y-5">
                   
-                  {/* Mapping alasan ke checkboxes */}
                   {reasonsList.map((reason) => (
                     <label key={reason} htmlFor={reason} className="flex items-center gap-3 cursor-pointer">
                       <input
@@ -101,16 +134,25 @@ const BatalPesanan = () => {
                 <div className="flex justify-end gap-4 mt-10 pt-6 border-t border-gray-200">
                   <button
                     type="button"
-                    onClick={() => navigate(-1)} // Kembali ke halaman sebelumnya
+                    onClick={() => navigate(-1)} // Kembali
                     className="py-2 px-6 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition"
+                    disabled={isSubmitting} // Nonaktifkan saat loading
                   >
                     Batal
                   </button>
                   <button
                     type="submit"
-                    className="py-2 px-6 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition"
+                    className="py-2 px-6 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition flex items-center gap-2 disabled:bg-emerald-300"
+                    disabled={isSubmitting} // Nonaktifkan saat loading
                   >
-                    Konfirmasi
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Memproses...
+                      </>
+                    ) : (
+                      'Konfirmasi'
+                    )}
                   </button>
                 </div>
               </form>

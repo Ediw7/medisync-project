@@ -13,7 +13,7 @@ const TambahPesanan = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [stokObat, setStokObat] = useState([]);
   const [infoPemesanan, setInfoPemesanan] = useState({
-    // nomor_po: '',  // <-- 1. DIHAPUS DARI STATE
+    // nomor_po: '', // Dihapus
     nama_pbf: '',
     alamat_pbf: '',
     nomor_siup: '',
@@ -23,7 +23,7 @@ const TambahPesanan = () => {
     kontak_telepon: '',
     kontak_email: '',
     tanggal_pesanan: new Date().toISOString().split('T')[0],
-    tujuan_distribusi: '',
+    tujuan_distribusi: '', // Akan diisi otomatis dari profil
     catatan_khusus: '',
     total_harga: 0,
   });
@@ -61,6 +61,8 @@ const TambahPesanan = () => {
             alamat_pbf: result.data.alamat,
             kontak_email: result.data.email,
             nomor_siup: result.data.nomor_izin,
+            // <-- PERUBAHAN 1: Set tujuan_distribusi dari alamat profil
+            tujuan_distribusi: result.data.alamat, 
           }));
         } else {
           throw new Error(result.message || 'Gagal memuat profil PBF.');
@@ -89,8 +91,8 @@ const TambahPesanan = () => {
         const result = await response.json();
         if (result.success) {
           setStokObat(result.data);
-          console.log('Stok loaded from:', result.source); // Log sumber data
-          console.log('Sample stok with harga:', result.data[0]); // Log untuk debug harga
+          console.log('Stok loaded from:', result.source);
+          console.log('Sample stok with harga:', result.data[0]);
         } else {
           throw new Error(result.message || 'Gagal memuat stok obat.');
         }
@@ -132,15 +134,15 @@ const TambahPesanan = () => {
     const selected = stokObat.find((o) => o.id.toString() === selectedId);
     if (selected) {
       const harga = Number(selected.harga_per_unit) || 0;
-      const jumlah = 1; // Jumlah default saat item dipilih
+      const jumlah = 1; 
       setItemObat({
-        id_produksi: String(selected.id), // Fix: Pastikan string
+        id_produksi: String(selected.id),
         nama_obat: selected.nama_obat,
         bentuk_sediaan: selected.bentuk_sediaan || '',
         dosis: selected.dosis || '',
         jumlah_pesanan: jumlah.toString(),
         harga_per_unit: harga,
-        total_harga: jumlah * harga, // Langsung hitung total
+        total_harga: jumlah * harga,
       });
     } else {
       setItemObat({ id_produksi: '', nama_obat: '', bentuk_sediaan: '', dosis: '', jumlah_pesanan: '1', harga_per_unit: 0, total_harga: 0 });
@@ -158,12 +160,11 @@ const TambahPesanan = () => {
       setError(`Jumlah pesanan (${itemObat.jumlah_pesanan}) melebihi stok tersedia (${selectedObat.jumlah}).`);
       return;
     }
-    // Jika harga_per_unit 0 dari produksi, izinkan dengan catatan
     if (Number(itemObat.harga_per_unit) === 0) {
       console.warn('Harga satuan 0 dari produksi, lanjutkan dengan hati-hati.');
     }
     setDetailObat([...detailObat, {
-      id_produksi: String(itemObat.id_produksi), // Fix: Pastikan string saat tambah ke detail
+      id_produksi: String(itemObat.id_produksi),
       nama_obat: itemObat.nama_obat,
       bentuk_sediaan: itemObat.bentuk_sediaan,
       dosis: itemObat.dosis,
@@ -177,7 +178,7 @@ const TambahPesanan = () => {
       bentuk_sediaan: '',
       dosis: '',
       jumlah_pesanan: '',
-      harga_per_unit: '', // Reset harga setelah tambah
+      harga_per_unit: '',
       total_harga: '',
     });
     setError('');
@@ -207,7 +208,6 @@ const TambahPesanan = () => {
 
     // Validasi info pemesanan
     if (
-      // !infoPemesanan.nomor_po || // <-- 2. DIHAPUS DARI VALIDASI
       !infoPemesanan.nama_pbf ||
       !infoPemesanan.alamat_pbf ||
       !infoPemesanan.nomor_siup ||
@@ -216,9 +216,10 @@ const TambahPesanan = () => {
       !infoPemesanan.nomor_sipa ||
       !infoPemesanan.kontak_telepon ||
       !infoPemesanan.kontak_email ||
-      !infoPemesanan.tanggal_pesanan
+      !infoPemesanan.tanggal_pesanan ||
+      !infoPemesanan.tujuan_distribusi // Pastikan tujuan distribusi juga tervalidasi
     ) {
-      setError('Semua informasi pemesanan wajib diisi.');
+      setError('Semua informasi pemesanan (termasuk tujuan distribusi) wajib diisi.');
       setIsSubmitting(false);
       return;
     }
@@ -244,7 +245,7 @@ const TambahPesanan = () => {
       }
       const tandaTanganDataUrl = sigCanvas.current.getTrimmedCanvas().toDataURL('image/png');
       const formData = {
-        // nomor_po: infoPemesanan.nomor_po, // <-- 3. DIHAPUS DARI PAYLOAD
+        // nomor_po: DIHAPUS
         id_produsen: Number(idProdusen),
         nama_pbf: infoPemesanan.nama_pbf,
         alamat_pbf: infoPemesanan.alamat_pbf,
@@ -255,13 +256,13 @@ const TambahPesanan = () => {
         kontak_telepon: infoPemesanan.kontak_telepon,
         kontak_email: infoPemesanan.kontak_email,
         tanggal_pesanan: infoPemesanan.tanggal_pesanan,
-        tujuan_distribusi: infoPemesanan.tujuan_distribusi || null,
+        tujuan_distribusi: infoPemesanan.tujuan_distribusi, // Sudah terisi dari state
         catatan_khusus: infoPemesanan.catatan_khusus || null,
-        items: detailObat, // Sekarang id_produksi sudah string
+        items: detailObat,
         tanda_tangan_data_url: tandaTanganDataUrl,
       };
 
-      console.log('Submitting formData items sample:', formData.items[0]?.id_produksi); // Debug: Cek tipe string
+      console.log('Submitting formData items sample:', formData.items[0]?.id_produksi);
 
       const response = await fetch('http://localhost:5000/api/pbf/pesanan', {
         method: 'POST',
@@ -275,7 +276,7 @@ const TambahPesanan = () => {
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || 'Gagal membuat pesanan');
 
-      console.log('Pesanan berhasil dibuat!'); // Ganti alert dengan log sementara
+      console.log('Pesanan berhasil dibuat!');
       navigate('/pbf/pesan-obat');
     } catch (err) {
       setError(err.message);
@@ -309,7 +310,7 @@ const TambahPesanan = () => {
               <h2 className="text-lg font-semibold text-emerald-700 mb-4">Informasi Pemesanan</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 
-                {/* 4. BLOK INPUT NOMOR PO DIHAPUS SELURUHNYA DARI SINI */}
+                {/* Blok Nomor PO Dihapus */}
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Nama PBF</label>
@@ -410,16 +411,21 @@ const TambahPesanan = () => {
                     required
                   />
                 </div>
+                
+                {/* <-- PERUBAHAN 2: Input Tujuan Distribusi diubah ke readOnly */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700">Tujuan Distribusi (Opsional)</label>
+                  <label className="block text-sm font-medium text-gray-700">Tujuan Distribusi (Otomatis dari Alamat PBF)</label>
                   <input
                     name="tujuan_distribusi"
                     value={infoPemesanan.tujuan_distribusi}
-                    onChange={handleInfoChange}
-                    placeholder="Masukkan tujuan distribusi"
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                    placeholder="Otomatis terisi dari alamat PBF"
+                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-gray-100"
+                    readOnly // Dibuat read-only
+                    // onChange tidak diperlukan lagi, tapi bisa dibiarkan
                   />
                 </div>
+                {/* <-- AKHIR PERUBAHAN 2 */}
+
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700">Catatan Khusus (Opsional)</label>
                   <textarea
@@ -524,7 +530,7 @@ const TambahPesanan = () => {
                     onChange={handleItemChange}
                     placeholder="Harga satuan"
                     className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    readOnly // Tambahkan readOnly agar pengguna tidak ubah harga
+                    readOnly // Harga diambil dari stok
                   />
                 </div>
                 <div className="md:col-span-2">

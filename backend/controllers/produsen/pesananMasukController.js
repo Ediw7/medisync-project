@@ -181,10 +181,10 @@ const pesananMasukController = {
             const { id } = req.params;
             const { status, nomorResi, nomorSuratJalan, tanggalPengiriman, alamatTujuan, waktuPengiriman, catatan, hashSuratJalan, opsiPengiriman } = req.body;
             const idProdusen = req.user.id;
-            const validStatuses = ['Dikirim', 'Selesai'];
-
-            if (!status || !validStatuses.includes(status)) {
-                return res.status(400).json({ success: false, message: 'Status tidak valid untuk atur pengiriman. Gunakan: ' + validStatuses.join(', ') });
+            
+            // Status yang diterima dari frontend HARUS 'Dikirim'
+            if (status !== 'Dikirim') {
+                 return res.status(400).json({ success: false, message: 'Status tidak valid untuk atur pengiriman. Gunakan: Dikirim' });
             }
 
             if (!tanggalPengiriman || !nomorResi || !nomorSuratJalan || !alamatTujuan) {
@@ -219,17 +219,17 @@ const pesananMasukController = {
             `;
             await db.query(sqlSuratJalan, [id, nomorResi, nomorSuratJalan, tanggalPengiriman, alamatTujuan, waktuPengiriman || null, catatan || null, hashSuratJalan || null, opsi]);
 
-            // Update status di tabel pesanan
+            // Update status di tabel pesanan menjadi 'Dikirim'
             const [result] = await db.query(
                 `UPDATE pesanan SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND id_produsen = ?`,
-                [status, id, idProdusen]
+                [status, id, idProdusen] // Status 'Dikirim'
             );
 
             if (result.affectedRows === 0) {
                 return res.status(404).json({ success: false, message: 'Gagal memperbarui status pesanan.' });
             }
 
-            // Kurangi jumlah stok di tabel produksi berdasarkan detail_pesanan
+            // Kurangi jumlah stok di tabel produksi (OFF-CHAIN)
             const [detailRows] = await db.query(
                 `SELECT dp.id_produksi, pr.batch_id, dp.jumlah_pesanan
                  FROM detail_pesanan dp
@@ -245,13 +245,11 @@ const pesananMasukController = {
                 );
             }
 
-            // Panggil recordToBlockchain secara otomatis jika status adalah 'Dikirim'
-            if (status === 'Dikirim') {
-                await pesananMasukController.recordToBlockchainForShipment(req, res);
-                return; // Hentikan eksekusi lebih lanjut setelah blockchain
-            }
+            // Panggil recordToBlockchain secara otomatis
+            // Fungsi ini sekarang HANYA akan mencatat ke blockchain, tidak mengubah status lagi.
+            await pesananMasukController.recordToBlockchainForShipment(req, res);
+            return; // Hentikan eksekusi
 
-            res.json({ success: true, message: `Status pesanan berhasil diubah menjadi ${status} dan surat jalan diperbarui. Opsi pengiriman: ${opsi}` });
         } catch (error) {
             console.error('Error in updateStatusWithDetails:', error);
             res.status(500).json({ success: false, message: 'Kesalahan Server Internal: ' + error.message });
@@ -281,6 +279,7 @@ const pesananMasukController = {
 
             const shipmentData = rows[0];
 
+            // Cek status di DB, harus 'Dikirim' (sudah di-set oleh updateStatusWithDetails)
             const [pesanan] = await dbConnection.query('SELECT status FROM pesanan WHERE id = ? AND id_produsen = ?', [id, idProdusen]);
             if (pesanan.length === 0 || pesanan[0].status !== 'Dikirim') {
                 return res.status(400).json({ success: false, message: 'Hanya pesanan dengan status Dikirim yang bisa dicatat ke blockchain.' });
@@ -318,7 +317,7 @@ const pesananMasukController = {
             console.log('Submitting ON-CHAIN transaction for shipment:', shipmentData.nomor_surat_jalan, 'with obatIds:', obatIds, 'jumlahPesanan:', jumlahPesanan);
 
             const args = [
-                id, // idPesanan
+                id.toString(), // idPesanan (pastikan string)
                 shipmentData.hash_surat_jalan || 'TIDAK ADA HASH',
                 namaPbf,
                 JSON.stringify(obatIds),
@@ -328,12 +327,16 @@ const pesananMasukController = {
             await transaction.submit(...args);
             console.log('ON-CHAIN transaction for shipment successful!');
 
-            await dbConnection.query('UPDATE pesanan SET status = ? WHERE id = ?', ['Selesai', id]);
+            // <-- PERUBAHAN: Baris ini DIHAPUS
+            // await dbConnection.query('UPDATE pesanan SET status = ? WHERE id = ?', ['Selesai', id]);
+            // -->
+
+            // Update status_blockchain di surat jalan
             await dbConnection.query('UPDATE surat_jalan_produsen SET status_blockchain = ? WHERE id_pesanan = ?', ['Tercatat', id]);
 
             res.json({
                 success: true,
-                message: `Pengiriman ${shipmentData.nomor_surat_jalan} berhasil dicatat ke blockchain.`,
+                message: `Pengiriman ${shipmentData.nomor_surat_jalan} berhasil dicatat ke blockchain. Status pesanan sekarang 'Dikirim'.`,
             });
         } catch (error) {
             console.error('Error recording shipment to blockchain:', error);

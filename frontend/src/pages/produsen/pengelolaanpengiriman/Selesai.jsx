@@ -91,11 +91,11 @@ const Selesai = () => {
             <div className="p-4 border-b">
               <div className="flex space-x-2">
                 <NavItem to="/produsen/pengelolaan-pengiriman">Semua</NavItem>
-                <NavItem to="/produsen/pengelolaanpengiriman/perlu-dikirim">Perlu dikirim</NavItem>
-                <NavItem to="/produsen/pengelolaanpengiriman/dikirim">Dikirim</NavItem>
-                <NavItem to="/produsen/pengelolaanpengiriman/selesai">Selesai</NavItem>
-                <NavItem to="/produsen/pengelolaanpengiriman/pembatalan">Pembatalan</NavItem>
-                <NavItem to="/produsen/pengelolaanpengiriman/pengembalian">Pengembalian</NavItem>
+                <NavItem to="/produsen/pengelolaan-pengiriman/perlu-dikirim">Perlu dikirim</NavItem>
+                <NavItem to="/produsen/pengelolaan-pengiriman/dikirim">Dikirim</NavItem>
+                <NavItem to="/produsen/pengelolaan-pengiriman/selesai">Selesai</NavItem>
+                <NavItem to="/produsen/pengelolaan-pengiriman/pembatalan">Pembatalan</NavItem>
+                <NavItem to="/produsen/pengelolaan-pengiriman/pengembalian">Pengembalian</NavItem>
               </div>
             </div>
 

@@ -30,6 +30,7 @@ import RincianPengiriman from './pages/produsen/pengelolaanpengiriman/RincianPen
 import SuratJalanProdusen from './pages/produsen/pengelolaanpengiriman/SuratJalanProdusen';
 import LihatStatus from './pages/produsen/pengelolaanpengiriman/LihatStatus';
 import LihatRiwayat from './pages/produsen/pengelolaanpengiriman/LihatRiwayat';
+import KonfirmasiPembatalan from './pages/produsen/pengelolaanpengiriman/KonfirmasiPembatalan';
 
 import LaporanAnalitik from './pages/produsen/laporananalitik/LaporanAnalitik';
 
@@ -84,7 +85,7 @@ function App() {
       <Route path="/produsen/pengelolaan-pengiriman/surat-jalan/:id" element={<SuratJalanProdusen />} />
       <Route path="/produsen/pengelolaan-pengiriman/lihat-status/:id" element={<LihatStatus />} />
       <Route path="/produsen/pengelolaan-pengiriman/lihat-riwayat/:id" element={<LihatRiwayat />} />
-
+      <Route path="/produsen/pengelolaan-pengiriman/konfirmasi-pembatalan/:id" element={<KonfirmasiPembatalan />} />
 
         <Route path="/produsen/laporan-analitik" element={<LaporanAnalitik />} />
       

@@ -1,3 +1,5 @@
+// frontend/src/pages/produsen/pengelolaanpengiriman/PengelolaanPengiriman.jsx
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
@@ -88,14 +90,21 @@ const PengelolaanPengiriman = () => {
     navigate('/');
   };
 
+  // --- UPDATED ---
+  // Menambahkan status baru dari ENUM
   const getStatusBadge = (status) => {
     switch (status) {
       case 'Perlu Dikirim': return 'bg-orange-100 text-orange-800';
       case 'Dikirim': return 'bg-blue-100 text-blue-800';
       case 'Selesai': return 'bg-gray-100 text-gray-800';
+      case 'Pembatalan Diajukan': return 'bg-yellow-100 text-yellow-800';
+      case 'Ditolak': return 'bg-red-100 text-red-800';
+      case 'Dibatalkan': return 'bg-red-100 text-red-800';
+      case 'Dikembalikan': return 'bg-purple-100 text-purple-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
+  // --- END UPDATED ---
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -195,6 +204,7 @@ const PengelolaanPengiriman = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          {/* --- UPDATED --- */}
                           {item.status === 'Perlu Dikirim' && (
                             <Link to={`/produsen/pengelolaan-pengiriman/atur-pengiriman/${item.id}`} className="text-emerald-600 hover:text-emerald-800">
                               Atur Pengiriman
@@ -210,6 +220,13 @@ const PengelolaanPengiriman = () => {
                               Lihat Riwayat
                             </Link>
                           )}
+                          {/* Menambahkan link konfirmasi pembatalan */}
+                          {item.status === 'Pembatalan Diajukan' && (
+                            <Link to={`/produsen/pengelolaan-pengiriman/konfirmasi-pembatalan/${item.id}`} className="text-blue-600 hover:text-blue-800">
+                              Konfirmasi Pembatalan
+                            </Link>
+                          )}
+                          {/* --- END UPDATED --- */}
                         </td>
                       </tr>
                     )) : (

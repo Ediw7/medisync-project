@@ -3,8 +3,41 @@
 const db = require('../../config/db');
 const fs = require('fs');
 const path = require('path');
-// Pastikan Anda menginstal nano: npm install nano
 const nano = require('nano')(`http://${process.env.COUCHDB_USER}:${process.env.COUCHDB_PASSWORD}@127.0.0.1:5984`);
+
+// --- KONFIGURASI MULTER UNTUK FILE UPLOAD ---
+// Anda lupa menambahkan ini
+const multer = require('multer');
+
+// Tentukan lokasi penyimpanan
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = 'uploads/bukti_pengembalian';
+    // Buat direktori jika belum ada
+    fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    // Buat nama file unik: order-[idPesanan]-[timestamp].[ext]
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `order-${req.params.id}-${uniqueSuffix}${ext}`);
+  }
+});
+
+// Filter file (hanya izinkan gambar)
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png' || file.mimetype === 'image/jpg') {
+    cb(null, true);
+  } else {
+    cb(new Error('Hanya file gambar (JPG, PNG, JPEG) yang diizinkan!'), false);
+  }
+};
+
+// Inisialisasi Multer
+// 'buktiFoto' harus sama dengan nama field di FormData frontend
+const upload = multer({ storage: storage, fileFilter: fileFilter, limits: { fileSize: 1024 * 1024 * 5 } }); // Batas 5MB
+// --- AKHIR KONFIGURASI MULTER ---
 
 
 async function fetchFromCouchDB(idProdusen) {
@@ -62,6 +95,7 @@ async function fetchFromMySQL(idProdusen) {
   }
 }
 
+// --- HANYA ADA SATU 'pesananController' ---
 const pesananController = {
   // Mengambil daftar semua pesanan milik PBF yang sedang login
   getAll: async (req, res) => {
@@ -249,9 +283,7 @@ const pesananController = {
         }
     },
 
-  // ==============================================================
-  // ========= FUNGSI BARU UNTUK BATAL PESANAN DITAMBAHKAN DI SINI =
-  // ==============================================================
+  // Fungsi untuk membatalkan pesanan
   batalkanPesanan: async (req, res) => {
     try {
       const { id } = req.params;       // ID Pesanan dari URL (misal: /pesanan/14/batalkan)
@@ -266,13 +298,10 @@ const pesananController = {
       const catatan = "Dibatalkan oleh PBF. Alasan: " + alasanPembatalan.join(', ');
 
       // Query SQL untuk UPDATE status DAN menyimpan alasan pembatalan
-      // Penting: Kita tambahkan cek AND id_pbf = ? DAN status = 'Perlu Dikirim'
-      // Ini memastikan PBF hanya bisa membatalkan pesanannya sendiri, 
-      // dan HANYA jika statusnya belum diproses oleh Produsen.
       const sql = `
         UPDATE pesanan 
         SET 
-          status = 'Dikembalikan',  -- Set status ke Dikembalikan (pastikan 'Dikembalikan' ada di ENUM Anda)
+          status = 'Dibatalkan',  -- Menggunakan status 'Dibatalkan'
           catatan_khusus = ?      -- Simpan alasannya di catatan
         WHERE 
           id = ? AND                
@@ -293,12 +322,78 @@ const pesananController = {
       // Jika berhasil
       res.json({ success: true, message: 'Pesanan telah berhasil dibatalkan.' });
 
-    } catch (error) {
+    } catch (error)      {
       console.error('Error in pbf.batalkanPesanan:', error);
       res.status(500).json({ success: false, message: 'Kesalahan Server Internal: ' + error.message });
     }
-  }
+  }, // <-- KOMA HILANG DI SINI
+
+  // ====================================================================
+  // ========= FUNGSI BARU UNTUK AJUKAN PENGEMBALIAN DI SINI ============
+  // =Data ini dipindahkan dari objek kedua
+  // ====================================================================
+  ajukanPengembalian: async (req, res) => {
+    try {
+      const { id } = req.params;       // ID Pesanan
+      const idPbf = req.user.id;       // ID PBF dari token
+      const { alasan } = req.body;     // Alasan dari form
+      
+      // Cek apakah file di-upload
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'Foto bukti wajib diunggah.' });
+      }
+      if (!alasan) {
+        return res.status(400).json({ success: false, message: 'Alasan wajib diisi.' });
+      }
+
+      // Ambil path file yang disimpan oleh multer
+      const buktiFotoPath = req.file.path;
+
+      // Buat catatan gabungan
+      const catatan = `Pengembalian Diajukan PBF. Alasan: ${alasan}. Bukti: ${buktiFotoPath}`;
+
+      // Update database
+      // Kita cek status 'Selesai'
+      const sql = `
+        UPDATE pesanan 
+        SET 
+          status = 'Pengembalian Diajukan', -- Set status baru
+          catatan_khusus = ?              -- Simpan alasan & path file
+        WHERE 
+          id = ? AND
+          id_pbf = ? AND
+          status = 'Selesai'
+      `;
+
+      const [result] = await db.query(sql, [catatan, id, idPbf]);
+
+      // Cek jika Gagal update
+      if (result.affectedRows === 0) {
+        // Hapus file yang sudah terlanjur di-upload jika gagal update DB
+        fs.unlinkSync(buktiFotoPath);
+        return res.status(404).json({
+          success: false,
+          message: 'Gagal mengajukan pengembalian. Pesanan tidak ditemukan, bukan milik Anda, atau statusnya bukan "Selesai".'
+        });
+      }
+
+      // Jika Berhasil
+      res.json({ success: true, message: 'Pengajuan pengembalian berhasil dikirim.' });
+
+    } catch (error) {
+      console.error('Error in pbf.ajukanPengembalian:', error);
+      // Jika terjadi error, hapus file yang mungkin ter-upload
+      if (req.file) {
+        fs.unlinkSync(req.file.path);
+      }
+      res.status(500).json({ success: false, message: 'Kesalahan Server Internal: ' + error.message });
+    }
+  },
+
+  // Ini harus menjadi fungsi terakhir di objek
+  // Data ini dipindahkan dari objek kedua
+  uploadMiddleware: upload // Ekspor middleware multer
   
-};
+}; // <-- Objek ditutup di sini
 
 module.exports = pesananController;

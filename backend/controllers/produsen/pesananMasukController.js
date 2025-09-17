@@ -127,23 +127,49 @@ const pesananMasukController = {
 
     getSuratJalanById: async (req, res) => {
         try {
-            const { id } = req.params;
+            const { id } = req.params; // id di sini adalah id_pesanan
             const idProdusen = req.user.id;
-            console.log(`Fetching surat jalan for pesanan id: ${id} for produsen: ${idProdusen}`);
+
+            // 1. Query untuk mengambil data gabungan
             const sql = `
-                SELECT sjp.*
-                FROM surat_jalan_produsen sjp
-                JOIN pesanan p ON sjp.id_pesanan = p.id
-                WHERE sjp.id_pesanan = ? AND p.id_produsen = ?
+                SELECT 
+                    p.id AS pesanan_id, p.nomor_po, p.tanggal_pesanan, p.total_harga,
+                    pbf.nama_resmi AS nama_pbf, pbf.alamat AS alamat_pbf, p.kontak_telepon, p.kontak_email,
+                    produsen.nama_resmi AS nama_produsen, produsen.alamat AS alamat_produsen,
+                    sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman, 
+                    sjp.waktu_pengiriman, sjp.catatan, sjp.opsi_pengiriman, sjp.status_blockchain
+                FROM pesanan p
+                JOIN users pbf ON p.id_pbf = pbf.id
+                JOIN users produsen ON p.id_produsen = produsen.id
+                LEFT JOIN surat_jalan_produsen sjp ON p.id = sjp.id_pesanan
+                WHERE p.id = ? AND p.id_produsen = ?
             `;
-            const [rows] = await db.query(sql, [id, idProdusen]);
-            if (rows.length === 0) {
-                return res.status(404).json({ success: false, message: 'Data surat jalan tidak ditemukan.' });
+            const [pesananRows] = await db.query(sql, [id, idProdusen]);
+
+            if (pesananRows.length === 0) {
+                return res.status(404).json({ success: false, message: 'Data pesanan atau surat jalan tidak ditemukan.' });
             }
-            res.json({ success: true, data: rows[0] });
+
+            // 2. Query untuk mengambil detail item pesanan
+            const sqlDetail = `
+                SELECT dp.*, pr.batch_id
+                FROM detail_pesanan dp
+                JOIN produksi pr ON dp.id_produksi = pr.id
+                WHERE dp.id_pesanan = ?
+            `;
+            const [detailRows] = await db.query(sqlDetail, [id]);
+
+            // 3. Gabungkan hasilnya menjadi satu objek JSON
+            const responseData = {
+                pesanan: pesananRows[0],
+                detail_pesanan: detailRows
+            };
+
+            res.json({ success: true, data: responseData });
+
         } catch (error) {
             console.error('Error in getSuratJalanById:', error);
-            res.status(500).json({ success: false, message: 'Kesalahan Server Internal: ' + error.message });
+            res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
         }
     },
 
@@ -327,11 +353,7 @@ const pesananMasukController = {
             await transaction.submit(...args);
             console.log('ON-CHAIN transaction for shipment successful!');
 
-            // <-- PERUBAHAN: Baris ini DIHAPUS
-            // await dbConnection.query('UPDATE pesanan SET status = ? WHERE id = ?', ['Selesai', id]);
-            // -->
-
-            // Update status_blockchain di surat jalan
+            
             await dbConnection.query('UPDATE surat_jalan_produsen SET status_blockchain = ? WHERE id_pesanan = ?', ['Tercatat', id]);
 
             res.json({

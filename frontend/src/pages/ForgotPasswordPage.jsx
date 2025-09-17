@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import axios from "axios";
+import { AnimatedBackground } from "../components/AnimatedBackground"
 
 export default function ForgotPasswordPage() {
   const { role } = useParams();
@@ -63,22 +64,8 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="min-h-screen bg-gray-200 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background decorative elements */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-emerald-200 rounded-full blur-3xl animate-pulse"></div>
-      <div className="absolute bottom-1 left-1/2 -translate-x-1/2 -translate-y-1 w-96 h-96 bg-green-200/70 rounded-full blur-3xl animate-spin"></div>
-      <div className="absolute top-1 left-1/2 -translate-x-1/2 -translate-y-1 w-48 h-64 bg-green-200/80 rounded-full blur-3xl animate-spin"></div>
-      <div
-        className="absolute bottom-0 right-0 w-96 h-96 bg-green-200 rounded-full blur-3xl animate-pulse"
-        style={{ animationDelay: "2s" }}
-      ></div>
-      <div
-        className="absolute top-1/2 left-1/4 w-64 h-64 bg-blue-200/20 rounded-full blur-2xl animate-pulse"
-        style={{ animationDelay: "1s" }}
-      ></div>
-      <div
-        className="absolute bottom-1/4 left-1/2 w-48 h-48 bg-purple-200/20 rounded-full blur-2xl animate-pulse"
-        style={{ animationDelay: "3s" }}
-      ></div>
+      <AnimatedBackground />
+
 
       {/* Main card */}
       <div className="relative z-10 w-full max-w-4xl rounded-3xl shadow-2xl grid md:grid-cols-2 overflow-hidden border border-gray-200">

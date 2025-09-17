@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useParams, useNavigate, Link } from "react-router-dom"
 import axios from "axios"
 import { Lock, Eye, EyeOff, CheckCircle } from "lucide-react"
+import { AnimatedBackground } from "../components/AnimatedBackground"
 
 export default function ResetPasswordPage() {
   const { token, role } = useParams()
@@ -78,7 +79,7 @@ export default function ResetPasswordPage() {
     return (
       <div className="min-h-screen bg-green-50 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
-          <div className="bg-white/20 backdrop-blur-lg border border-white/20 rounded-2xl shadow-xl p-8 text-center">
+          <div className="bg-gray-200 backdrop-blur-lg border border-white/20 rounded-2xl shadow-xl p-8 text-center">
             <div className="flex justify-center mb-6">
               <CheckCircle className="h-16 w-16 text-green-600" />
             </div>
@@ -99,7 +100,8 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-green-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-200 flex items-center justify-center p-4">
+      <AnimatedBackground />
       <div className="w-full max-w-md">
         <div className="bg-white/20 backdrop-blur-lg border border-white/20 rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">

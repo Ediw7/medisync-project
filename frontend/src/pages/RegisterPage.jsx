@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { Eye, EyeOff, User, Mail, Lock, Building, FileBadge, MapPin, ArrowLeft, ShieldCheck, GitBranch, PackageSearch, Loader2 } from 'lucide-react';
+import { AnimatedBackground } from "../components/AnimatedBackground"
 
 // Komponen InputField yang bisa digunakan kembali
 const InputField = ({ name, type = "text", placeholder, icon, value, onChange, required = true }) => (
@@ -72,36 +73,42 @@ function RegisterPage() {
     };
 
     return (
-        <div className="min-h-screen bg-green-50 flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="min-h-screen bg-gray-200/90 flex items-center justify-center p-4 relative overflow-hidden">
             {/* Background decorative elements */}
-            <div className="absolute top-0 left-0 w-96 h-96 bg-emerald-200/30 rounded-full blur-3xl animate-pulse"></div>
-            <div className="absolute bottom-0 right-0 w-96 h-96 bg-teal-200/30 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
+            <AnimatedBackground />
+
             
-            <div className="relative z-10 w-full max-w-4xl bg-white rounded-2xl shadow-2xl grid md:grid-cols-2 overflow-hidden border border-gray-200">
+            <div className="relative z-10 w-full max-w-4xl bg-white/10 backdrop-blur-2xl rounded-3xl shadow-2xl grid md:grid-cols-2 overflow-hidden border border-white/30 backdrop-saturate-150">
                 {/* Kolom Kiri - Branding */}
-                <div className="hidden md:block p-10 bg-gradient-to-br from-emerald-600 to-teal-600 text-white">
-                    <h2 className="text-3xl font-bold mb-4">Bergabung dengan Jaringan MediSync</h2>
-                    <p className="text-emerald-100 mb-8">Daftarkan entitas Anda untuk menjadi bagian dari ekosistem rantai pasok farmasi yang transparan dan aman.</p>
+                <div className="hidden md:flex flex-col justify-center p-10 bg-gradient-to-br from-emerald-600/90 to-[#047857] text-white backdrop-blur-xl border-r border-white/20">
+                    <h2 className="text-3xl font-bold mb-6">Bergabung dengan Jaringan MediSync</h2>
+                    <p className="text-[#F9FDFE] mb-10">Daftarkan entitas Anda untuk menjadi bagian dari ekosistem rantai pasok farmasi yang transparan dan aman.</p>
                     <div className="space-y-6">
                         <div className="flex items-start gap-4">
-                            <ShieldCheck className="h-8 w-8 text-emerald-300 mt-1 flex-shrink-0" />
+                            <div className="p-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
+                                <ShieldCheck className="h-8 w-8 text-[#F9FDFE] flex-shrink-0" />
+                            </div>
                             <div>
                                 <h3 className="font-semibold">Data Terverifikasi</h3>
-                                <p className="text-sm text-emerald-200">Setiap peserta di jaringan akan diverifikasi untuk menjamin kepercayaan.</p>
+                                <p className="text-sm text-text-[#F9FDFE]">Setiap peserta di jaringan akan diverifikasi untuk menjamin kepercayaan.</p>
                             </div>
                         </div>
                         <div className="flex items-start gap-4">
-                            <GitBranch className="h-8 w-8 text-emerald-300 mt-1 flex-shrink-0" />
+                            <div className="p-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
+                                <GitBranch className="h-8 w-8 text-[#F9FDFE] mt-1 flex-shrink-0" />
+                            </div>
                             <div>
                                 <h3 className="font-semibold">Alur Kerja Terintegrasi</h3>
-                                <p className="text-sm text-emerald-200">Lakukan pemesanan dan pengiriman dalam satu platform yang terhubung.</p>
+                                <p className="text-sm text-text-[#F9FDFE]">Lakukan pemesanan dan pengiriman dalam satu platform yang terhubung.</p>
+                        </div>  
                             </div>
-                        </div>
                         <div className="flex items-start gap-4">
-                            <PackageSearch className="h-8 w-8 text-emerald-300 mt-1 flex-shrink-0" />
+                            <div className="p-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
+                                <PackageSearch className="h-8 w-8 text-[#F9FDFE] mt-1 flex-shrink-0" />
+                            </div>
                             <div>
                                 <h3 className="font-semibold">Kepatuhan Regulasi</h3>
-                                <p className="text-sm text-emerald-200">Sistem dirancang untuk membantu memenuhi standar regulasi farmasi.</p>
+                                <p className="text-sm text-text-[#F9FDFE]">Sistem dirancang untuk membantu memenuhi standar regulasi farmasi.</p>
                             </div>
                         </div>
                     </div>

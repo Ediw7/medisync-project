@@ -2,6 +2,7 @@
 
 import { Link } from "react-router-dom";
 import { Factory, Truck, Store, ArrowRight } from "lucide-react";
+import { AnimatedBackground } from "../components/AnimatedBackground"
 
 function PilihRole() {
   const roles = [
@@ -43,7 +44,6 @@ function PilihRole() {
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-gradient-to-br from-emerald-600/10 to-emerald-500/10 animate-liquid blur-2xl"></div>
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-br from-emerald-400/5 to-emerald-600/10 rounded-full blur-3xl animate-pulse"></div>
       </div>
-      <div className="absolute top-1 left-1/2 -translate-x-1/2 -translate-y-1/4 w-92 h-64 bg-gradient-to-br from-green-200 to-[#047857] rounded-full blur-3xl animate-bounce"></div>
       <div  
         className="absolute bottom-0 right-0 -translate-x-1 w-96 h-96 bg-[#047857]/40 rounded-full blur-3xl animate-ping"
         style={{ animationDelay: "3s" }}
@@ -64,6 +64,7 @@ function PilihRole() {
         className="absolute bottom-1/4 left-1/2 w-48 h-48 bg-purple-200/20 rounded-full blur-2xl animate-pulse"
         style={{ animationDelay: "3s" }}
       ></div>
+      <AnimatedBackground />
 
       <div className="flex flex-col items-center justify-center min-h-screen p-4 relative z-10">
         {/* Header Section */}

@@ -129,11 +129,14 @@ getSuratJalanById: async (req, res) => {
             const { id } = req.params; // id di sini adalah id_pesanan
             const idProdusen = req.user.id;
 
-            // 1. Query untuk mengambil data gabungan dari pesanan, surat jalan, dan nama PBF & Produsen
+            // 1. Query untuk mengambil data gabungan
             const sqlPesanan = `
                 SELECT 
                     p.id AS pesanan_id, p.nomor_po, p.tanggal_pesanan, p.status, p.total_harga,
                     p.nama_pbf, p.alamat_pbf, p.kontak_telepon, p.kontak_email, p.nama_apoteker, p.nomor_sipa,
+                    
+                    p.catatan_khusus, -- <<< INI PERBAIKANNYA (untuk alasan pembatalan)
+                    
                     produsen.nama_resmi AS nama_produsen, produsen.alamat AS alamat_produsen,
                     sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman, 
                     sjp.waktu_pengiriman, sjp.opsi_pengiriman, sjp.status_blockchain
@@ -149,16 +152,16 @@ getSuratJalanById: async (req, res) => {
                 return res.status(404).json({ success: false, message: 'Data pesanan atau surat jalan tidak ditemukan.' });
             }
 
-            // 2. Query untuk mengambil detail item pesanan
+            // 2. Query untuk mengambil detail item pesanan (Gunakan LEFT JOIN untuk keamanan)
             const sqlDetail = `
                 SELECT dp.*, pr.batch_id
                 FROM detail_pesanan dp
-                JOIN produksi pr ON dp.id_produksi = pr.id
+                LEFT JOIN produksi pr ON dp.id_produksi = pr.id
                 WHERE dp.id_pesanan = ?
             `;
             const [detailRows] = await db.query(sqlDetail, [id]);
 
-            // 3. Gabungkan hasilnya menjadi satu objek JSON yang konsisten
+            // 3. Gabungkan hasilnya
             const responseData = {
                 pesanan: pesananRows[0],
                 detail_pesanan: detailRows
@@ -168,7 +171,7 @@ getSuratJalanById: async (req, res) => {
 
         } catch (error) {
             console.error('Error in getSuratJalanById:', error);
-            res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+            res.status(500).json({ success: false, message: 'Kesalahan Server Internal: ' + error.message });
         }
     },
 
@@ -179,7 +182,11 @@ getSuratJalanById: async (req, res) => {
             const { id } = req.params;
             const { status } = req.body;
             const idProdusen = req.user.id;
-            const validStatuses = ['Perlu Dikirim', 'Dikirim', 'Selesai', 'Ditolak', 'Dikembalikan'];
+            const validStatuses = [
+                'Perlu Dikirim', 'Dikirim', 'Selesai', 'Ditolak', 
+                'Pembatalan Diajukan', 'Dibatalkan', 
+                'Pengembalian Diajukan', 'Dikembalikan'
+            ];
 
             if (!status || !validStatuses.includes(status)) {
                 return res.status(400).json({ success: false, message: 'Status tidak valid. Gunakan: ' + validStatuses.join(', ') });

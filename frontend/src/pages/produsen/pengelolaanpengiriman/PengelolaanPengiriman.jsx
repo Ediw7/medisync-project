@@ -97,10 +97,15 @@ const PengelolaanPengiriman = () => {
       case 'Perlu Dikirim': return 'bg-orange-100 text-orange-800';
       case 'Dikirim': return 'bg-blue-100 text-blue-800';
       case 'Selesai': return 'bg-gray-100 text-gray-800';
-      case 'Pembatalan Diajukan': return 'bg-yellow-100 text-yellow-800';
       case 'Ditolak': return 'bg-red-100 text-red-800';
+      
+      // --- TAMBAHAN/PENYESUAIAN ---
+      case 'Pembatalan Diajukan': return 'bg-yellow-100 text-yellow-800';
       case 'Dibatalkan': return 'bg-red-100 text-red-800';
+      case 'Pengembalian Diajukan': return 'bg-indigo-100 text-indigo-800'; // Status baru
       case 'Dikembalikan': return 'bg-purple-100 text-purple-800';
+      // --- AKHIR TAMBAHAN ---
+
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -220,13 +225,30 @@ const PengelolaanPengiriman = () => {
                               Lihat Riwayat
                             </Link>
                           )}
-                          {/* Menambahkan link konfirmasi pembatalan */}
+                          
+                          {/* Link untuk status 'Pembatalan Diajukan' (Sudah ada) */}
                           {item.status === 'Pembatalan Diajukan' && (
                             <Link to={`/produsen/pengelolaan-pengiriman/konfirmasi-pembatalan/${item.id}`} className="text-blue-600 hover:text-blue-800">
                               Konfirmasi Pembatalan
                             </Link>
                           )}
-                          {/* --- END UPDATED --- */}
+
+                          {/* --- INI YANG ANDA MINTA --- */}
+                          {/* Link untuk status 'Dibatalkan' */}
+                          {item.status === 'Dibatalkan' && (
+                            <Link to={`/produsen/pengelolaan-pengiriman/konfirmasi-pembatalan/${item.id}`} className="text-blue-600 hover:text-blue-800">
+                              Lihat Detail Pembatalan
+                            </Link>
+                          )}
+                          {/* --- AKHIR TAMBAHAN --- */}
+
+                          {/* (Opsional) Tambahan logis untuk 'Pengembalian Diajukan' */}
+                          {item.status === 'Pengembalian Diajukan' && (
+                            <Link to={`/produsen/pengelolaan-pengiriman/konfirmasi-pengembalian/${item.id}`} className="text-indigo-600 hover:text-indigo-800">
+                              Konfirmasi Pengembalian
+                            </Link>
+                          )}
+                          {/* --- AKHIR BARU DITAMBAHKAN --- */}
                         </td>
                       </tr>
                     )) : (

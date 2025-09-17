@@ -1,5 +1,3 @@
-// backend/controllers/produsen/PesananMasukController.js
-
 'use strict';
 const db = require('../../config/db');
 const { Gateway, Wallets } = require('fabric-network');
@@ -68,8 +66,6 @@ const pesananMasukController = {
             const { id } = req.params;
             const idProdusen = req.user.id;
             console.log(`Fetching pesanan with id: ${id} for produsen: ${idProdusen}`);
-            
-            // --- UPDATED (PERBAIKAN QUERY SQL) ---
             const sqlPesanan = `
                 SELECT 
                     p.id,
@@ -90,23 +86,11 @@ const pesananMasukController = {
                     p.status,
                     p.tanggal_pesanan,
                     p.tujuan_distribusi,
-                    p.catatan_khusus,
-                    
-                    -- Kolom baru untuk data pembatalan (DIPERBAIKI)
-                    p.catatan_khusus AS alasan_pembatalan,      -- Ambil dari catatan_khusus
-                    p.updated_at AS tanggal_pengajuan_pembatalan, -- Ambil dari updated_at
-                    
-                    -- Kolom dari tabel lain
-                    pbf.nama_resmi AS nama_pbf_resmi,
-                    sjp.nomor_surat_jalan
-
+                    p.catatan_khusus
                 FROM pesanan p
                 JOIN users pbf ON p.id_pbf = pbf.id
-                LEFT JOIN surat_jalan_produsen sjp ON sjp.id_pesanan = p.id
                 WHERE p.id = ? AND p.id_produsen = ? AND pbf.role = 'pbf'
             `;
-            // --- END UPDATED ---
-
             const [pesanan] = await db.query(sqlPesanan, [id, idProdusen]);
             if (pesanan.length === 0) {
                 return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan atau Anda tidak memiliki akses.' });
@@ -168,19 +152,7 @@ const pesananMasukController = {
             const { id } = req.params;
             const { status } = req.body;
             const idProdusen = req.user.id;
-            
-            // --- UPDATED ---
-            // Menambahkan status baru sesuai ENUM di database
-            const validStatuses = [
-                'Perlu Dikirim', 
-                'Dikirim', 
-                'Selesai', 
-                'Ditolak', 
-                'Pembatalan Diajukan', // Baru
-                'Dibatalkan',         // Baru
-                'Dikembalikan'
-            ];
-            // --- END UPDATED ---
+            const validStatuses = ['Perlu Dikirim', 'Dikirim', 'Selesai', 'Ditolak', 'Dikembalikan'];
 
             if (!status || !validStatuses.includes(status)) {
                 return res.status(400).json({ success: false, message: 'Status tidak valid. Gunakan: ' + validStatuses.join(', ') });
@@ -296,7 +268,7 @@ const pesananMasukController = {
                 `SELECT p.id, p.nomor_po, sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman, sjp.alamat_tujuan, sjp.waktu_pengiriman, sjp.catatan, sjp.hash_surat_jalan, sjp.opsi_pengiriman, pbf.id as id_pbf
                  FROM pesanan p
                  JOIN surat_jalan_produsen sjp ON p.id = sjp.id_pesanan
-                 JOIN users pbf ON p.id_pf = pbf.id
+                 JOIN users pbf ON p.id_pbf = pbf.id
                  WHERE p.id = ? AND p.id_produsen = ?`,
                 [id, idProdusen]
             );
@@ -354,6 +326,10 @@ const pesananMasukController = {
 
             await transaction.submit(...args);
             console.log('ON-CHAIN transaction for shipment successful!');
+
+            // <-- PERUBAHAN: Baris ini DIHAPUS
+            // await dbConnection.query('UPDATE pesanan SET status = ? WHERE id = ?', ['Selesai', id]);
+            // -->
 
             // Update status_blockchain di surat jalan
             await dbConnection.query('UPDATE surat_jalan_produsen SET status_blockchain = ? WHERE id_pesanan = ?', ['Tercatat', id]);

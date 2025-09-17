@@ -11,11 +11,7 @@ const AturPengiriman = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pesanan, setPesanan] = useState(null);
-  // PERHATIKAN: Nilai default ini penting agar sesuai dengan <select> di RincianPengiriman
-  // Pastikan salah satu opsi ini cocok dengan state di AturPengiriman jika Anda ingin meneruskannya
-  // Namun, berdasarkan permintaan, kita akan biarkan RincianPengiriman memilih opsinya sendiri.
-  // Kita set default waktuPengiriman agar cocok dengan opsi pertama di select
-  const [waktuPengiriman, setWaktuPengiriman] = useState('09:00-12:00'); 
+  const [waktuPengiriman, setWaktuPengiriman] = useState('01:00 PM');
   const [opsiPengiriman, setOpsiPengiriman] = useState('kargo'); 
   const [catatan, setCatatan] = useState('');
   
@@ -84,14 +80,13 @@ const AturPengiriman = () => {
       return;
     }
     
-    // Ini sudah benar, mengirimkan semua data yang diperlukan via state
     navigate(`/produsen/pengelolaan-pengiriman/rincian-pengiriman/${id}`, {
       state: { 
         pesanan, 
         tanggalPengiriman: selectedDate, 
         waktuPengiriman, 
         catatan,
-        opsiPengiriman // ini adalah opsi "Kargo", BUKAN "standar/ekspres"
+        opsiPengiriman
       },
     });
   };

@@ -4,6 +4,7 @@ import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
 import { Loader2, Printer, Download } from 'lucide-react';
 import axios from 'axios';
+import html2pdf from 'html2pdf.js';
 
 const SuratJalanProdusen = () => {
   const { id } = useParams();
@@ -24,6 +25,7 @@ const SuratJalanProdusen = () => {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('Silakan login terlebih dahulu');
 
+        // Menggunakan satu endpoint yang sudah menggabungkan semua data
         const response = await axios.get(`http://localhost:5000/api/produsen/pesanan-masuk/${id}/surat-jalan`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -40,15 +42,55 @@ const SuratJalanProdusen = () => {
   }, [id, navigate]);
 
   const handleKirimKeBlockchain = async () => {
-    // ... (fungsi ini tetap sama)
+    setIsSending(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/produsen/pesanan-masuk/${id}/record-to-blockchain`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Gagal mencatat ke blockchain');
+      
+      alert(result.message);
+      // Perbarui state lokal agar tombolnya hilang
+      setData(prevData => ({
+          ...prevData,
+          pesanan: { ...prevData.pesanan, status_blockchain: 'Tercatat' }
+      }));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handlePrint = () => window.print();
-  const handleDownloadPDF = () => { /* ... (fungsi ini tetap sama) */ };
+  const handleDownloadPDF = () => {
+    const element = contentRef.current;
+    html2pdf()
+      .from(element)
+      .set({
+        margin: [10, 10, 10, 10],
+        filename: `surat_jalan_${data?.pesanan?.nomor_surat_jalan}.pdf`,
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      })
+      .save();
+  };
 
   if (isLoading) return <div className="p-6 text-center">Memuat data...</div>;
   if (error) return <div className="p-6 text-center text-red-500">Error: {error}</div>;
-  if (!data) return <div className="p-6 text-center">Data tidak ditemukan.</div>;
+  
+  // --- PERBAIKAN UTAMA DI SINI ---
+  // Pastikan 'data' dan 'data.pesanan' ada sebelum melanjutkan
+  if (!data || !data.pesanan) {
+    return <div className="p-6 text-center">Data tidak ditemukan.</div>;
+  }
 
   const { pesanan: info, detail_pesanan: detail } = data;
   const isBlockchainSent = info.status_blockchain === 'Tercatat';
@@ -64,12 +106,15 @@ const SuratJalanProdusen = () => {
             <div className="print:hidden flex justify-between items-center mb-6">
               <h1 className="text-2xl font-bold">Surat Jalan</h1>
               <div className="flex space-x-3">
-                <button onClick={handlePrint} className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg">
+                <button onClick={handlePrint} className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
                   <Printer className="w-4 h-4 mr-2" /> Cetak
                 </button>
+                <button onClick={handleDownloadPDF} className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                  <Download className="w-4 h-4 mr-2" /> Unduh PDF
+                </button>
                 {!isBlockchainSent && (
-                  <button onClick={handleKirimKeBlockchain} disabled={isSending} className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg">
-                    {isSending ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : null}
+                  <button onClick={handleKirimKeBlockchain} disabled={isSending} className="flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
+                    {isSending && <Loader2 className="animate-spin w-4 h-4 mr-2" />}
                     {isSending ? 'Mengirim...' : 'Kirim ke Blockchain'}
                   </button>
                 )}
@@ -131,14 +176,14 @@ const SuratJalanProdusen = () => {
                   </tbody>
                   <tfoot>
                     <tr className="font-bold bg-gray-50">
-                        <td colSpan="4" className="p-2 text-right border">HARGA TOTAL</td>
+                        <td colSpan="4" className="p-2 text-right border">TOTAL HARGA</td>
                         <td className="p-2 text-right border">Rp {(info.total_harga || 0).toLocaleString('id-ID')}</td>
                     </tr>
                   </tfoot>
                 </table>
               </section>
 
-              <footer className="flex justify-between items-end">
+              <footer className="flex justify-between items-end mt-12 pt-8 border-t">
                 <p className="text-xs text-gray-600">No. Resi: <span className="font-bold text-gray-900">{info.nomor_resi}</span></p>
                 {/* Anda bisa menambahkan area tanda tangan di sini */}
               </footer>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
-import { ArrowLeft, ClipboardCopy, Package, Truck, CheckCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, ClipboardCopy, Package, Truck, CheckCircle, Loader2, AlertTriangle } from 'lucide-react';
 import axios from 'axios';
 
 const LihatStatus = () => {
@@ -28,12 +28,11 @@ const LihatStatus = () => {
         
         if (!response.data.success) throw new Error(response.data.message || 'Data pengiriman tidak tersedia');
         
-        const data = response.data.data;
+        const data = response.data.data.pesanan; // Ambil data pesanan utama
 
-        // Validasi dan kalkulasi tanggal
         const tanggalPengiriman = data.tanggal_pengiriman ? new Date(data.tanggal_pengiriman) : null;
         if (!tanggalPengiriman || isNaN(tanggalPengiriman.getTime())) {
-          throw new Error('Pengiriman belum diatur. Silakan atur pengiriman terlebih dahulu.');
+          throw new Error('Pengiriman untuk pesanan ini belum diatur.');
         }
         
         const estimasiSampai = new Date(tanggalPengiriman);
@@ -43,7 +42,7 @@ const LihatStatus = () => {
         setShippingData({
           noResi: data.nomor_resi,
           noSuratJalan: data.nomor_surat_jalan,
-          pengirim: 'Produsen',
+          pengirim: data.nama_produsen,
           tujuan: data.nama_pbf,
           waktuPesan: new Date(data.tanggal_pesanan),
           idPesanan: String(data.pesanan_id).padStart(6, '0'),
@@ -62,15 +61,9 @@ const LihatStatus = () => {
     };
     fetchShippingData();
   }, [id, navigate]);
-
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/');
-  };
-
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
-    alert(`Nomor Resi "${text}" telah disalin.`);
+    alert(`Teks "${text}" telah disalin.`);
   };
 
   const StatusStep = ({ icon, label, timestamp, isCompleted, isLast = false }) => (
@@ -90,13 +83,37 @@ const LihatStatus = () => {
     </div>
   );
 
-  if (isLoading) return <div className="p-6 text-center">Memuat data...</div>;
-  if (error) return <div className="p-6 text-center text-red-500">Error: {error}</div>;
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin h-8 w-8 text-emerald-600" /></div>;
+  }
+  
+  // --- TAMPILAN ERROR YANG LEBIH BAIK ---
+  if (error) {
+    return (
+      <div className="flex min-h-screen bg-gray-50">
+        <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+        <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+          <NavbarProdusen onLogout={() => { localStorage.clear(); navigate('/'); }} />
+          <main className="pt-16 p-6 flex items-center justify-center">
+            <div className="text-center p-8 bg-white rounded-lg shadow-md">
+                <AlertTriangle className="mx-auto h-12 w-12 text-yellow-500" />
+                <h2 className="mt-4 text-xl font-semibold text-gray-800">Oops! Terjadi Masalah</h2>
+                <p className="mt-2 text-gray-600">{error}</p>
+                <Link to={`/produsen/pengelolaan-pengiriman/atur-pengiriman/${id}`} className="mt-6 inline-block px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
+                    Atur Pengiriman Sekarang
+                </Link>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
   if (!shippingData) return <div className="p-6 text-center">Data pengiriman tidak ditemukan.</div>;
 
   const formatDate = (date) => date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   
-  const isDipersiapkanCompleted = ['Perlu Dikirim', 'Dikirim', 'Selesai'].includes(shippingData.statusPengiriman);
+  const isDipersiapkanCompleted = ['Dipesan', 'Perlu Dikirim', 'Dikirim', 'Selesai'].includes(shippingData.statusPengiriman);
   const isDikirimCompleted = ['Dikirim', 'Selesai'].includes(shippingData.statusPengiriman);
   const isSelesaiCompleted = shippingData.statusPengiriman === 'Selesai';
 
@@ -104,14 +121,11 @@ const LihatStatus = () => {
     <div className="flex min-h-screen bg-gray-50">
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
-        <NavbarProdusen onLogout={handleLogout} />
+        <NavbarProdusen onLogout={() => { localStorage.clear(); navigate('/'); }} />
         <main className="pt-16 p-6">
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center mb-6">
-              <button
-                onClick={() => navigate('/produsen/pengelolaan-pengiriman')}
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
-              >
+              <button onClick={() => navigate('/produsen/pengelolaan-pengiriman')} className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
                 <ArrowLeft size={18} /> Kembali
               </button>
             </div>
@@ -124,63 +138,21 @@ const LihatStatus = () => {
               <section className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
                 <div>
                   <p className="text-sm text-gray-500">No Resi</p>
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold text-lg">{shippingData.noResi}</p>
-                    <button
-                      onClick={() => copyToClipboard(shippingData.noResi)}
-                      className="text-gray-400 hover:text-emerald-600"
-                    >
-                      <ClipboardCopy size={16} />
-                    </button>
-                  </div>
+                  <div className="flex items-center gap-2"><p className="font-semibold text-lg">{shippingData.noResi}</p><button onClick={() => copyToClipboard(shippingData.noResi)} className="text-gray-400 hover:text-emerald-600"><ClipboardCopy size={16} /></button></div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">Pengirim</p>
-                  <p className="font-semibold text-lg">{shippingData.pengirim}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Waktu Pesan</p>
-                  <p className="font-semibold text-lg">{formatDate(shippingData.waktuPesan)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">ID Pesanan</p>
-                  <p className="font-semibold text-lg">{shippingData.idPesanan}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">No Surat Jalan</p>
-                  <p className="font-semibold text-lg">{shippingData.noSuratJalan}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Tujuan</p>
-                  <p className="font-semibold text-lg">{shippingData.tujuan}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Estimasi Sampai</p>
-                  <p className="font-semibold text-lg">{formatDate(shippingData.estimasiSampai)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Opsi Pengiriman</p>
-                  <p className="font-semibold text-lg capitalize">{shippingData.opsiPengiriman}</p>
-                </div>
+                <div><p className="text-sm text-gray-500">Pengirim</p><p className="font-semibold text-lg">{shippingData.pengirim}</p></div>
+                <div><p className="text-sm text-gray-500">Waktu Pesan</p><p className="font-semibold text-lg">{formatDate(shippingData.waktuPesan)}</p></div>
+                <div><p className="text-sm text-gray-500">ID Pesanan</p><p className="font-semibold text-lg">{shippingData.idPesanan}</p></div>
+                <div><p className="text-sm text-gray-500">No Surat Jalan</p><p className="font-semibold text-lg">{shippingData.noSuratJalan}</p></div>
+                <div><p className="text-sm text-gray-500">Tujuan</p><p className="font-semibold text-lg">{shippingData.tujuan}</p></div>
+                <div><p className="text-sm text-gray-500">Estimasi Sampai</p><p className="font-semibold text-lg">{formatDate(shippingData.estimasiSampai)}</p></div>
+                <div><p className="text-sm text-gray-500">Opsi Pengiriman</p><p className="font-semibold text-lg capitalize">{shippingData.opsiPengiriman}</p></div>
               </section>
 
               <section className="flex justify-center py-6">
-                <StatusStep 
-                  icon={<Package size={24}/>} 
-                  label="Dipersiapkan" 
-                  timestamp={isDipersiapkanCompleted ? formatDate(shippingData.waktuPesan) : null} 
-                  isCompleted={isDipersiapkanCompleted} />
-                <StatusStep 
-                  icon={<Truck size={24}/>} 
-                  label="Dikirim" 
-                  timestamp={isDikirimCompleted ? `${formatDate(shippingData.tanggalPengiriman)} ${shippingData.waktuPengiriman || ''}` : null} 
-                  isCompleted={isDikirimCompleted} />
-                <StatusStep 
-                  icon={<CheckCircle size={24}/>} 
-                  label="Selesai" 
-                  timestamp={isSelesaiCompleted ? formatDate(shippingData.estimasiSampai) : null} 
-                  isCompleted={isSelesaiCompleted} 
-                  isLast={true} />
+                <StatusStep icon={<Package size={24}/>} label="Dipersiapkan" timestamp={isDipersiapkanCompleted ? formatDate(shippingData.waktuPesan) : null} isCompleted={isDipersiapkanCompleted} />
+                <StatusStep icon={<Truck size={24}/>} label="Dikirim" timestamp={isDikirimCompleted ? `${formatDate(shippingData.tanggalPengiriman)} ${shippingData.waktuPengiriman || ''}` : null} isCompleted={isDikirimCompleted} />
+                <StatusStep icon={<CheckCircle size={24}/>} label="Selesai" timestamp={isSelesaiCompleted ? formatDate(shippingData.estimasiSampai) : null} isCompleted={isSelesaiCompleted} isLast={true} />
               </section>
             </div>
           </div>

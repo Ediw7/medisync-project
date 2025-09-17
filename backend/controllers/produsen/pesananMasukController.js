@@ -130,43 +130,24 @@ const pesananMasukController = {
             const { id } = req.params; // id di sini adalah id_pesanan
             const idProdusen = req.user.id;
 
-            // 1. Query untuk mengambil data gabungan
             const sql = `
                 SELECT 
-                    p.id AS pesanan_id, p.nomor_po, p.tanggal_pesanan, p.total_harga,
-                    pbf.nama_resmi AS nama_pbf, pbf.alamat AS alamat_pbf, p.kontak_telepon, p.kontak_email,
-                    produsen.nama_resmi AS nama_produsen, produsen.alamat AS alamat_produsen,
+                    p.id AS pesanan_id, p.nomor_po, p.tanggal_pesanan, p.status, p.total_harga,
+                    pbf.nama_resmi AS nama_pbf,
                     sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman, 
-                    sjp.waktu_pengiriman, sjp.catatan, sjp.opsi_pengiriman, sjp.status_blockchain
+                    sjp.waktu_pengiriman, sjp.opsi_pengiriman, sjp.status_blockchain
                 FROM pesanan p
                 JOIN users pbf ON p.id_pbf = pbf.id
-                JOIN users produsen ON p.id_produsen = produsen.id
                 LEFT JOIN surat_jalan_produsen sjp ON p.id = sjp.id_pesanan
                 WHERE p.id = ? AND p.id_produsen = ?
             `;
-            const [pesananRows] = await db.query(sql, [id, idProdusen]);
+            const [rows] = await db.query(sql, [id, idProdusen]);
 
-            if (pesananRows.length === 0) {
+            if (rows.length === 0) {
                 return res.status(404).json({ success: false, message: 'Data pesanan atau surat jalan tidak ditemukan.' });
             }
 
-            // 2. Query untuk mengambil detail item pesanan
-            const sqlDetail = `
-                SELECT dp.*, pr.batch_id
-                FROM detail_pesanan dp
-                JOIN produksi pr ON dp.id_produksi = pr.id
-                WHERE dp.id_pesanan = ?
-            `;
-            const [detailRows] = await db.query(sqlDetail, [id]);
-
-            // 3. Gabungkan hasilnya menjadi satu objek JSON
-            const responseData = {
-                pesanan: pesananRows[0],
-                detail_pesanan: detailRows
-            };
-
-            res.json({ success: true, data: responseData });
-
+            res.json({ success: true, data: rows[0] });
         } catch (error) {
             console.error('Error in getSuratJalanById:', error);
             res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });

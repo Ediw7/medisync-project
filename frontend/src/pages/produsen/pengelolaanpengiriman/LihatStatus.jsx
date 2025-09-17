@@ -3,10 +3,11 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
 import { ArrowLeft, ClipboardCopy, Package, Truck, CheckCircle, Loader2 } from 'lucide-react';
+import axios from 'axios';
 
 const LihatStatus = () => {
   const navigate = useNavigate();
-  const { id } = useParams(); // ID pesanan (string dari URL)
+  const { id } = useParams();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [shippingData, setShippingData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -20,63 +21,45 @@ const LihatStatus = () => {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('Silakan login terlebih dahulu');
 
-        const pesananId = String(id).padStart(6, '0'); // Sesuaikan dengan padding backend
-
-        // Fetch surat jalan
-        const sjResponse = await fetch(`http://localhost:5000/api/produsen/pesanan-masuk/${pesananId}/surat-jalan`, {
+        // --- PERBAIKAN UTAMA: Hanya satu panggilan API ---
+        const response = await axios.get(`http://localhost:5000/api/produsen/pesanan-masuk/${id}/surat-jalan`, {
           headers: { 'Authorization': `Bearer ${token}` },
         });
-        if (!sjResponse.ok) throw new Error('Gagal mengambil data surat jalan');
-        const sjResult = await sjResponse.json();
-        if (!sjResult.success) throw new Error(sjResult.message || 'Data surat jalan tidak tersedia');
-        console.log('Surat Jalan Data:', sjResult.data);
+        
+        if (!response.data.success) throw new Error(response.data.message || 'Data pengiriman tidak tersedia');
+        
+        const data = response.data.data;
 
-        // Fetch pesanan
-        const pesananResponse = await fetch(`http://localhost:5000/api/produsen/pesanan-masuk/${pesananId}`, {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if (!pesananResponse.ok) throw new Error('Gagal mengambil data pesanan');
-        const pesananResult = await pesananResponse.json();
-        if (!pesananResult.success) throw new Error(pesananResult.message || 'Data pesanan tidak tersedia');
-        console.log('Pesanan Data:', pesananResult.data);
-
-        // Hitung estimasi dengan validasi
-        const tanggalPengiriman = sjResult.data.tanggal_pengiriman
-          ? new Date(sjResult.data.tanggal_pengiriman)
-          : null;
+        // Validasi dan kalkulasi tanggal
+        const tanggalPengiriman = data.tanggal_pengiriman ? new Date(data.tanggal_pengiriman) : null;
         if (!tanggalPengiriman || isNaN(tanggalPengiriman.getTime())) {
-          throw new Error('Tanggal pengiriman tidak valid atau belum diatur. Pastikan pengiriman telah diatur.');
+          throw new Error('Pengiriman belum diatur. Silakan atur pengiriman terlebih dahulu.');
         }
-
-        const opsiPengiriman = sjResult.data.opsi_pengiriman?.toLowerCase() || 'standar';
-        const pengirimanEkspres = opsiPengiriman === 'ekspres';
+        
         const estimasiSampai = new Date(tanggalPengiriman);
-        estimasiSampai.setDate(tanggalPengiriman.getDate() + (pengirimanEkspres ? 1 : 3));
+        const hariTambah = data.opsi_pengiriman === 'ekspres' ? 1 : 3;
+        estimasiSampai.setDate(tanggalPengiriman.getDate() + hariTambah);
 
-        const mergedData = {
-          noResi: sjResult.data.nomor_resi || 'N/A',
-          noSuratJalan: sjResult.data.nomor_surat_jalan || 'N/A',
+        setShippingData({
+          noResi: data.nomor_resi,
+          noSuratJalan: data.nomor_surat_jalan,
           pengirim: 'Produsen',
-          tujuan: pesananResult.data.pesanan.nama_pbf || 'Tujuan Tidak Diketahui',
-          waktuPesan: pesananResult.data.pesanan.tanggal_pesanan
-            ? new Date(pesananResult.data.pesanan.tanggal_pesanan)
-            : new Date(),
-          idPesanan: String(pesananResult.data.pesanan.id || id).padStart(6, '0'),
-          tanggalPengiriman,
-          waktuPengiriman: sjResult.data.waktu_pengiriman || 'N/A',
-          statusPengiriman: pesananResult.data.pesanan.status || 'Perlu Dikirim',
-          estimasiSampai,
-          opsiPengiriman, // Ditampilkan dengan benar
-        };
+          tujuan: data.nama_pbf,
+          waktuPesan: new Date(data.tanggal_pesanan),
+          idPesanan: String(data.pesanan_id).padStart(6, '0'),
+          tanggalPengiriman: tanggalPengiriman,
+          waktuPengiriman: data.waktu_pengiriman,
+          statusPengiriman: data.status,
+          estimasiSampai: estimasiSampai,
+          opsiPengiriman: data.opsi_pengiriman
+        });
 
-        setShippingData(mergedData);
       } catch (err) {
         setError(err.message);
       } finally {
         setIsLoading(false);
       }
     };
-
     fetchShippingData();
   }, [id, navigate]);
 
@@ -107,45 +90,12 @@ const LihatStatus = () => {
     </div>
   );
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-50">
-        <Loader2 className="animate-spin h-8 w-8 text-emerald-600" />
-        <p className="ml-2 text-gray-600">Memuat data...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col justify-center items-center min-h-screen bg-gray-50">
-        <div className="p-4 bg-red-100 text-red-700 rounded-lg flex items-center gap-2 mb-4">
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.732 6.732a1 1 0 011.414 0L10 7.586l.854-.854a1 1 0 111.414 1.414L11.414 9l.854.854a1 1 0 11-1.414 1.414L10 10.414l-.854.854a1 1 0 01-1.414-1.414L8.586 9l-.854-.854a1 1 0 010-1.414z" clipRule="evenodd" />
-          </svg>
-          {error}
-        </div>
-        <button
-          onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-emerald-500 text-white rounded hover:bg-emerald-600"
-        >
-          Coba Lagi
-        </button>
-      </div>
-    );
-  }
-
-  if (!shippingData) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-50">
-        <p className="text-gray-500">Data pengiriman tidak ditemukan.</p>
-      </div>
-    );
-  }
+  if (isLoading) return <div className="p-6 text-center">Memuat data...</div>;
+  if (error) return <div className="p-6 text-center text-red-500">Error: {error}</div>;
+  if (!shippingData) return <div className="p-6 text-center">Data pengiriman tidak ditemukan.</div>;
 
   const formatDate = (date) => date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-  const formatTime = (date) => date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-
+  
   const isDipersiapkanCompleted = ['Perlu Dikirim', 'Dikirim', 'Selesai'].includes(shippingData.statusPengiriman);
   const isDikirimCompleted = ['Dikirim', 'Selesai'].includes(shippingData.statusPengiriman);
   const isSelesaiCompleted = shippingData.statusPengiriman === 'Selesai';
@@ -164,14 +114,6 @@ const LihatStatus = () => {
               >
                 <ArrowLeft size={18} /> Kembali
               </button>
-              {shippingData.statusPengiriman === 'Perlu Dikirim' && (
-                <Link
-                  to={`/produsen/rincian-pengiriman/${id}`}
-                  className="ml-4 px-4 py-2 bg-emerald-500 text-white rounded hover:bg-emerald-600"
-                >
-                  Atur Pengiriman
-                </Link>
-              )}
             </div>
 
             <div className="bg-white p-8 rounded-lg shadow-lg border border-gray-200">
@@ -218,30 +160,27 @@ const LihatStatus = () => {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Opsi Pengiriman</p>
-                  <p className="font-semibold text-lg">{shippingData.opsiPengiriman}</p>
+                  <p className="font-semibold text-lg capitalize">{shippingData.opsiPengiriman}</p>
                 </div>
               </section>
 
               <section className="flex justify-center py-6">
-                <StatusStep
-                  icon={<Package size={24} />}
-                  label="Dipersiapkan"
-                  timestamp={isDipersiapkanCompleted ? formatDate(shippingData.waktuPesan) : null}
-                  isCompleted={isDipersiapkanCompleted}
-                />
-                <StatusStep
-                  icon={<Truck size={24} />}
-                  label="Dikirim"
-                  timestamp={isDikirimCompleted ? `${formatDate(shippingData.tanggalPengiriman)} ${shippingData.waktuPengiriman}` : null}
-                  isCompleted={isDikirimCompleted}
-                />
-                <StatusStep
-                  icon={<CheckCircle size={24} />}
-                  label="Selesai"
-                  timestamp={isSelesaiCompleted ? formatDate(shippingData.estimasiSampai) : null}
-                  isCompleted={isSelesaiCompleted}
-                  isLast={true}
-                />
+                <StatusStep 
+                  icon={<Package size={24}/>} 
+                  label="Dipersiapkan" 
+                  timestamp={isDipersiapkanCompleted ? formatDate(shippingData.waktuPesan) : null} 
+                  isCompleted={isDipersiapkanCompleted} />
+                <StatusStep 
+                  icon={<Truck size={24}/>} 
+                  label="Dikirim" 
+                  timestamp={isDikirimCompleted ? `${formatDate(shippingData.tanggalPengiriman)} ${shippingData.waktuPengiriman || ''}` : null} 
+                  isCompleted={isDikirimCompleted} />
+                <StatusStep 
+                  icon={<CheckCircle size={24}/>} 
+                  label="Selesai" 
+                  timestamp={isSelesaiCompleted ? formatDate(shippingData.estimasiSampai) : null} 
+                  isCompleted={isSelesaiCompleted} 
+                  isLast={true} />
               </section>
             </div>
           </div>

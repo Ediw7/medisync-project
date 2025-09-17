@@ -65,51 +65,28 @@ const pesananMasukController = {
         try {
             const { id } = req.params;
             const idProdusen = req.user.id;
-            console.log(`Fetching pesanan with id: ${id} for produsen: ${idProdusen}`);
+            
+            // Query ini sekarang menggabungkan pesanan dengan surat jalan (jika ada)
             const sqlPesanan = `
                 SELECT 
-                    p.id,
-                    p.nomor_po,
-                    p.nama_pbf,
-                    p.alamat_pbf,
-                    p.nomor_siup,
-                    p.kontak_telepon,
-                    p.kontak_email,
-                    p.nomor_sia_sika,
-                    p.tanda_tangan_apoteker,
-                    p.nama_apoteker,
-                    p.nomor_sipa,
-                    COALESCE(
-                        (SELECT SUM(dp.total_harga) FROM detail_pesanan dp WHERE dp.id_pesanan = p.id),
-                        0
-                    ) AS total_harga,
-                    p.status,
-                    p.tanggal_pesanan,
-                    p.tujuan_distribusi,
-                    p.catatan_khusus
+                    p.id, p.nomor_po, p.total_harga, p.status, p.tanggal_pesanan,
+                    p.catatan_khusus AS alasan_pembatalan,
+                    p.updated_at AS tanggal_pengajuan_pembatalan,
+                    pbf.nama_resmi AS nama_pbf,
+                    sjp.nomor_surat_jalan
                 FROM pesanan p
                 JOIN users pbf ON p.id_pbf = pbf.id
-                WHERE p.id = ? AND p.id_produsen = ? AND pbf.role = 'pbf'
+                LEFT JOIN surat_jalan_produsen sjp ON p.id = sjp.id_pesanan
+                WHERE p.id = ? AND p.id_produsen = ?
             `;
             const [pesanan] = await db.query(sqlPesanan, [id, idProdusen]);
+
             if (pesanan.length === 0) {
                 return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan atau Anda tidak memiliki akses.' });
             }
 
-            const sqlDetail = `
-                SELECT 
-                    dp.id,
-                    dp.nama_obat,
-                    dp.bentuk_sediaan,
-                    dp.dosis,
-                    dp.jumlah_pesanan,
-                    dp.harga_per_unit,
-                    dp.total_harga,
-                    pr.batch_id
-                FROM detail_pesanan dp
-                LEFT JOIN produksi pr ON dp.id_produksi = pr.id
-                WHERE dp.id_pesanan = ?
-            `;
+            // Query untuk detail item tetap sama
+            const sqlDetail = `SELECT dp.*, pr.batch_id FROM detail_pesanan dp JOIN produksi pr ON dp.id_produksi = pr.id WHERE dp.id_pesanan = ?`;
             const [detail] = await db.query(sqlDetail, [id]);
 
             res.json({
@@ -124,6 +101,7 @@ const pesananMasukController = {
             res.status(500).json({ success: false, message: 'Kesalahan Server Internal: ' + error.message });
         }
     },
+
 getSuratJalanById: async (req, res) => {
         try {
             const { id } = req.params; // id di sini adalah id_pesanan

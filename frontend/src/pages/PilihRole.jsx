@@ -7,6 +7,7 @@ function PilihRole() {
   const roles = [
     {
       name: "Produsen",
+      key: "produsen",
       to: "/login/produsen",
       icon: <Factory size={48} />,
       description: "Manufaktur dan produksi obat-obatan",
@@ -14,6 +15,7 @@ function PilihRole() {
     },
     {
       name: "PBF",
+      key: "pbf",
       to: "/login/pbf",
       icon: <Truck size={48} />,
       description: "Distribusi dan penyaluran produk farmasi",
@@ -21,12 +23,17 @@ function PilihRole() {
     },
     {
       name: "Apotek",
+      key: "apotek",
       to: "/login/apotek",
       icon: <Store size={48} />,
       description: "Pelayanan obat dan konsultasi farmasi",
       color: "from-emerald-500 to-[#047857]",
     },
   ];
+
+  const handleRoleSelect = (roleKey) => {
+    localStorage.setItem('lastRole', roleKey);
+  };
 
   return (
     <div className="min-h-screen bg-gray-200 text-gray-800 relative overflow-hidden">
@@ -80,6 +87,7 @@ function PilihRole() {
             <Link
               to={role.to}
               key={role.name}
+              onClick={() => handleRoleSelect(role.key)}
               className="group animate-slide-up"
               style={{ animationDelay: `${index * 0.1}s` }}
             >

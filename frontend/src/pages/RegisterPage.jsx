@@ -63,7 +63,7 @@ function RegisterPage() {
         }
     };
 
-    const displayRole = role.charAt(0).toUpperCase() + role.slice(1);
+    const displayRole = role === 'pbf' ? role.toUpperCase() : role.charAt(0).toUpperCase() + role.slice(1);
     
     const izinLabel = {
         produsen: "Nomor Izin Industri Farmasi (IIF)",

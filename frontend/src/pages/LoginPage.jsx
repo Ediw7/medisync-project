@@ -43,7 +43,7 @@ const LoginPage = () => {
     }
   }
 
-  const displayRole = role.charAt(0).toUpperCase() + role.slice(1)
+  const displayRole = role.toUpperCase();
 
   return (
     <div className="min-h-screen bg-gray-200/90 flex items-center justify-center p-4 relative overflow-hidden">
@@ -116,7 +116,7 @@ const LoginPage = () => {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-[#047857]/90 backdrop-blur-xl rounded-full mb-4 border border-white/30 shadow-lg">
               <Lock size={24} className="text-gray-100/90" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Login {displayRole}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">{displayRole}</h1>
             <p className="text-gray-600">Masuk ke dashboard Anda</p>
           </div>
 

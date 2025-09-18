@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import SidebarPbf from '../../../components/SidebarPbf';
 import NavbarPbf from '../../../components/NavbarPbf';
-import { AlertCircle, Loader2 } from 'lucide-react'; // Impor Loader2
+import { AlertCircle, Loader2 } from 'lucide-react';
+import axios from 'axios';
 
 const BatalPesanan = () => {
   const navigate = useNavigate();
-  const { id } = useParams(); // ID Pesanan yang akan dibatalkan
+  const { id } = useParams();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const reasonsList = [
@@ -16,33 +17,22 @@ const BatalPesanan = () => {
     'Lainnya/ berubah pikiran',
   ];
 
-  const [selectedReasons, setSelectedReasons] = useState(['Lainnya/ berubah pikiran']);
-  
-  // State untuk error dinamis dari API
-  const [error, setError] = useState(
-    'Mohon pilih alasan pematalan. Pesananmu akan langsung dibatalkan setelah alasan pembatalan diajukan'
-  );
-  const [isSubmitting, setIsSubmitting] = useState(false); // State untuk loading
-
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/');
-  };
+  const [selectedReasons, setSelectedReasons] = useState([]);
+  const [error, setError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleCheckboxChange = (reason) => {
-    setSelectedReasons((prev) => {
-      if (prev.includes(reason)) {
-        return prev.filter((r) => r !== reason);
-      } else {
-        return [...prev, reason];
-      }
-    });
+    // Logika ini memungkinkan pemilihan beberapa alasan
+    setSelectedReasons((prev) =>
+      prev.includes(reason)
+        ? prev.filter((r) => r !== reason)
+        : [...prev, reason]
+    );
   };
 
-  // --- INI ADALAH FUNGSI PENTING YANG MEMANGGIL BACKEND ---
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null); // Bersihkan error sebelumnya
+    setError(null);
     setIsSubmitting(true);
 
     if (selectedReasons.length === 0) {
@@ -54,35 +44,30 @@ const BatalPesanan = () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        navigate('/login/pbf'); // Jika token tidak ada, lempar ke login
+        navigate('/login/pbf');
         return;
       }
 
-      // Memanggil API Backend (fungsi batalkanPesanan di pesananController.js)
-      const response = await fetch(`http://localhost:5000/api/pbf/pesanan/${id}/request-batalkan`, {
-        method: 'PUT',
+      // --- PERBAIKAN UTAMA DI SINI ---
+      const response = await axios.put(`http://localhost:5000/api/pbf/pesanan/${id}/request-batalkan`, {
+        // 1. Menggunakan key 'alasan' sesuai dengan backend
+        alasan: selectedReasons.join(', '), 
+      }, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          alasanPembatalan: selectedReasons, // Kirim array alasan
-        }),
       });
 
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        // Tampilkan error dari backend (misal: "Pesanan sudah dikirim")
-        throw new Error(result.message || 'Gagal terhubung ke server.');
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Gagal terhubung ke server.');
       }
 
-      // Jika sukses
-      alert('Pesanan berhasil dibatalkan dan status diubah menjadi Dikembalikan.');
-      navigate('/pbf/pesan-obat'); // Kembali ke daftar pesanan
+      // 2. Pesan sukses yang benar
+      alert('Pengajuan pembatalan berhasil dikirim.');
+      navigate('/pbf/pesan-obat');
 
     } catch (err) {
-      setError(err.message); // Tampilkan error di kotak merah
+      setError(err.response?.data?.message || err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -92,7 +77,7 @@ const BatalPesanan = () => {
     <div className="flex min-h-screen bg-gray-100">
       <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
-        <NavbarPbf onLogout={handleLogout} />
+        <NavbarPbf onLogout={() => { localStorage.clear(); navigate('/'); }} />
         <main className="flex-1 pt-16 p-6">
           <div className="max-w-3xl mx-auto">
             
@@ -101,7 +86,6 @@ const BatalPesanan = () => {
               <p className="text-gray-500 mt-1">Pesanan ID: {String(id).padStart(6, '0')}</p>
             </div>
 
-            {/* Alert Box Merah (sekarang dinamis) */}
             {error && (
               <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg flex items-center gap-3">
                 <AlertCircle className="h-5 w-5 flex-shrink-0" />
@@ -112,7 +96,6 @@ const BatalPesanan = () => {
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
               <form onSubmit={handleSubmit}>
                 <div className="space-y-5">
-                  
                   {reasonsList.map((reason) => (
                     <label key={reason} htmlFor={reason} className="flex items-center gap-3 cursor-pointer">
                       <input
@@ -127,32 +110,24 @@ const BatalPesanan = () => {
                       <span className="text-base text-gray-700">{reason}</span>
                     </label>
                   ))}
-
                 </div>
 
-                {/* Tombol Aksi */}
                 <div className="flex justify-end gap-4 mt-10 pt-6 border-t border-gray-200">
                   <button
                     type="button"
-                    onClick={() => navigate(-1)} // Kembali
+                    onClick={() => navigate(-1)}
                     className="py-2 px-6 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition"
-                    disabled={isSubmitting} // Nonaktifkan saat loading
+                    disabled={isSubmitting}
                   >
                     Batal
                   </button>
                   <button
                     type="submit"
                     className="py-2 px-6 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition flex items-center gap-2 disabled:bg-emerald-300"
-                    disabled={isSubmitting} // Nonaktifkan saat loading
+                    disabled={isSubmitting}
                   >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Memproses...
-                      </>
-                    ) : (
-                      'Konfirmasi'
-                    )}
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    {isSubmitting ? 'Memproses...' : 'Konfirmasi'}
                   </button>
                 </div>
               </form>

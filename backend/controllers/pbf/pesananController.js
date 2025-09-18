@@ -283,9 +283,10 @@ const pesananController = {
         }
     },
 
-     requestPembatalan: async (req, res) => {
+     // Di dalam pesananController.js
+ requestPembatalan: async (req, res) => {
         const { id } = req.params;
-        const { alasan } = req.body;
+        const { alasan } = req.body; // Ambil alasan dari body
         const idPbf = req.user.id;
 
         if (!alasan) {
@@ -293,24 +294,28 @@ const pesananController = {
         }
 
         try {
+            // Cek apakah pesanan milik PBF yang benar dan statusnya 'Perlu Dikirim'
             const [pesanan] = await db.query(
                 "SELECT id FROM pesanan WHERE id = ? AND id_pbf = ? AND status = 'Perlu Dikirim'",
                 [id, idPbf]
             );
+
             if (pesanan.length === 0) {
                 return res.status(403).json({ success: false, message: "Pesanan tidak dapat dibatalkan atau tidak ditemukan." });
             }
             
+            // Update status menjadi 'Pembatalan Diajukan' dan simpan alasannya
             await db.query(
                 "UPDATE pesanan SET status = 'Pembatalan Diajukan', catatan_khusus = ? WHERE id = ?",
                 [`Dibatalkan oleh PBF. Alasan: ${alasan}`, id]
             );
+
             res.json({ success: true, message: "Pengajuan pembatalan berhasil dikirim." });
         } catch (error) {
+            console.error('Error in requestPembatalan:', error);
             res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
         }
     },
-
     // --- FUNGSI BARU UNTUK PENGAJUAN PENGEMBALIAN OLEH PBF ---
     ajukanPengembalian: async (req, res) => {
         try {

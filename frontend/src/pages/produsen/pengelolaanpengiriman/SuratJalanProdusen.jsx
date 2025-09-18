@@ -112,12 +112,7 @@ const SuratJalanProdusen = () => {
                 <button onClick={handleDownloadPDF} className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                   <Download className="w-4 h-4 mr-2" /> Unduh PDF
                 </button>
-                {!isBlockchainSent && (
-                  <button onClick={handleKirimKeBlockchain} disabled={isSending} className="flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
-                    {isSending && <Loader2 className="animate-spin w-4 h-4 mr-2" />}
-                    {isSending ? 'Mengirim...' : 'Kirim ke Blockchain'}
-                  </button>
-                )}
+                
                 <Link to="/produsen/pengelolaan-pengiriman" className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg">
                   Kembali
                 </Link>

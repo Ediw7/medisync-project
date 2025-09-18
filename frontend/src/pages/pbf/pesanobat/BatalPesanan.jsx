@@ -22,7 +22,6 @@ const BatalPesanan = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleCheckboxChange = (reason) => {
-    // Logika ini memungkinkan pemilihan beberapa alasan
     setSelectedReasons((prev) =>
       prev.includes(reason)
         ? prev.filter((r) => r !== reason)
@@ -48,10 +47,8 @@ const BatalPesanan = () => {
         return;
       }
 
-      // --- PERBAIKAN UTAMA DI SINI ---
       const response = await axios.put(`http://localhost:5000/api/pbf/pesanan/${id}/request-batalkan`, {
-        // 1. Menggunakan key 'alasan' sesuai dengan backend
-        alasan: selectedReasons.join(', '), 
+        alasan: selectedReasons.join(', '),
       }, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -62,10 +59,8 @@ const BatalPesanan = () => {
         throw new Error(response.data.message || 'Gagal terhubung ke server.');
       }
 
-      // 2. Pesan sukses yang benar
       alert('Pengajuan pembatalan berhasil dikirim.');
       navigate('/pbf/pesan-obat');
-
     } catch (err) {
       setError(err.response?.data?.message || err.message);
     } finally {
@@ -80,7 +75,6 @@ const BatalPesanan = () => {
         <NavbarPbf onLogout={() => { localStorage.clear(); navigate('/'); }} />
         <main className="flex-1 pt-16 p-6">
           <div className="max-w-3xl mx-auto">
-            
             <div className="mb-6">
               <h1 className="text-3xl font-bold text-gray-800">Pilih Alasan Pembatalan</h1>
               <p className="text-gray-500 mt-1">Pesanan ID: {String(id).padStart(6, '0')}</p>

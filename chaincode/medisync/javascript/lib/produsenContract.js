@@ -51,13 +51,15 @@ class ProdusenContract extends Contract {
         await ctx.stub.putState(id, Buffer.from(JSON.stringify(obat)));
         return JSON.stringify(obat);
     }
-async readObat(ctx, id) {
-    const assetJSON = await ctx.stub.getState(id);
-    if (!assetJSON || assetJSON.length === 0) {
-        throw new Error(`ERROR: Obat dengan ID ${id} tidak ditemukan.`);
+
+    async readObat(ctx, id) {
+        const assetJSON = await ctx.stub.getState(id);
+        if (!assetJSON || assetJSON.length === 0) {
+            throw new Error(`ERROR: Obat dengan ID ${id} tidak ditemukan.`);
+        }
+        return assetJSON.toString();
     }
-    return assetJSON.toString();
-}
+
     // <-- PERUBAHAN: Fungsi transferToPbf dirombak total
     async transferToPbf(ctx, idPesanan, hashSuratJalan, namaPbf, obatIdsJson, jumlahPesananJson) {
         const mspID = ctx.clientIdentity.getMSPID();

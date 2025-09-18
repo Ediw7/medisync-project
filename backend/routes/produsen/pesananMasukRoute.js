@@ -15,14 +15,12 @@ router.get('/:id', pesananMasukController.getPesananById);
 // Mengambil data surat jalan berdasarkan ID pesanan
 router.get('/:id/surat-jalan', pesananMasukController.getSuratJalanById);
 
-
-router.put('/:id/status', pesananMasukController.updateStatus);
-
-// Rute khusus untuk mengatur pengiriman (dengan detail)
-router.put('/:id/atur-pengiriman', pesananMasukController.updateStatusWithDetails);
+// Mengubah status pesanan dengan detail tambahan (misalnya untuk atur pengiriman)
+router.put('/:id/status', pesananMasukController.updateStatusWithDetails);
 
 
 // Mencatat pengiriman ke blockchain
 router.post('/:id/record-to-blockchain', pesananMasukController.recordToBlockchainForShipment);
 
 module.exports = router;
+

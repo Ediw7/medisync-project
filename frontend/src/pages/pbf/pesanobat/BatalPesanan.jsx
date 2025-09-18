@@ -59,7 +59,7 @@ const BatalPesanan = () => {
       }
 
       // Memanggil API Backend (fungsi batalkanPesanan di pesananController.js)
-      const response = await fetch(`http://localhost:5000/api/pbf/pesanan/${id}/batalkan`, {
+      const response = await fetch(`http://localhost:5000/api/pbf/pesanan/${id}/request-batalkan`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

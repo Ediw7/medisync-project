@@ -12,7 +12,7 @@ const DetailProduksi = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
-  const [qrCode, setQrCode] = useState('');
+  const [qrCode, setQrCode] = useState(''); // Akan diatur dari qr_code_url atau API
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
@@ -30,11 +30,16 @@ const DetailProduksi = () => {
         });
         if (!response.ok) throw new Error('Gagal mengambil data');
         const result = await response.json();
-        setProduksi({
+        const data = {
           ...result.data,
           bentuk_sediaan: result.data.bentuk_sediaan || '',
           penanggung_jawab: result.data.penanggung_jawab || '',
-        });
+        };
+        setProduksi(data);
+        // Muat qr_code_url jika sudah ada
+        if (data.status === 'Tercatat di Blockchain' && data.qr_code_url) {
+          setQrCode(data.qr_code_url);
+        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -75,7 +80,6 @@ const DetailProduksi = () => {
     }
   };
 
-  // Fungsi untuk memuat data QR secara langsung (opsional, untuk pengujian)
   const fetchQrData = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -87,7 +91,6 @@ const DetailProduksi = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error('Gagal memuat data QR');
-      // Jika Anda ingin menampilkan halaman di iframe atau tab baru, arahkan ke URL
       window.open(`http://localhost:5000/api/produksi/qr-data/${produksi.batch_id}`, '_blank');
     } catch (err) {
       setError(err.message);

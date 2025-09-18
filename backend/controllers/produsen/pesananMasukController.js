@@ -155,37 +155,60 @@ getSuratJalanById: async (req, res) => {
 
 
     
-    updateStatus: async (req, res) => {
+     
+     updateStatus: async (req, res) => {
+        const { id } = req.params;
+        const { status } = req.body; // status bisa 'Dibatalkan' atau 'Perlu Dikirim'
+        const idProdusen = req.user.id;
+        
+        let dbConnection;
         try {
-            const { id } = req.params;
-            const { status } = req.body;
-            const idProdusen = req.user.id;
-            const validStatuses = [
-                'Perlu Dikirim', 'Dikirim', 'Selesai', 'Ditolak', 
-                'Pembatalan Diajukan', 'Dibatalkan', 
-                'Pengembalian Diajukan', 'Dikembalikan'
-            ];
+            dbConnection = await db.getConnection();
+            await dbConnection.beginTransaction();
 
-            if (!status || !validStatuses.includes(status)) {
-                return res.status(400).json({ success: false, message: 'Status tidak valid. Gunakan: ' + validStatuses.join(', ') });
+            // Cek dulu apakah pesanan ini memang sedang menunggu konfirmasi pembatalan
+            const [pesanan] = await dbConnection.query(
+                "SELECT id FROM pesanan WHERE id = ? AND id_produsen = ? AND status = 'Pembatalan Diajukan'",
+                [id, idProdusen]
+            );
+
+            if (pesanan.length === 0) {
+                throw new Error('Pesanan ini tidak dalam status menunggu konfirmasi pembatalan.');
             }
 
-            const [result] = await db.query(
-                `UPDATE pesanan SET status = ? WHERE id = ? AND id_produsen = ?`,
-                [status, id, idProdusen]
+            // Jika produsen menyetujui pembatalan ('Dibatalkan')
+            if (status === 'Dibatalkan') {
+                // Kembalikan stok yang sudah dikurangi
+                const [items] = await dbConnection.query("SELECT id_produksi, jumlah_pesanan FROM detail_pesanan WHERE id_pesanan = ?", [id]);
+                for (const item of items) {
+                    await dbConnection.query("UPDATE produksi SET jumlah = jumlah + ? WHERE id = ?", [item.jumlah_pesanan, item.id_produksi]);
+                }
+            } else if (status !== 'Perlu Dikirim') {
+                // Jika statusnya bukan 'Dibatalkan', harus 'Perlu Dikirim' (menolak pembatalan)
+                throw new Error("Aksi tidak valid. Pilihan hanya 'Dibatalkan' atau 'Perlu Dikirim'.");
+            }
+
+            // Update status pesanan
+            const [result] = await dbConnection.query(
+                `UPDATE pesanan SET status = ? WHERE id = ?`,
+                [status, id]
             );
 
             if (result.affectedRows === 0) {
-                return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan atau Anda tidak memiliki akses.' });
+                throw new Error('Gagal memperbarui status pesanan.');
             }
 
+            await dbConnection.commit();
             res.json({ success: true, message: `Status pesanan berhasil diubah menjadi ${status}.` });
+
         } catch (error) {
+            if (dbConnection) await dbConnection.rollback();
             console.error('Error in updateStatus:', error);
-            res.status(500).json({ success: false, message: 'Kesalahan Server Internal: ' + error.message });
+            res.status(500).json({ success: false, message: `Kesalahan Server Internal: ${error.message}` });
+        } finally {
+            if (dbConnection) dbConnection.release();
         }
     },
-
     updateStatusWithDetails: async (req, res) => {
         try {
             console.log('Request params:', req.params);

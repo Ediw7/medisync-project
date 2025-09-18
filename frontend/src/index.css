@@ -1,7 +1,7 @@
 /* Enhanced Liquid Glass Effect CSS */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
-@import "tw-animate-css";
+/* @import "tw-animate-css"; */
 
 @tailwind base;
 @tailwind components;

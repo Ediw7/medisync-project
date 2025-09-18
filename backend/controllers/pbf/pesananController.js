@@ -283,116 +283,65 @@ const pesananController = {
         }
     },
 
-  // Fungsi untuk membatalkan pesanan
-  batalkanPesanan: async (req, res) => {
-    try {
-      const { id } = req.params;       // ID Pesanan dari URL (misal: /pesanan/14/batalkan)
-      const idPbf = req.user.id;       // ID PBF yang sedang login (dari token JWT)
-      const { alasanPembatalan } = req.body; // Data dari frontend BatalPesanan.jsx
+     requestPembatalan: async (req, res) => {
+        const { id } = req.params;
+        const { alasan } = req.body;
+        const idPbf = req.user.id;
 
-      if (!alasanPembatalan || alasanPembatalan.length === 0) {
-        return res.status(400).json({ success: false, message: 'Alasan pembatalan wajib diisi.' });
-      }
+        if (!alasan) {
+            return res.status(400).json({ success: false, message: 'Alasan pembatalan wajib diisi.' });
+        }
 
-      // Gabungkan array alasan menjadi satu string untuk disimpan di kolom catatan
-      const catatan = "Dibatalkan oleh PBF. Alasan: " + alasanPembatalan.join(', ');
+        try {
+            const [pesanan] = await db.query(
+                "SELECT id FROM pesanan WHERE id = ? AND id_pbf = ? AND status = 'Perlu Dikirim'",
+                [id, idPbf]
+            );
+            if (pesanan.length === 0) {
+                return res.status(403).json({ success: false, message: "Pesanan tidak dapat dibatalkan atau tidak ditemukan." });
+            }
+            
+            await db.query(
+                "UPDATE pesanan SET status = 'Pembatalan Diajukan', catatan_khusus = ? WHERE id = ?",
+                [`Dibatalkan oleh PBF. Alasan: ${alasan}`, id]
+            );
+            res.json({ success: true, message: "Pengajuan pembatalan berhasil dikirim." });
+        } catch (error) {
+            res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+        }
+    },
 
-      // Query SQL untuk UPDATE status DAN menyimpan alasan pembatalan
-      const sql = `
-        UPDATE pesanan 
-        SET 
-          status = 'Dibatalkan',  -- Menggunakan status 'Dibatalkan'
-          catatan_khusus = ?      -- Simpan alasannya di catatan
-        WHERE 
-          id = ? AND                
-          id_pbf = ? AND            
-          status = 'Perlu Dikirim'  
-      `;
+    // --- FUNGSI BARU UNTUK PENGAJUAN PENGEMBALIAN OLEH PBF ---
+    ajukanPengembalian: async (req, res) => {
+        try {
+            const { id } = req.params;
+            const idPbf = req.user.id;
+            const { alasan } = req.body;
+            
+            if (!req.file) return res.status(400).json({ success: false, message: 'Foto bukti wajib diunggah.' });
+            if (!alasan) return res.status(400).json({ success: false, message: 'Alasan wajib diisi.' });
 
-      const [result] = await db.query(sql, [catatan, id, idPbf]);
+            const buktiFotoPath = req.file.path;
+            const catatan = `Pengembalian Diajukan PBF. Alasan: ${alasan}. Bukti: ${buktiFotoPath}`;
 
-      // Jika tidak ada baris yang terpengaruh (affectedRows == 0)
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ 
-          success: false, 
-          message: 'Gagal membatalkan pesanan. Pesanan mungkin tidak ditemukan, bukan milik Anda, atau statusnya sudah berubah (sudah dikirim).' 
-        });
-      }
+            const [result] = await db.query(
+                "UPDATE pesanan SET status = 'Pengembalian Diajukan', catatan_khusus = ? WHERE id = ? AND id_pbf = ? AND status = 'Selesai'",
+                [catatan, id, idPbf]
+            );
 
-      // Jika berhasil
-      res.json({ success: true, message: 'Pesanan telah berhasil dibatalkan.' });
+            if (result.affectedRows === 0) {
+                fs.unlinkSync(buktiFotoPath);
+                return res.status(404).json({ success: false, message: 'Gagal mengajukan pengembalian. Pesanan tidak ditemukan atau statusnya bukan "Selesai".' });
+            }
+            res.json({ success: true, message: 'Pengajuan pengembalian berhasil dikirim.' });
+        } catch (error) {
+            if (req.file) fs.unlinkSync(req.file.path);
+            res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+        }
+    },
 
-    } catch (error)      {
-      console.error('Error in pbf.batalkanPesanan:', error);
-      res.status(500).json({ success: false, message: 'Kesalahan Server Internal: ' + error.message });
-    }
-  }, // <-- KOMA HILANG DI SINI
-
-  // ====================================================================
-  // ========= FUNGSI BARU UNTUK AJUKAN PENGEMBALIAN DI SINI ============
-  // =Data ini dipindahkan dari objek kedua
-  // ====================================================================
-  ajukanPengembalian: async (req, res) => {
-    try {
-      const { id } = req.params;       // ID Pesanan
-      const idPbf = req.user.id;       // ID PBF dari token
-      const { alasan } = req.body;     // Alasan dari form
-      
-      // Cek apakah file di-upload
-      if (!req.file) {
-        return res.status(400).json({ success: false, message: 'Foto bukti wajib diunggah.' });
-      }
-      if (!alasan) {
-        return res.status(400).json({ success: false, message: 'Alasan wajib diisi.' });
-      }
-
-      // Ambil path file yang disimpan oleh multer
-      const buktiFotoPath = req.file.path;
-
-      // Buat catatan gabungan
-      const catatan = `Pengembalian Diajukan PBF. Alasan: ${alasan}. Bukti: ${buktiFotoPath}`;
-
-      // Update database
-      // Kita cek status 'Selesai'
-      const sql = `
-        UPDATE pesanan 
-        SET 
-          status = 'Pengembalian Diajukan', -- Set status baru
-          catatan_khusus = ?              -- Simpan alasan & path file
-        WHERE 
-          id = ? AND
-          id_pbf = ? AND
-          status = 'Selesai'
-      `;
-
-      const [result] = await db.query(sql, [catatan, id, idPbf]);
-
-      // Cek jika Gagal update
-      if (result.affectedRows === 0) {
-        // Hapus file yang sudah terlanjur di-upload jika gagal update DB
-        fs.unlinkSync(buktiFotoPath);
-        return res.status(404).json({
-          success: false,
-          message: 'Gagal mengajukan pengembalian. Pesanan tidak ditemukan, bukan milik Anda, atau statusnya bukan "Selesai".'
-        });
-      }
-
-      // Jika Berhasil
-      res.json({ success: true, message: 'Pengajuan pengembalian berhasil dikirim.' });
-
-    } catch (error) {
-      console.error('Error in pbf.ajukanPengembalian:', error);
-      // Jika terjadi error, hapus file yang mungkin ter-upload
-      if (req.file) {
-        fs.unlinkSync(req.file.path);
-      }
-      res.status(500).json({ success: false, message: 'Kesalahan Server Internal: ' + error.message });
-    }
-  },
-
-  // Ini harus menjadi fungsi terakhir di objek
-  // Data ini dipindahkan dari objek kedua
-  uploadMiddleware: upload // Ekspor middleware multer
+    // Ekspor middleware multer agar bisa digunakan di rute
+    uploadMiddleware: upload
   
 }; // <-- Objek ditutup di sini
 

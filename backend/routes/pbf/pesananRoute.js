@@ -16,9 +16,11 @@ router.post('/', pesananController.create); // Rute untuk submit pesanan baru
 // 1. Rute untuk mengambil data stok dari Blockchain/CouchDB (diperlukan oleh halaman 'Create')
 // (Controller Anda mengharapkan 'idProdusen' dari params)
 router.get('/stok/:idProdusen', pesananController.getStokFromBlockchain);
+// Rute untuk aksi PBF
+router.put('/:id/request-batalkan', pesananController.requestPembatalan);
 
-// 2. Rute untuk menangani pembatalan (Ini yang menyebabkan error "Cannot PUT")
-router.put('/:id/batalkan', pesananController.batalkanPesanan);
-
+// --- PERBAIKAN UTAMA DI SINI ---
+// Gunakan middleware 'upload.single' SEBELUM memanggil controller
+router.put('/:id/ajukan-pengembalian', pesananController.uploadMiddleware.single('buktiFoto'), pesananController.ajukanPengembalian);
 
 module.exports = router;

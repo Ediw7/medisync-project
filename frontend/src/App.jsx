@@ -42,6 +42,7 @@ import TambahPesanan from './pages/pbf/pesanobat/TambahPesanan';
 import DetailPesanan from './pages/pbf/pesanobat/DetailPesanan';
 import BatalPesanan from './pages/pbf/pesanobat/BatalPesanan';
 import AjukanPengembalian from './pages/pbf/pesanobat/AjukanPengembalian';
+import KonfirmasiPenerimaan from './pages/pbf/pesanobat/KonfirmasiPenerimaan';
 
 
 import MonitoringStokPbf from './pages/pbf/monitoringstok/MonitoringStokPbf';
@@ -96,6 +97,7 @@ function App() {
       <Route path="/pbf/pesan-obat" element={<PesanObat />} />
       <Route path="/pbf/pesan-obat/tambah" element={<PilihProdusen />} /> 
       <Route path="/pbf/pesan-obat/tambah/:idProdusen" element={<TambahPesanan />} /> 
+      <Route path="/pbf/pesanan/:id/konfirmasi-penerimaan" element={<KonfirmasiPenerimaan />} />
       <Route path="/pbf/pesanan/:id/ajukan-pengembalian" element={<AjukanPengembalian />} />
       <Route path="/pbf/pesanan/:id/batalkan" element={<BatalPesanan />} />
       <Route path="/pbf/pesanan/:id/detail" element={<DetailPesanan />} />

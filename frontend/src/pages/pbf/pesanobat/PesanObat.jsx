@@ -230,7 +230,6 @@ const PesanObat = () => {
                     {filteredData.length > 0 ? (
                       filteredData.map((item) => (
                         <tr key={item.id} className="hover:bg-gray-50">
-                          {/* ... (Data <td> tidak berubah) ... */}
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                             {item.nomor_po}
                             <div className="text-xs text-gray-400">ID: {String(item.id).padStart(6, '0')}</div>
@@ -250,45 +249,48 @@ const PesanObat = () => {
                               {item.status}
                             </span>
                           </td>
-                          
-                          {/* --- BLOK AKSI DIPERBARUI SESUAI PERMINTAAN --- */}
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex gap-4 items-center">
-                              
                               {(() => {
                                 if (item.status === 'Perlu Dikirim') {
                                   return (
-                                    <Link 
-                                      to={`/pbf/pesanan/${item.id}/batalkan`} 
+                                    <Link
+                                      to={`/pbf/pesanan/${item.id}/batalkan`}
                                       className="text-blue-600 hover:text-blue-800 font-medium"
                                     >
                                       Batalkan Pesanan
                                     </Link>
                                   );
-                                } 
-                                
+                                }
+                                if (item.status === 'Dikirim') {
+                                  return (
+                                    <button
+                                      onClick={() => navigate(`/pbf/pesanan/${item.id}/konfirmasi-penerimaan`)}
+                                      className="text-emerald-600 hover:text-emerald-800 font-medium"
+                                    >
+                                      Konfirmasi Penerimaan
+                                    </button>
+                                  );
+                                }
                                 if (item.status === 'Selesai') {
-                                  // Status Selesai: HANYA menampilkan aksi baru
                                   return (
                                     <>
-                                      <Link 
-                                        to={`/pbf/pesanan/${item.id}/ajukan-pengembalian`} 
+                                      <Link
+                                        to={`/pbf/pesanan/${item.id}/ajukan-pengembalian`}
                                         className="text-red-600 hover:text-red-800 font-medium"
                                       >
                                         Ajukan Pengembalian
                                       </Link>
-                                      <button 
-                                        onClick={() => handleOpenSelesaiModal(item.id)} 
-                                        className="text-gray-600 hover:text-gray-800 font-medium p-0" // p-0 untuk membuatnya terlihat seperti link
+                                      <button
+                                        onClick={() => handleOpenSelesaiModal(item.id)}
+                                        className="text-gray-600 hover:text-gray-800 font-medium p-0"
                                       >
                                         Selesai
                                       </button>
                                     </>
                                   );
                                 }
-
-                                // Default untuk status lain (Dikirim, Ditolak, Dibatalkan, Pengembalian Diajukan, dll)
-                                // Sesuai desain lama (gambar)
+                                // Default untuk status lain (Ditolak, Dibatalkan, Pengembalian Diajukan, dll)
                                 return (
                                   <>
                                     <Link to={`/pbf/pesanan/${item.id}/detail`} className="text-blue-600 hover:text-blue-800">
@@ -300,11 +302,8 @@ const PesanObat = () => {
                                   </>
                                 );
                               })()}
-
                             </div>
                           </td>
-                          {/* --- AKHIR PERBAIKAN --- */}
-
                         </tr>
                       ))
                     ) : (

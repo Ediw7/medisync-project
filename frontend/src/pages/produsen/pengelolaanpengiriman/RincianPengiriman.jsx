@@ -281,7 +281,7 @@ const RincianPengiriman = () => {
                 <button
                   type="submit"
                   className="w-full bg-emerald-600 text-white py-3 px-6 rounded-lg hover:bg-emerald-700 transition duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  disabled={isSubmitting || !tanggalPengiriman || !alamatTujuan || alamatTujuan === 'Alamat tidak tersedia'}
+                  // disabled={isSubmitting || !tanggalPengiriman || !alamatTujuan || alamatTujuan === 'Alamat tidak tersedia'}
                 >
                   {isSubmitting ? (
                     <>

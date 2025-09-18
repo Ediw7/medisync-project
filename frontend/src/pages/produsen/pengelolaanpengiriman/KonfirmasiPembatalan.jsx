@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
 import { Loader2 } from 'lucide-react';
+import axios from 'axios';
 
 const KonfirmasiPembatalan = () => {
   const { id } = useParams();
@@ -11,6 +12,7 @@ const KonfirmasiPembatalan = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pesanan, setPesanan] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchPesananData = async () => {
@@ -19,19 +21,17 @@ const KonfirmasiPembatalan = () => {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('Silakan login terlebih dahulu');
         
-        const response = await fetch(`http://localhost:5000/api/produsen/pesanan-masuk/${id}`, {
+        const response = await axios.get(`http://localhost:5000/api/produsen/pesanan-masuk/${id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
-        if (!response.ok) throw new Error('Gagal mengambil data pesanan.');
-        const result = await response.json();
-        if (result.success) {
-          setPesanan(result.data.pesanan);
+        if (response.data.success) {
+          setPesanan(response.data.data.pesanan);
         } else {
-          throw new Error(result.message || 'Data pesanan tidak ditemukan.');
+          throw new Error(response.data.message || 'Data pesanan tidak ditemukan.');
         }
       } catch (err) {
-        setError(err.message);
+        setError(err.response?.data?.message || err.message);
       } finally {
         setIsLoading(false);
       }
@@ -40,13 +40,25 @@ const KonfirmasiPembatalan = () => {
   }, [id, navigate]);
 
   const handleAction = async (newStatus) => {
-    // Logika untuk mengirim update status ke backend (misal: 'Dibatalkan' atau 'Perlu Dikirim')
-    alert(`Status pesanan akan diubah menjadi: ${newStatus}`);
-    // Contoh implementasi:
-    // try {
-    //   await fetch(`.../${id}/status`, { method: 'PUT', body: JSON.stringify({ status: newStatus }) });
-    //   navigate('/produsen/pengelolaan-pengiriman');
-    // } catch (err) { setError(err.message); }
+    setIsSubmitting(true);
+    setError(null);
+    try {
+        const token = localStorage.getItem('token');
+        const response = await axios.put(`http://localhost:5000/api/produsen/pesanan-masuk/${id}/status`, 
+            { status: newStatus },
+            { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+        if (response.data.success) {
+            alert(`Pesanan berhasil ${newStatus === 'Dibatalkan' ? 'dibatalkan' : 'ditolak pembatalannya'}.`);
+            navigate('/produsen/pengelolaan-pengiriman');
+        } else {
+            throw new Error(response.data.message);
+        }
+    } catch (err) {
+        setError(err.response?.data?.message || 'Gagal mengubah status pesanan.');
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   const formatDate = (dateString) => {
@@ -58,6 +70,7 @@ const KonfirmasiPembatalan = () => {
   if (error) return <div className="p-6 text-center text-red-500">Error: {error}</div>;
   if (!pesanan) return <div className="p-6 text-center">Data tidak ditemukan.</div>;
 
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
@@ -67,11 +80,10 @@ const KonfirmasiPembatalan = () => {
           <div className="max-w-4xl mx-auto">
             <div className="mb-6">
               <h1 className="text-3xl font-bold text-gray-800">Pembatalan Diajukan</h1>
-              <p className="text-gray-500 mt-1">Mohon konfirmasi sebelum {formatDate(new Date().setDate(new Date(pesanan.tanggal_pengajuan_pembatalan).getDate() + 2))} atau pesanan akan dibatalkan secara otomatis</p>
+              <p className="text-gray-500 mt-1">Mohon konfirmasi sebelum {formatDate(new Date(new Date(pesanan.tanggal_pengajuan_pembatalan).getTime() + 2 * 24 * 60 * 60 * 1000))}</p>
             </div>
 
             <div className="bg-white rounded-xl shadow-md p-8 space-y-8">
-              {/* Detail Pembatalan */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm text-gray-500">Dana Pengembalian</label>
@@ -83,11 +95,11 @@ const KonfirmasiPembatalan = () => {
                 </div>
                 <div>
                   <label className="block text-sm text-gray-500">Alasan Pembeli</label>
-                  <p className="text-lg font-semibold">{pesanan.alasan_pembatalan || 'Ingin mengubah rincian & membuat pesanan baru'}</p>
+                  <p className="text-lg font-semibold">{pesanan.alasan_pembatalan || '-'}</p>
                 </div>
                 <div>
                   <label className="block text-sm text-gray-500">No Surat Jalan</label>
-                  <p className="text-lg font-semibold">{pesanan.nomor_surat_jalan || 'ABC-008888'}</p>
+                  <p className="text-lg font-semibold">{pesanan.nomor_surat_jalan || 'Belum Dibuat'}</p>
                 </div>
                 <div>
                   <label className="block text-sm text-gray-500">Diajukan pada</label>
@@ -95,7 +107,6 @@ const KonfirmasiPembatalan = () => {
                 </div>
               </div>
 
-              {/* Rincian Pesanan */}
               <div>
                 <h2 className="text-xl font-bold text-gray-800 mb-4 border-t pt-8">Rincian Pesanan</h2>
                 <div className="border rounded-lg overflow-hidden">
@@ -120,17 +131,16 @@ const KonfirmasiPembatalan = () => {
                 </div>
               </div>
 
-              {/* Tombol Aksi */}
               <div className="flex justify-end items-center gap-4 pt-4 border-t">
                 <button
                   onClick={() => handleAction('Perlu Dikirim')}
-                  className="py-2 px-6 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition-colors"
+                  className="py-2 px-6 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300"
                 >
                   Tolak Pengajuan
                 </button>
                 <button
                   onClick={() => handleAction('Dibatalkan')}
-                  className="py-2 px-6 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition-colors"
+                  className="py-2 px-6 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700"
                 >
                   Terima Pengajuan
                 </button>

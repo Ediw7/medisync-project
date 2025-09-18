@@ -37,4 +37,6 @@ router.delete('/:id', produksiController.delete);
 router.post('/:id/record', produksiController.recordToBlockchain);
 router.get('/qr-data/:batch_id', produksiController.getQrData); // Tambahkan kembali rute ini
 
+router.get('/blockchain-detail/:batch_id', produksiController.getBlockchainDetail);
+
 module.exports = router;

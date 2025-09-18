@@ -206,12 +206,7 @@ const DetailProduksi = () => {
                         <h3 className="font-semibold text-lg mb-2">QR Code</h3>
                         <img src={qrCode} alt="QR Code" className="mx-auto max-w-[200px]" />
                         <p className="text-sm text-gray-500 mt-2">Pindai untuk verifikasi. Berisi: {produksi.batch_id}</p>
-                        <button
-                          onClick={fetchQrData}
-                          className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                        >
-                          Lihat Detail QR
-                        </button>
+                        
                       </div>
                     )}
                   </>

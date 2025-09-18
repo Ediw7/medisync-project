@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage'; 
 import RegisterPage from './pages/RegisterPage';
+import BlockchainDetail from './pages/BlockchainDetail';
 
 import ProdusenDashboard from './pages/produsen/ProdusenDashboard';
 import ManajemenProduksi from './pages/produsen/manajemenproduksi/ManajemenProduksi';
@@ -60,6 +61,7 @@ function App() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
       <Route path="/register/:role" element={<RegisterPage />} />
+      <Route path="/blockchain-detail/:batch_id" element={<BlockchainDetail />} />
       
        {/* Rute Produsen */}
       <Route path="/produsen/dashboard" element={<ProdusenDashboard />} />

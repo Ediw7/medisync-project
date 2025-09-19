@@ -13,8 +13,7 @@ const MonitoringStok = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Semua');
 
-  // --- PERBAIKAN DI SINI ---
-  // State baru untuk menyimpan nama resmi produsen
+  // State for nama produsen and stats
   const [namaProdusen, setNamaProdusen] = useState('');
   const [stats, setStats] = useState({
     totalStok: 0,
@@ -26,7 +25,7 @@ const MonitoringStok = () => {
     // Ambil nama resmi saat komponen dimuat
     const storedNamaProdusen = localStorage.getItem('namaResmi');
     if (storedNamaProdusen) {
-        setNamaProdusen(storedNamaProdusen);
+      setNamaProdusen(storedNamaProdusen);
     }
 
     const fetchData = async () => {
@@ -35,39 +34,40 @@ const MonitoringStok = () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('Silakan login terlebih dahulu');
-  
+
         const response = await fetch('http://localhost:5000/api/produksi/jadwal', {
           headers: { 'Authorization': `Bearer ${token}` },
         });
-  
+
         if (!response.ok) throw new Error('Gagal mengambil data');
-  
+
         const result = await response.json();
         if (!result.success) throw new Error(result.message);
-        
+
         const data = result.data || [];
-        
+
         let total = 0;
         let menipis = 0;
         const dataWithStockStatus = data.map(item => {
-            total += item.jumlah;
-            let status_stok = 'Tersedia';
-            if (item.jumlah === 0) {
-                status_stok = 'Habis';
-            } else if (item.jumlah < 2000) {
-                status_stok = 'Menipis';
-                menipis += item.jumlah;
-            }
-            return {...item, status_stok};
+          total += item.jumlah || 0; // Handle potential undefined jumlah
+          let status_stok = 'Tersedia';
+          if ((item.jumlah || 0) === 0) {
+            status_stok = 'Habis';
+          } else if ((item.jumlah || 0) < 2000) {
+            status_stok = 'Menipis';
+            menipis += item.jumlah || 0;
+          }
+          return { ...item, status_stok };
         });
 
         setStokData(dataWithStockStatus);
         setStats({
-            totalStok: total,
-            distribusiBulanIni: 0,
-            stokMenipis: menipis,
+          totalStok: total,
+          distribusiBulanIni: 0, // This could be calculated if API provides distribution data
+          stokMenipis: menipis,
         });
 
+        console.log('Fetched stokData:', dataWithStockStatus); // Debug log
       } catch (error) {
         setError(error.message);
         if (error.message.includes('login')) navigate('/login/produsen');
@@ -84,26 +84,28 @@ const MonitoringStok = () => {
   };
 
   const filteredData = useMemo(() => {
+    console.log('Current statusFilter:', statusFilter); // Debug log
+    console.log('All stokData:', stokData); // Debug log
     return stokData
       .filter(item => {
-        if (statusFilter === 'Semua') return true;
+        if (statusFilter === 'Semua') return true; // Show all items when "Semua" is selected
         return item.status_stok === statusFilter;
       })
       .filter(item =>
-        item.batch_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.nama_obat.toLowerCase().includes(searchTerm.toLowerCase())
+        item.batch_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.nama_obat?.toLowerCase().includes(searchTerm.toLowerCase())
       );
   }, [stokData, searchTerm, statusFilter]);
-  
+
   const StatCard = ({ icon, value, label, unit }) => (
     <div className="bg-white p-6 rounded-xl shadow-lg flex items-center gap-6">
-        <div className="bg-emerald-100 p-4 rounded-full">
-            {icon}
-        </div>
-        <div>
-            <p className="text-3xl font-bold text-gray-800">{value.toLocaleString('id-ID')} <span className="text-xl font-medium text-gray-500">{unit}</span></p>
-            <p className="text-gray-500">{label}</p>
-        </div>
+      <div className="bg-emerald-100 p-4 rounded-full">
+        {icon}
+      </div>
+      <div>
+        <p className="text-3xl font-bold text-gray-800">{value.toLocaleString('id-ID')} <span className="text-xl font-medium text-gray-500">{unit}</span></p>
+        <p className="text-gray-500">{label}</p>
+      </div>
     </div>
   );
 
@@ -132,10 +134,10 @@ const MonitoringStok = () => {
                   <input type="text" className="w-full pl-10 pr-4 py-2 border rounded-lg" placeholder="Cari stok..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                 </div>
                 <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="p-2 border rounded-lg">
-                    <option>Semua status</option>
-                    <option>Tersedia</option>
-                    <option>Menipis</option>
-                    <option>Habis</option>
+                  <option value="Semua">Semua status</option>
+                  <option value="Tersedia">Tersedia</option>
+                  <option value="Menipis">Menipis</option>
+                  <option value="Habis">Habis</option>
                 </select>
               </div>
             </div>
@@ -149,33 +151,40 @@ const MonitoringStok = () => {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stok</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Exp. Date</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Manufaktur</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Produsen</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredData.map((item) => (
-                      <tr key={item.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.batch_id}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.nama_obat}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.jumlah.toLocaleString('id-ID')} box</td>
-                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(item.tanggal_kadaluarsa).toLocaleDateString('id-ID')}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                           <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                            ${item.status_stok === 'Tersedia' ? 'bg-green-100 text-green-800' : 
-                              item.status_stok === 'Menipis' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
-                            {item.status_stok}
-                           </span>
-                        </td>
-                        {/* --- PERBAIKAN DI SINI --- */}
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{namaProdusen}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <button onClick={() => navigate(`/produsen/produksi/detailstok/${item.id}`)} className="text-emerald-600 hover:text-emerald-900">
-                            <Eye size={20} />
-                          </button>
-                        </td>
+                    {filteredData.length > 0 ? (
+                      filteredData.map((item) => (
+                        <tr key={item.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.batch_id}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.nama_obat}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.jumlah?.toLocaleString('id-ID') || '0'} box</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {item.tanggal_kadaluarsa ? new Date(item.tanggal_kadaluarsa).toLocaleDateString('id-ID') : '-'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                              ${item.status_stok === 'Tersedia' ? 'bg-green-100 text-green-800' : 
+                                item.status_stok === 'Menipis' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
+                              {item.status_stok || 'Tidak Diketahui'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{namaProdusen}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button onClick={() => navigate(`/produsen/produksi/detailstok/${item.id}`)} className="text-emerald-600 hover:text-emerald-900">
+                              <Eye size={20} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="7" className="px-6 py-4 text-center text-gray-500">Tidak ada data yang sesuai.</td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               )}

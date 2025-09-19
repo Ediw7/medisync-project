@@ -1,31 +1,92 @@
 'use strict';
 
 const db = require('../../config/db');
-const fs = require('fs');
+const fs = require('fs').promises; // Hanya satu deklarasi fs
 const path = require('path');
+const crypto = require('crypto');
 const nano = require('nano')(`http://${process.env.COUCHDB_USER}:${process.env.COUCHDB_PASSWORD}@127.0.0.1:5984`);
+const { Gateway, Wallets } = require('@hyperledger/fabric-gateway');
+const grpc = require('@grpc/grpc-js');
+
+// Fungsi untuk menghitung hash file
+async function calculateFileHash(filePath) {
+  try {
+    console.log(`Calculating hash for file: ${filePath}`);
+    const fileBuffer = await fs.readFile(filePath);
+    const hash = crypto.createHash('sha256');
+    hash.update(fileBuffer);
+    const fileHash = hash.digest('hex');
+    console.log(`File hash calculated: ${fileHash}`);
+    return fileHash;
+  } catch (error) {
+    console.error('Error calculating file hash:', error);
+    throw new Error('Gagal menghitung hash file.');
+  }
+}
+
+// Fungsi untuk membuat koneksi ke Hyperledger Fabric
+async function getGateway() {
+  try {
+    console.log('Initializing Fabric Gateway connection...');
+    const ccpPath = path.resolve(__dirname, '..', '..', 'config', 'connection.json');
+    const ccp = JSON.parse(await fs.readFile(ccpPath, 'utf8'));
+
+    const certPath = path.resolve(__dirname, '..', '..', 'config', 'cert.pem');
+    const keyPath = path.resolve(__dirname, '..', '..', 'config', 'key.pem');
+    const cert = await fs.readFile(certPath);
+    const key = await fs.readFile(keyPath);
+
+    const tlsCaCertPath = path.resolve(__dirname, '..', '..', 'organizations', 'peerOrganizations', 'org2.medisync.com', 'tlsca', 'tlsca.org2.medisync.com-cert.pem');
+    const tlsCaCert = await fs.readFile(tlsCaCertPath);
+
+    const wallet = await Wallets.newInMemoryWallet();
+    const identity = {
+      credentials: {
+        certificate: cert,
+        privateKey: key,
+      },
+      mspId: 'PBFMSP',
+      type: 'X.509',
+    };
+    await wallet.put('pbf-user', identity);
+
+    const client = new grpc.Client(
+      'localhost:9051',
+      grpc.credentials.createSsl(tlsCaCert),
+      { 'grpc.ssl_target_name_override': 'peer0.org2.medisync.com' }
+    );
+
+    const gateway = new Gateway();
+    await gateway.connect(client, {
+      wallet,
+      identity: 'pbf-user',
+      discovery: { enabled: true, asLocalhost: true },
+    });
+
+    console.log('Gateway connection established');
+    return gateway;
+  } catch (error) {
+    console.error('Error initializing gateway:', error);
+    throw new Error('Gagal menginisialisasi koneksi ke blockchain.');
+  }
+}
 
 // --- KONFIGURASI MULTER UNTUK FILE UPLOAD ---
-// Anda lupa menambahkan ini
 const multer = require('multer');
 
-// Tentukan lokasi penyimpanan
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const dir = 'uploads/bukti_pengembalian';
-    // Buat direktori jika belum ada
+    const dir = 'Uploads/bukti_pengembalian';
     fs.mkdirSync(dir, { recursive: true });
     cb(null, dir);
   },
   filename: (req, file, cb) => {
-    // Buat nama file unik: order-[idPesanan]-[timestamp].[ext]
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
     cb(null, `order-${req.params.id}-${uniqueSuffix}${ext}`);
   }
 });
 
-// Filter file (hanya izinkan gambar)
 const fileFilter = (req, file, cb) => {
   if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png' || file.mimetype === 'image/jpg') {
     cb(null, true);
@@ -34,11 +95,7 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Inisialisasi Multer
-// 'buktiFoto' harus sama dengan nama field di FormData frontend
-const upload = multer({ storage: storage, fileFilter: fileFilter, limits: { fileSize: 1024 * 1024 * 5 } }); // Batas 5MB
-// --- AKHIR KONFIGURASI MULTER ---
-
+const upload = multer({ storage: storage, fileFilter: fileFilter, limits: { fileSize: 1024 * 1024 * 5 } });
 
 async function fetchFromCouchDB(idProdusen) {
   try {
@@ -47,15 +104,13 @@ async function fetchFromCouchDB(idProdusen) {
     const result = await dbInstance.find({
       selector: {
         docType: 'obat',
-        pemilikSaatIni: 'ProdusenMSP', // Hanya ambil stok milik Produsen
+        pemilikSaatIni: 'ProdusenMSP',
       },
-      // Sesuaikan fields dengan data yang Anda butuhkan di frontend
       fields: ['id', 'namaObat', 'bentukSediaan', 'dosis', 'tanggalProduksi', 'tanggalKadaluarsa', 'penanggungJawab', 'jumlah', 'hargaPerUnit'],
-      limit: 50, // Batasi jumlah data untuk performa
+      limit: 50,
       skip: 0,
     });
     console.log('CouchDB query result:', result.docs.length, 'documents');
-    // Mapping nama field CouchDB (camelCase) ke nama field yang diharapkan frontend (snake_case)
     const mappedData = result.docs.map(doc => ({
       id: doc.id,
       batch_id: doc.id,
@@ -67,7 +122,7 @@ async function fetchFromCouchDB(idProdusen) {
       tanggal_kadaluarsa: doc.tanggalKadaluarsa,
       penanggung_jawab: doc.penanggungJawab,
       harga_per_unit: doc.hargaPerUnit || 0,
-      nama_perusahaan: 'PT Medisync', // Asumsi statis
+      nama_perusahaan: 'PT Medisync',
     }));
     console.log('Mapped CouchDB data sample:', mappedData[0]);
     return mappedData;
@@ -77,7 +132,6 @@ async function fetchFromCouchDB(idProdusen) {
   }
 }
 
-// Fungsi fallback ke XAMPP/MySQL jika CouchDB kosong
 async function fetchFromMySQL(idProdusen) {
   try {
     const [rows] = await db.query(`
@@ -95,9 +149,7 @@ async function fetchFromMySQL(idProdusen) {
   }
 }
 
-// --- HANYA ADA SATU 'pesananController' ---
 const pesananController = {
-  // Mengambil daftar semua pesanan milik PBF yang sedang login
   getAll: async (req, res) => {
     try {
       const sql = `
@@ -116,7 +168,6 @@ const pesananController = {
     }
   },
 
-  // Mengambil detail pesanan berdasarkan ID
   getById: async (req, res) => {
     try {
       const { id } = req.params;
@@ -155,7 +206,6 @@ const pesananController = {
     }
   },
 
-  // Endpoint untuk stok obat dari CouchDB (on-chain)
   getStokFromBlockchain: async (req, res) => {
     try {
       const { idProdusen } = req.params;
@@ -169,8 +219,6 @@ const pesananController = {
         return res.json({ success: true, data: offChainData, source: 'off-chain' });
       }
 
-      // Note: Data dari CouchDB sudah di-map di dalam helper fetchFromCouchDB
-      // Kita kembalikan langsung data yang sudah di-map.
       res.json({ success: true, data: onChainData, source: 'on-chain' });
     } catch (error) {
       console.error('Error in getStokFromBlockchain:', error);
@@ -178,176 +226,229 @@ const pesananController = {
     }
   },
 
-  // Membuat pesanan baru
   create: async (req, res) => {
-        const {
-            /* nomor_po DIHAPUS DARI SINI */
-            id_produsen, nama_pbf, alamat_pbf, nomor_siup, nomor_sia_sika,
-            nama_apoteker, nomor_sipa, kontak_telepon, kontak_email, tanggal_pesanan,
-            tujuan_distribusi, catatan_khusus, items, tanda_tangan_data_url
-        } = req.body;
-        const id_pbf = req.user.id;
+    const {
+      id_produsen, nama_pbf, alamat_pbf, nomor_siup, nomor_sia_sika,
+      nama_apoteker, nomor_sipa, kontak_telepon, kontak_email, tanggal_pesanan,
+      tujuan_distribusi, catatan_khusus, items, tanda_tangan_data_url
+    } = req.body;
+    const id_pbf = req.user.id;
 
+    let dbConnection;
+    try {
+      dbConnection = await db.getConnection();
+      await dbConnection.beginTransaction();
+      
+      const dbCouch = nano.use('medisyncchannel_medisync');
+
+      const prefix = 'PBF/IV/2025/';
+      const [lastOrder] = await dbConnection.query(
+        "SELECT nomor_po FROM pesanan WHERE nomor_po LIKE ? ORDER BY id DESC LIMIT 1",
+        [`${prefix}%`]
+      );
+      let nextSeqNumber = 1; 
+      if (lastOrder.length > 0) {
+        const lastPoNumber = lastOrder[0].nomor_po; 
+        const lastSeqStr = lastPoNumber.substring(prefix.length); 
+        const lastSeqInt = parseInt(lastSeqStr, 10);
+        nextSeqNumber = lastSeqInt + 1;
+      }
+      const newSequenceString = String(nextSeqNumber).padStart(4, '0');
+      const generated_nomor_po = prefix + newSequenceString;
+
+      for (const item of items) {
+        const batchIdOnChain = item.id_produksi;
+        try {
+          const onChainDoc = await dbCouch.get(batchIdOnChain);
+          if (item.jumlah_pesanan > onChainDoc.jumlah) {
+            throw new Error(`Stok untuk ${onChainDoc.namaObat} (${onChainDoc.jumlah}) tidak cukup untuk pesanan (${item.jumlah_pesanan}).`);
+          }
+        } catch (couchError) {
+          if (couchError.statusCode === 404) {
+            throw new Error(`Obat dengan Batch ID ${batchIdOnChain} tidak ditemukan di blockchain.`);
+          }
+          throw couchError;
+        }
+      }
+      
+      const base64Data = tanda_tangan_data_url.replace(/^data:image\/png;base64,/, "");
+      const fileName = `ttd-pesanan-${Date.now()}.png`;
+      const filePath = path.join('Uploads', 'tanda_tangan', fileName);
+      await fs.mkdir(path.dirname(filePath), { recursive: true });
+      await fs.writeFile(filePath, base64Data, 'base64');
+      
+      const total_harga = items.reduce((sum, item) => sum + (Number(item.jumlah_pesanan) * Number(item.harga_per_unit)), 0);
+
+      const sqlPesanan = `
+        INSERT INTO pesanan (
+          nomor_po, id_pbf, id_produsen, nama_pbf, alamat_pbf, nomor_siup, nomor_sia_sika,
+          nama_apoteker, nomor_sipa, kontak_telepon, kontak_email, tanggal_pesanan,
+          tujuan_distribusi, catatan_khusus, tanda_tangan_apoteker, status, total_harga
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+      
+      const paramsPesanan = [
+        generated_nomor_po, 
+        id_pbf, id_produsen, nama_pbf, alamat_pbf, nomor_siup, nomor_sia_sika,
+        nama_apoteker, nomor_sipa, kontak_telepon, kontak_email, tanggal_pesanan,
+        tujuan_distribusi || null, catatan_khusus || null, filePath, 'Perlu Dikirim', total_harga
+      ];
+      const [resultPesanan] = await dbConnection.query(sqlPesanan, paramsPesanan);
+      const idPesanan = resultPesanan.insertId;
+
+      for (const item of items) {
+        const [produksiRows] = await dbConnection.query('SELECT id FROM produksi WHERE batch_id = ?', [item.id_produksi]);
+        if (produksiRows.length === 0) {
+          throw new Error(`Referensi produk off-chain untuk batch ID ${item.id_produksi} tidak ditemukan.`);
+        }
+        const idProduksiInteger = produksiRows[0].id;
+
+        const sqlDetail = `INSERT INTO detail_pesanan (id_pesanan, id_produksi, nama_obat, bentuk_sediaan, dosis, jumlah_pesanan, harga_per_unit, total_harga) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+        await dbConnection.query(sqlDetail, [
+          idPesanan, idProduksiInteger, item.nama_obat, item.bentuk_sediaan, 
+          item.dosis, item.jumlah_pesanan, item.harga_per_unit, item.total_harga
+        ]);
+        
+        await dbConnection.query('UPDATE produksi SET jumlah = jumlah - ? WHERE id = ?', [item.jumlah_pesanan, idProduksiInteger]);
+      }
+
+      await dbConnection.commit();
+      res.status(201).json({ success: true, message: 'Pesanan berhasil dibuat!', idPesanan, nomorPo: generated_nomor_po });
+    } catch (error) {
+      if (dbConnection) await dbConnection.rollback();
+      console.error('Error in create:', error);
+      res.status(500).json({ success: false, message: `Kesalahan Server Internal: ${error.message}` });
+    } finally {
+      if (dbConnection) dbConnection.release();
+    }
+  },
+
+  requestPembatalan: async (req, res) => {
+    const { id } = req.params;
+    const { alasan } = req.body;
+    const idPbf = req.user.id;
+
+    if (!alasan) {
+      return res.status(400).json({ success: false, message: 'Alasan pembatalan wajib diisi.' });
+    }
+
+    try {
+      const [pesanan] = await db.query(
+        "SELECT id FROM pesanan WHERE id = ? AND id_pbf = ? AND status = 'Perlu Dikirim'",
+        [id, idPbf]
+      );
+
+      if (pesanan.length === 0) {
+        return res.status(403).json({ success: false, message: "Pesanan tidak dapat dibatalkan atau tidak ditemukan." });
+      }
+      
+      await db.query(
+        "UPDATE pesanan SET status = 'Pembatalan Diajukan', catatan_khusus = ? WHERE id = ?",
+        [`Dibatalkan oleh PBF. Alasan: ${alasan}`, id]
+      );
+
+      res.json({ success: true, message: "Pengajuan pembatalan berhasil dikirim." });
+    } catch (error) {
+      console.error('Error in requestPembatalan:', error);
+      res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+    }
+  },
+
+  konfirmasiPembatalan: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const idPbf = req.user.id;
+      const [pesanan] = await db.query(
+        "SELECT id FROM pesanan WHERE id = ? AND id_pbf = ? AND status = 'Pembatalan Diajukan'",
+        [id, idPbf]
+      );
+      if (pesanan.length === 0) {
+        return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan atau statusnya bukan "Pembatalan Diajukan".' });
+      }
+      await db.query("UPDATE pesanan SET status = 'Dibatalkan' WHERE id = ?", [id]);
+      res.json({ success: true, message: 'Pembatalan pesanan berhasil dikonfirmasi.' });
+    } catch (error) {
+      console.error('Error in konfirmasiPembatalan:', error);
+      res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+    }
+  },
+
+  ajukanPengembalian: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const idPbf = req.user.id;
+      const { alasan } = req.body;
+      
+      if (!req.file) return res.status(400).json({ success: false, message: 'Foto bukti wajib diunggah.' });
+      if (!alasan) return res.status(400).json({ success: false, message: 'Alasan wajib diisi.' });
+
+      const buktiFotoPath = req.file.path;
+      const catatan = `Pengembalian Diajukan PBF. Alasan: ${alasan}. Bukti: ${buktiFotoPath}`;
+
+      const [result] = await db.query(
+        "UPDATE pesanan SET status = 'Pengembalian Diajukan', catatan_khusus = ? WHERE id = ? AND id_pbf = ? AND status = 'Selesai'",
+        [catatan, id, idPbf]
+      );
+
+      if (result.affectedRows === 0) {
+        await fs.unlink(buktiFotoPath);
+        return res.status(404).json({ success: false, message: 'Gagal mengajukan pengembalian. Pesanan tidak ditemukan atau statusnya bukan "Selesai".' });
+      }
+      res.json({ success: true, message: 'Pengajuan pengembalian berhasil dikirim.' });
+    } catch (error) {
+      if (req.file) await fs.unlink(req.file.path);
+      res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+    }
+  },
+
+   konfirmasiPenerimaan: async (req, res) => {
+        const { id } = req.params; // ID Pesanan
+        const idPbf = req.user.id;
+        
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'Bukti foto wajib diunggah.' });
+        }
+        
+        const buktiFotoPath = req.file.path;
+        let gateway;
         let dbConnection;
+
         try {
             dbConnection = await db.getConnection();
             await dbConnection.beginTransaction();
-            
-            const dbCouch = nano.use('medisyncchannel_medisync'); // Pastikan nama DB Couch benar
 
-            // --- AWAL BLOK GENERATOR NOMOR PO ---
-            const prefix = 'PBF/IV/2025/';
-            const [lastOrder] = await dbConnection.query(
-                "SELECT nomor_po FROM pesanan WHERE nomor_po LIKE ? ORDER BY id DESC LIMIT 1",
-                [`${prefix}%`]
-            );
-            let nextSeqNumber = 1; 
-            if (lastOrder.length > 0) {
-                const lastPoNumber = lastOrder[0].nomor_po; 
-                const lastSeqStr = lastPoNumber.substring(prefix.length); 
-                const lastSeqInt = parseInt(lastSeqStr, 10);
-                nextSeqNumber = lastSeqInt + 1;
+            const [pesanan] = await dbConnection.query("SELECT id FROM pesanan WHERE id = ? AND id_pbf = ? AND status = 'Dikirim'", [id, idPbf]);
+            if (pesanan.length === 0) {
+                throw new Error('Pesanan tidak ditemukan atau statusnya bukan "Dikirim".');
             }
-            const newSequenceString = String(nextSeqNumber).padStart(4, '0');
-            const generated_nomor_po = prefix + newSequenceString;
-            // --- AKHIR BLOK GENERATOR NOMOR PO ---
 
-            // Validasi stok di blockchain
+            const hashBuktiFoto = await calculateFileHash(buktiFotoPath);
+
+            gateway = await getGateway();
+            const network = await gateway.getNetwork('medisyncchannel');
+            const contract = network.getContract('medisync');
+
+            const [items] = await dbConnection.query("SELECT pr.batch_id FROM detail_pesanan dp JOIN produksi pr ON dp.id_produksi = pr.id WHERE dp.id_pesanan = ?", [id]);
             for (const item of items) {
-                const batchIdOnChain = item.id_produksi;
-                try {
-                    const onChainDoc = await dbCouch.get(batchIdOnChain);
-                    if (item.jumlah_pesanan > onChainDoc.jumlah) {
-                        throw new Error(`Stok untuk ${onChainDoc.namaObat} (${onChainDoc.jumlah}) tidak cukup untuk pesanan (${item.jumlah_pesanan}).`);
-                    }
-                } catch (couchError) {
-                    if (couchError.statusCode === 404) {
-                        throw new Error(`Obat dengan Batch ID ${batchIdOnChain} tidak ditemukan di blockchain.`);
-                    }
-                    throw couchError; // Lempar error lain (koneksi, dll)
-                }
-            }
-            
-            // Simpan Tanda Tangan
-            const base64Data = tanda_tangan_data_url.replace(/^data:image\/png;base64,/, "");
-            const fileName = `ttd-pesanan-${Date.now()}.png`;
-            const filePath = path.join('uploads', 'tanda_tangan', fileName);
-            fs.mkdirSync(path.dirname(filePath), { recursive: true });
-            fs.writeFileSync(filePath, base64Data, 'base64');
-            
-            const total_harga = items.reduce((sum, item) => sum + (Number(item.jumlah_pesanan) * Number(item.harga_per_unit)), 0);
-
-            // Insert data pesanan
-            const sqlPesanan = `
-                INSERT INTO pesanan (
-                    nomor_po, id_pbf, id_produsen, nama_pbf, alamat_pbf, nomor_siup, nomor_sia_sika,
-                    nama_apoteker, nomor_sipa, kontak_telepon, kontak_email, tanggal_pesanan,
-                    tujuan_distribusi, catatan_khusus, tanda_tangan_apoteker, status, total_harga
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-            
-            const paramsPesanan = [
-                generated_nomor_po, 
-                id_pbf, id_produsen, nama_pbf, alamat_pbf, nomor_siup, nomor_sia_sika,
-                nama_apoteker, nomor_sipa, kontak_telepon, kontak_email, tanggal_pesanan,
-                tujuan_distribusi || null, catatan_khusus || null, filePath, 'Perlu Dikirim', total_harga
-            ];
-            const [resultPesanan] = await dbConnection.query(sqlPesanan, paramsPesanan);
-            const idPesanan = resultPesanan.insertId;
-
-            // Simpan detail pesanan dan kurangi stok di MySQL (sebagai referensi)
-            for (const item of items) {
-                const [produksiRows] = await dbConnection.query('SELECT id FROM produksi WHERE batch_id = ?', [item.id_produksi]);
-                if (produksiRows.length === 0) {
-                     throw new Error(`Referensi produk off-chain untuk batch ID ${item.id_produksi} tidak ditemukan.`);
-                }
-                const idProduksiInteger = produksiRows[0].id;
-
-                const sqlDetail = `INSERT INTO detail_pesanan (id_pesanan, id_produksi, nama_obat, bentuk_sediaan, dosis, jumlah_pesanan, harga_per_unit, total_harga) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-                await dbConnection.query(sqlDetail, [
-                    idPesanan, idProduksiInteger, item.nama_obat, item.bentuk_sediaan, 
-                    item.dosis, item.jumlah_pesanan, item.harga_per_unit, item.total_harga
-                ]);
-                
-                // Kurangi juga stok di MySQL (meskipun sumber utamanya CouchDB, ini untuk sinkronisasi data internal)
-                await dbConnection.query('UPDATE produksi SET jumlah = jumlah - ? WHERE id = ?', [item.jumlah_pesanan, idProduksiInteger]);
+                const transaction = contract.createTransaction('PbfContract:terimaBarang');
+                transaction.setEndorsingOrganizations('PBFMSP');
+                await transaction.submit(item.batch_id, hashBuktiFoto);
             }
 
+            await dbConnection.query("UPDATE pesanan SET status = 'Selesai', catatan_khusus = ? WHERE id = ?", [`Bukti penerimaan: ${buktiFotoPath}`, id]);
+            
             await dbConnection.commit();
-            res.status(201).json({ success: true, message: 'Pesanan berhasil dibuat!', idPesanan, nomorPo: generated_nomor_po });
+            res.json({ success: true, message: 'Pesanan berhasil dikonfirmasi selesai dan kepemilikan aset di blockchain telah ditransfer.' });
         } catch (error) {
             if (dbConnection) await dbConnection.rollback();
-            console.error('Error in create:', error);
-            res.status(500).json({ success: false, message: `Kesalahan Server Internal: ${error.message}` });
+            if (fs.existsSync(buktiFotoPath)) fs.unlinkSync(buktiFotoPath); // Hapus file jika gagal
+            res.status(500).json({ success: false, message: `Gagal konfirmasi: ${error.message}` });
         } finally {
+            if (gateway) gateway.disconnect();
             if (dbConnection) dbConnection.release();
         }
     },
-
-     // Di dalam pesananController.js
- requestPembatalan: async (req, res) => {
-        const { id } = req.params;
-        const { alasan } = req.body; // Ambil alasan dari body
-        const idPbf = req.user.id;
-
-        if (!alasan) {
-            return res.status(400).json({ success: false, message: 'Alasan pembatalan wajib diisi.' });
-        }
-
-        try {
-            // Cek apakah pesanan milik PBF yang benar dan statusnya 'Perlu Dikirim'
-            const [pesanan] = await db.query(
-                "SELECT id FROM pesanan WHERE id = ? AND id_pbf = ? AND status = 'Perlu Dikirim'",
-                [id, idPbf]
-            );
-
-            if (pesanan.length === 0) {
-                return res.status(403).json({ success: false, message: "Pesanan tidak dapat dibatalkan atau tidak ditemukan." });
-            }
-            
-            // Update status menjadi 'Pembatalan Diajukan' dan simpan alasannya
-            await db.query(
-                "UPDATE pesanan SET status = 'Pembatalan Diajukan', catatan_khusus = ? WHERE id = ?",
-                [`Dibatalkan oleh PBF. Alasan: ${alasan}`, id]
-            );
-
-            res.json({ success: true, message: "Pengajuan pembatalan berhasil dikirim." });
-        } catch (error) {
-            console.error('Error in requestPembatalan:', error);
-            res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
-        }
-    },
-    // --- FUNGSI BARU UNTUK PENGAJUAN PENGEMBALIAN OLEH PBF ---
-    ajukanPengembalian: async (req, res) => {
-        try {
-            const { id } = req.params;
-            const idPbf = req.user.id;
-            const { alasan } = req.body;
-            
-            if (!req.file) return res.status(400).json({ success: false, message: 'Foto bukti wajib diunggah.' });
-            if (!alasan) return res.status(400).json({ success: false, message: 'Alasan wajib diisi.' });
-
-            const buktiFotoPath = req.file.path;
-            const catatan = `Pengembalian Diajukan PBF. Alasan: ${alasan}. Bukti: ${buktiFotoPath}`;
-
-            const [result] = await db.query(
-                "UPDATE pesanan SET status = 'Pengembalian Diajukan', catatan_khusus = ? WHERE id = ? AND id_pbf = ? AND status = 'Selesai'",
-                [catatan, id, idPbf]
-            );
-
-            if (result.affectedRows === 0) {
-                fs.unlinkSync(buktiFotoPath);
-                return res.status(404).json({ success: false, message: 'Gagal mengajukan pengembalian. Pesanan tidak ditemukan atau statusnya bukan "Selesai".' });
-            }
-            res.json({ success: true, message: 'Pengajuan pengembalian berhasil dikirim.' });
-        } catch (error) {
-            if (req.file) fs.unlinkSync(req.file.path);
-            res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
-        }
-    },
-
-    // Ekspor middleware multer agar bisa digunakan di rute
-    uploadMiddleware: upload
   
-}; // <-- Objek ditutup di sini
+  uploadMiddleware: upload
+};
 
 module.exports = pesananController;

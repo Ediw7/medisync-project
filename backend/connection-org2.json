@@ -1,0 +1,116 @@
+{
+    "name": "medisync-network",
+    "version": "1.0.0",
+    "client": {
+        "organization": "PBF",
+        "connection": {
+            "timeout": {
+                "peer": {
+                    "endorser": "300"
+                }
+            }
+        }
+    },
+    "channels": {
+        "medisyncchannel": {
+            "orderers": [
+                "orderer.medisync.com"
+            ],
+            "peers": {
+                "peer0.org1.medisync.com": {},
+                "peer0.org2.medisync.com": {},
+                "peer0.org3.medisync.com": {}
+            }
+        }
+    },
+    "organizations": {
+        "Produsen": {
+            "mspid": "ProdusenMSP",
+            "peers": [
+                "peer0.org1.medisync.com",
+                "peer1.org1.medisync.com"
+            ]
+        },
+        "PBF": {
+            "mspid": "PBFMSP",
+            "peers": [
+                "peer0.org2.medisync.com",
+                "peer1.org2.medisync.com"
+            ]
+        },
+        "Apotek": {
+            "mspid": "ApotekMSP",
+            "peers": [
+                "peer0.org3.medisync.com",
+                "peer1.org3.medisync.com"
+            ]
+        }
+    },
+    "orderers": {
+        "orderer.medisync.com": {
+            "url": "grpcs://localhost:7050",
+            "grpcOptions": {
+                "ssl-target-name-override": "orderer.medisync.com"
+            },
+            "tlsCACerts": {
+                "path": "/home/edi/medisync-project/backend/organizations/ordererOrganizations/medisync.com/tlsca/tlsca.medisync.com-cert.pem"
+            }
+        }
+    },
+    "peers": {
+        "peer0.org1.medisync.com": {
+            "url": "grpcs://localhost:7051",
+            "grpcOptions": {
+                "ssl-target-name-override": "peer0.org1.medisync.com"
+            },
+            "tlsCACerts": {
+                "path": "/home/edi/medisync-project/backend/organizations/peerOrganizations/org1.medisync.com/tlsca/tlsca.org1.medisync.com-cert.pem"
+            }
+        },
+        "peer1.org1.medisync.com": {
+            "url": "grpcs://localhost:8051",
+            "grpcOptions": {
+                "ssl-target-name-override": "peer1.org1.medisync.com"
+            },
+            "tlsCACerts": {
+                "path": "/home/edi/medisync-project/backend/organizations/peerOrganizations/org1.medisync.com/tlsca/tlsca.org1.medisync.com-cert.pem"
+            }
+        },
+        "peer0.org2.medisync.com": {
+            "url": "grpcs://localhost:9051",
+            "grpcOptions": {
+                "ssl-target-name-override": "peer0.org2.medisync.com"
+            },
+            "tlsCACerts": {
+                "path": "/home/edi/medisync-project/backend/organizations/peerOrganizations/org2.medisync.com/tlsca/tlsca.org2.medisync.com-cert.pem"
+            }
+        },
+        "peer1.org2.medisync.com": {
+            "url": "grpcs://localhost:10051",
+            "grpcOptions": {
+                "ssl-target-name-override": "peer1.org2.medisync.com"
+            },
+            "tlsCACerts": {
+                "path": "/home/edi/medisync-project/backend/organizations/peerOrganizations/org2.medisync.com/tlsca/tlsca.org2.medisync.com-cert.pem"
+            }
+        },
+        "peer0.org3.medisync.com": {
+            "url": "grpcs://localhost:11051",
+            "grpcOptions": {
+                "ssl-target-name-override": "peer0.org3.medisync.com"
+            },
+            "tlsCACerts": {
+                "path": "/home/edi/medisync-project/backend/organizations/peerOrganizations/org3.medisync.com/tlsca/tlsca.org3.medisync.com-cert.pem"
+            }
+        },
+        "peer1.org3.medisync.com": {
+            "url": "grpcs://localhost:12051",
+            "grpcOptions": {
+                "ssl-target-name-override": "peer1.org3.medisync.com"
+            },
+            "tlsCACerts": {
+                "path": "/home/edi/medisync-project/backend/organizations/peerOrganizations/org3.medisync.com/tlsca/tlsca.org3.medisync.com-cert.pem"
+            }
+        }
+    }
+}

@@ -10,6 +10,7 @@ const pembatalanRoutes = require('./routes/produsen/pembatalanRoute');
 const laporananalitikRoutes = require('./routes/produsen/laporananalitikRoute');
 const pesananPbfRoutes = require('./routes/pbf/pesananRoute'); 
 const pbfRoutes = require('./routes/pbf/pbfRoute');
+const penerimaanRoutes = require('./routes/pbf/penerimaanRoute'); 
 const blockchainRoutes = require('./routes/blockchain');
 const publicRoutes = require('./routes/publicRoute');
 const produksiController = require('./controllers/produsen/produksiController');
@@ -22,6 +23,7 @@ console.log('Routes loaded:', {
   pesananPbfRoutes,
   laporananalitikRoutes,
   pbfRoutes,
+  penerimaanRoutes,
   blockchainRoutes,
   publicRoutes,
   produksiController,
@@ -42,7 +44,9 @@ app.use('/api/produsen/pesanan-masuk', pesananMasukRoutes);
 app.use('/api/produsen/pembatalan', pembatalanRoutes);
 app.use('/api/produsen/laporananalitik', laporananalitikRoutes);
 app.use('/api/pbf/pesanan', pesananPbfRoutes);
-app.use('/api/pbf', pbfRoutes);
+
+app.use('/api/pbf', pbfRoutes)
+app.use('/api/pbf/penerimaan', penerimaanRoutes); ;
 app.use('/api/blockchain', blockchainRoutes);
 app.use('/api/public', publicRoutes);
 

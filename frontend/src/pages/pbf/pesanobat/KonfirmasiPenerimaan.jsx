@@ -126,7 +126,7 @@ const KonfirmasiPenerimaan = () => {
 
   const handleCloseConfirmModal = () => {
     setShowConfirmModal(false);
-    setBuktiFoto(null); // Reset foto saat modal ditutup
+    setBuktiFoto(null);
   };
 
   const handleConfirm = async () => {
@@ -142,7 +142,7 @@ const KonfirmasiPenerimaan = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
-        `http://localhost:5000/api/pbf/pesanan/${id}/konfirmasi`,
+        `http://localhost:5000/api/pbf/penerimaan/${id}/konfirmasi`,
         formData,
         {
           headers: {
@@ -159,7 +159,9 @@ const KonfirmasiPenerimaan = () => {
         throw new Error(response.data.message);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Gagal mengkonfirmasi pesanan.');
+      console.error('Error in handleConfirm:', err);
+      setError(err.response?.data?.message || 'Gagal mengkonfirmasi pesanan. Pastikan server berjalan di localhost:5000.');
+      alert(err.response?.data?.message || 'Gagal mengkonfirmasi pesanan. Pastikan server berjalan di localhost:5000.');
     } finally {
       setIsSubmitting(false);
       setShowConfirmModal(false);

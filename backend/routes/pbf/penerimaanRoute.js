@@ -4,19 +4,33 @@ const penerimaanController = require('../../controllers/pbf/penerimaanController
 const { authenticateToken, authorizeRole } = require('../../middleware/auth');
 const multer = require('multer');
 
-const storage = multer.memoryStorage();
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = 'Uploads/bukti_penerimaan';
+    require('fs').mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = require('path').extname(file.originalname);
+    cb(null, `penerimaan-${req.params.id}-${uniqueSuffix}${ext}`);
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  const filetypes = /jpeg|jpg|png/;
+  const mimetype = filetypes.test(file.mimetype);
+  const extname = filetypes.test(require('path').extname(file.originalname).toLowerCase());
+  if (mimetype && extname) {
+    return cb(null, true);
+  }
+  cb(new Error('Hanya file JPG, PNG, atau JPEG yang diizinkan.'));
+};
+
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // Batas ukuran file 5MB
-  fileFilter: (req, file, cb) => {
-    const filetypes = /jpeg|jpg|png/;
-    const mimetype = filetypes.test(file.mimetype);
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    if (mimetype && extname) {
-      return cb(null, true);
-    }
-    cb(new Error('Hanya file JPG, PNG, atau JPEG yang diizinkan.'));
-  },
+  fileFilter,
 });
 
 // Terapkan middleware untuk melindungi semua rute

@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@grpc/grpc-js": "^1.8.0",
     "@sendgrid/mail": "^8.1.5",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
@@ -19,9 +20,9 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "mysql2": "^3.14.3",
+    "nano": "^10.1.4",
     "nodemailer": "^7.0.6",
     "nodemailer-sendgrid-transport": "^0.2.0",
-    "nano": "^10.1.4",
     "qrcode": "^1.5.4"
   },
   "description": ""

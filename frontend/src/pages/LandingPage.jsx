@@ -20,11 +20,12 @@ import {
   Camera,
   Link as LinkIcon,
 } from "lucide-react";
-
+import { AnimatedBackground } from "../components/AnimatedBackground";
 // Assuming these components are in the correct path
 import Navbar from "../components/Navbar";
 import QrScanner from "../components/QrScanner";
 import RiwayatObatModal from "../components/RiwayatObatModal";
+import HeroImage from "../assets/heroo.png";
 
 const LandingPage = () => {
   const [showScanner, setShowScanner] = useState(false);
@@ -158,13 +159,15 @@ const LandingPage = () => {
 
   return (
     // Light theme change: Changed background to white and default text to dark gray
-    <div className="min-h-screen bg-white text-gray-800">
+    <div className="min-h-screen bg-gray-200/30 text-gray-800">
       <Navbar />
 
       {/* The max-w-7xl container was removed from here to allow the hero section 
         to have a full-width background, and was added inside each section instead.
       */}
       <div>
+        <AnimatedBackground />
+
         {/* The Hero Section code you provided already uses a light theme, so it fits perfectly. */}
         <section className="pt-24 pb-20 overflow-hidden relative">
           <div className="absolute inset-0 overflow-hidden">
@@ -176,15 +179,10 @@ const LandingPage = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid lg:grid-cols-2 gap-12 items-center relative z-10">
               {/* Left Column - Content */}
-              <div className="animate-fade-in">
-                <div className="inline-flex items-center px-4 py-2 bg-white/30 backdrop-blur-md rounded-full text-emerald-700 text-sm font-medium mb-6 border border-white/40 shadow-lg">
-                  <Shield size={16} className="mr-2" />
-                  Teknologi Blockchain Terpercaya
-                </div>
-
+              <div className="animate-fade-in mt-12">
                 <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
                   Rantai Pasok Farmasi
-                  <span className="text-emerald-600 block">Transparan</span>
+                  <span className="text-[#047857]/90 block">Transparan</span>
                 </h1>
 
                 <p className="text-xl text-gray-600 mb-8 leading-relaxed max-w-xl">
@@ -238,87 +236,25 @@ const LandingPage = () => {
               </div>
 
               {/* Right Column - Visual */}
-              <div className="relative animate-slide-up">
+              <div className="relative ">
                 <div className="relative z-10">
-                  <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20 animate-float">
                     <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-3xl"></div>
-                    <div className="relative z-10">
-                      <div className="bg-white/20 backdrop-blur-md rounded-2xl p-6 mb-6 border border-white/30 shadow-inner">
-                        <div className="flex items-center gap-3 mb-4">
-                          <div className="h-3 w-3 bg-green-400 rounded-full animate-glow"></div>
-                          <span className="text-white/90 font-medium">
-                            Live Tracking
-                          </span>
-                        </div>
-                        <div className="space-y-3">
-                          {[
-                            {
-                              label: "Manufaktur",
-                              status: "Selesai",
-                              time: "2h ago",
-                            },
-                            {
-                              label: "Distribusi",
-                              status: "Transit",
-                              time: "30m ago",
-                            },
-                            {
-                              label: "Apotek",
-                              status: "Pending",
-                              time: "Real-time",
-                            },
-                          ].map((step, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center justify-between bg-white/20 backdrop-blur-sm rounded-xl p-3 border border-white/20 hover:bg-white/30 transition-all duration-300"
-                            >
-                              <div>
-                                <div className="text-white font-medium text-sm">
-                                  {step.label}
-                                </div>
-                                <div className="text-emerald-200 text-xs">
-                                  {step.time}
-                                </div>
-                              </div>
-                              <div
-                                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  step.status === "Selesai"
-                                    ? "bg-green-400/20 text-green-100"
-                                    : step.status === "Transit"
-                                    ? "bg-yellow-400/20 text-yellow-100"
-                                    : "bg-blue-400/20 text-blue-100"
-                                }`}
-                              >
-                                {step.status}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl mb-3 animate-glow">
-                          <Zap size={32} className="text-white" />
-                        </div>
-                        <div className="text-white/90 font-medium mt-2">
-                          Blockchain Verified
-                        </div>
-                      </div>
-                    </div>
+                          <img
+                            src={HeroImage}
+                            alt="Hero Visual"
+                            className="w-full h-auto rounded-xl mb-24  "
+                          />
                   </div>
-                </div>
 
-                <div className="absolute -top-10 -right-10 h-40 w-40 bg-emerald-200/40 rounded-full blur-3xl animate-pulse"></div>
-                <div className="absolute -bottom-10 -left-10 h-32 w-32 bg-emerald-500/30 animate-liquid blur-2xl"></div>
+                <div className="absolute -top-10 -right-10 h-40 w-40 bg-[#16A34A]/70 rounded-full blur-3xl animate-pulse mix-blend-screen"></div>
+                <div className="absolute -bottom-0 -left-10 h-32 w-32 bg-[#22C55E]/60 animate-pulse blur-2xl mix-blend-screen"></div>
               </div>
             </div>
           </div>
         </section>
 
         {/* --- PARTNER COMPANIES SECTION --- */}
-        <section
-          id="partners"
-          className="py-20 bg-gray-50/50 relative overflow-hidden"
-        >
+        <section id="partners" className="py-20 relative overflow-hidden">
           {/* Liquid Glass Background */}
           <div className="absolute inset-0">
             <div className="absolute top-20 right-1/3 w-72 h-72 bg-[#22C55E]/5 rounded-full blur-3xl animate-[float_6s_ease-in-out_infinite]"></div>
@@ -360,9 +296,10 @@ const LandingPage = () => {
         </section>
 
         {/* --- FEATURES SECTION --- */}
+
         <section
           id="features"
-          className="py-20 bg-gradient-to-b from-white to-gray-50/50 relative overflow-hidden"
+          className="py-20 bg-gradient-to-b relative overflow-hidden"
         >
           {/* Liquid Glass Background */}
           <div className="absolute inset-0">
@@ -406,7 +343,7 @@ const LandingPage = () => {
         </section>
 
         {/* --- BLOCKCHAIN SECTION --- */}
-        <section className="py-20 bg-white relative overflow-hidden">
+        <section className="py-20  relative overflow-hidden">
           {/* Liquid Glass Background */}
           <div className="absolute inset-0">
             <div className="absolute top-1/4 left-10 w-80 h-80 bg-[#22C55E]/5 rounded-full blur-3xl animate-float"></div>
@@ -570,7 +507,7 @@ const LandingPage = () => {
         </section>
       </div>
 
-      <footer className="relative pt-20 pb-10 overflow-hidden border-t border-gray-200/80">
+      <footer className="relative pt-20 pb-10 overflow-hidden border-t border-gray-200/80 bg-gray-200">
         {/* Elemen Latar Belakang untuk Efek Kaca */}
         <div className="absolute inset-0">
           <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-[#16A34A]/5 rounded-full blur-3xl animate-float"></div>

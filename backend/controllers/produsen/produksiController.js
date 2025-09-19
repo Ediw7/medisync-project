@@ -39,7 +39,7 @@ const produksiController = {
   getAll: async (req, res) => {
   try {
     const [rows] = await db.query(
-      'SELECT id, batch_id, nama_obat, jumlah, status, tanggal_produksi, qr_code_url FROM produksi WHERE id_produsen = ? ORDER BY tanggal_produksi DESC',
+      'SELECT id, batch_id, nama_obat, jumlah, status, tanggal_produksi, tanggal_kadaluarsa, qr_code_url FROM produksi WHERE id_produsen = ? ORDER BY tanggal_produksi DESC',
       [req.user.id]
     );
     res.json({ success: true, data: rows });
@@ -48,7 +48,6 @@ const produksiController = {
     res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
   }
 },
-
   // Mengambil satu data produksi berdasarkan ID
   getById: async (req, res) => {
   try {

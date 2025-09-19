@@ -159,7 +159,7 @@ const MonitoringStok = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.batch_id}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.nama_obat}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.jumlah.toLocaleString('id-ID')} box</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(item.tanggal_kadaluarsa).toLocaleDateString('id-ID')}</td>
+                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(item.tanggal_kadaluarsa).toLocaleDateString('id-ID')}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                             ${item.status_stok === 'Tersedia' ? 'bg-green-100 text-green-800' : 

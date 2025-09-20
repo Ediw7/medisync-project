@@ -1,67 +1,190 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Menu, X, Pill } from 'lucide-react';
+"use client"
+
+import React from "react"
+import { Link } from "react-router-dom"
+import { Menu, X, ArrowRight } from "lucide-react"
+import Logo from "../assets/logo.png";
 
 const Navbar = () => {
-  const [isOpen, setIsOpen] = React.useState(false);
+  const [isOpen, setIsOpen] = React.useState(false)
 
   return (
-    <nav className="bg-white/80 backdrop-blur-md fixed w-full z-50 top-0 left-0">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-20">
-          <div className="flex items-center">
-            <Link to="/" className="flex items-center space-x-2">
-              <Pill className="text-emerald-600" size={28} />
-              <span className="text-xl font-bold bg-gradient-to-r from-gray-900 to-brand-700 bg-clip-text">MediSync</span>
+    <nav className="sticky top-0 z-50 p-4 bg-gray-200/0">
+      <div className="container mx-auto max-w-4xl ">
+        <div
+          className="flex h-14 items-center justify-between px-6 
+                        bg-gradient-to-r from-white/10 via-white/5 to-white/10 
+                        backdrop-blur-xl
+                        rounded-3xl shadow-2xl shadow-black/20
+                        before:absolute before:inset-0 before:rounded-3xl 
+                        before:bg-gradient-to-r before:from-purple-500/10 before:via-transparent before:to-lime-400/10
+                        before:blur-xl before:-z-10
+                        hover:shadow-purple-500/20 hover:border-white/30
+                        transition-all duration-500 ease-out
+                        relative overflow-hidden"
+        >
+          <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-[#22C55E] via-transparent to-[#047857] opacity-10"></div>
+
+          <div className="flex items-center relative z-10">
+            <Link to="/">
+              <img src={Logo} alt="MediSync Logo" className="h-11 w-auto" />
             </Link>
           </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            <Link to="/about" className="text-gray-600 hover:text-emerald-600 transition-colors">About</Link>
-            <Link to="/services" className="text-gray-600 hover:text-emerald-600 transition-colors">Services</Link>
-            <Link to="/contact" className="text-gray-600 hover:text-emerald-600 transition-colors">Contact</Link>
-            <Link to="/roles" 
-              className="px-6 py-2.5 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 
-                       transition-all duration-300 shadow-lg hover:shadow-emerald-200">
-              Login
+          <div className="hidden md:flex items-center gap-6 text-base text-[#16A34A] relative z-10 font-semibold">
+            <Link
+              to="/about"
+              className="hover:[#047857] hover:scale-105 transition-all duration-300 ease-out
+                                        relative px-3 py-1.5 group overflow-hidden"
+            >
+              <div
+                className="absolute inset-0 bg-gradient-to-r from-white/50 via-white/30 to-white/50 
+                             backdrop-blur-md border border-white/30 rounded-2xl
+                             scale-0 group-hover:scale-100 opacity-0 group-hover:opacity-100
+                             transition-all duration-500 ease-out"
+              ></div>
+              <div
+                className="absolute inset-0 bg-gradient-to-r from-teal-500/5 to-emerald-500/5 
+                             rounded-2xl blur-sm scale-0 group-hover:scale-110 
+                             transition-all duration-700 ease-out"
+              ></div>
+              <span className="relative z-10">ABOUT</span>
+            </Link>
+            <Link
+              to="/services"
+              className="hover:[#047857] hover:scale-105 transition-all duration-300 ease-out
+                                        relative px-3 py-1.5 group overflow-hidden"
+            >
+              <div
+                className="absolute inset-0 bg-gradient-to-r from-white/50 via-white/30 to-white/50 
+                             backdrop-blur-md border border-white/30 rounded-2xl
+                             scale-0 group-hover:scale-100 opacity-0 group-hover:opacity-100
+                             transition-all duration-500 ease-out"
+              ></div>
+              <div
+                className="absolute inset-0 bg-gradient-to-r from-teal-500/5 to-emerald-500/5 
+                             rounded-2xl blur-sm scale-0 group-hover:scale-110 
+                             transition-all duration-700 ease-out"
+              ></div>
+              <span className="relative z-10">SERVICES</span>
+            </Link>
+            <Link
+              to="/contact"
+              className="hover:[#047857] hover:scale-105 transition-all duration-300 ease-out
+                                        relative px-3 py-1.5 group overflow-hidden"
+            >
+              <div
+                className="absolute inset-0 bg-gradient-to-r from-white/50 via-white/30 to-white/50 
+                             backdrop-blur-md border border-white/30 rounded-2xl
+                             scale-0 group-hover:scale-100 opacity-0 group-hover:opacity-100
+                             transition-all duration-500 ease-out"
+              ></div>
+              <div
+                className="absolute inset-0 bg-gradient-to-r from-teal-500/5 to-emerald-500/5 
+                             rounded-2xl blur-sm scale-0 group-hover:scale-110 
+                             transition-all duration-700 ease-out"
+              ></div>
+              <span className="relative z-10">CONTACT</span>
             </Link>
           </div>
 
-          {/* Mobile menu button */}
-          <div className="md:hidden flex items-center">
+          <div className="hidden md:flex relative z-10">
+            <Link
+              to="/roles"
+              className="group inline-flex items-center justify-center px-5 py-2 bg-gradient-to-r from-[#16A34A] to-[#047857] text-white rounded-2xl hover:from-emerald-700 hover:to-emerald-800 transition-all duration-500 font-semibold shadow-2xl hover:shadow-emerald-500/25 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+              <span className="relative z-10 flex items-center">
+                LOGIN
+                <ArrowRight
+                  size={16}
+                  className="transition-all duration-300 w-0 group-hover:w-4 ml-0 group-hover:ml-2 opacity-0 group-hover:opacity-100"
+                />
+              </span>
+            </Link>
+          </div>
+
+          <div className="md:hidden relative z-10">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-full text-gray-400 
-                       hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+              className="border border-white/20 bg-white/10 text-gray-200 hover:bg-white/20
+                         backdrop-blur-md rounded-xl p-2 transition-all duration-300
+                         hover:scale-105 active:scale-95"
             >
-              {isOpen ? <X size={24} /> : <Menu size={24} />}
+              {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              <span className="sr-only">Open menu</span>
             </button>
           </div>
         </div>
 
-        {/* Mobile Navigation */}
         {isOpen && (
-          <div className="md:hidden absolute left-0 right-0 bg-white/95 backdrop-blur-md shadow-lg">
-            <div className="px-4 pt-2 pb-3 space-y-2">
-              <Link to="/about" className="block px-4 py-3 text-gray-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">
-                About
+          <div
+            className="md:hidden absolute left-4 right-4 mt-2 
+                          bg-gradient-to-b from-white/10 to-white/5 
+                          backdrop-blur-xl border border-white/20 
+                          rounded-2xl shadow-2xl shadow-black/20
+                          animate-in slide-in-from-top-2 duration-300
+                          relative overflow-hidden"
+          >
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-purple-500/5 to-lime-400/5 opacity-50"></div>
+
+            <div className="flex flex-col gap-1 p-2 text-gray-200 relative z-10">
+              <Link
+                to="/about"
+                className="flex items-center px-4 py-3 hover:bg-white/10 hover:text-white 
+                          rounded-xl transition-all duration-300 hover:scale-[1.02]
+                          relative overflow-hidden group"
+              >
+                <div
+                  className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-transparent 
+                               scale-0 group-hover:scale-100 transition-transform duration-300 rounded-xl"
+                ></div>
+                <span className="text-sm relative z-10">About</span>
               </Link>
-              <Link to="/services" className="block px-4 py-3 text-gray-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">
-                Services
+              <Link
+                to="/services"
+                className="flex items-center px-4 py-3 hover:bg-white/10 hover:text-white 
+                          rounded-xl transition-all duration-300 hover:scale-[1.02]
+                          relative overflow-hidden group"
+              >
+                <div
+                  className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-transparent 
+                               scale-0 group-hover:scale-100 transition-transform duration-300 rounded-xl"
+                ></div>
+                <span className="text-sm relative z-10">Services</span>
               </Link>
-              <Link to="/contact" className="block px-4 py-3 text-gray-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">
-                Contact
+              <Link
+                to="/contact"
+                className="flex items-center px-4 py-3 hover:bg-white/10 hover:text-white 
+                          rounded-xl transition-all duration-300 hover:scale-[1.02]
+                          relative overflow-hidden group"
+              >
+                <div
+                  className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-transparent 
+                               scale-0 group-hover:scale-100 transition-transform duration-300 rounded-xl"
+                ></div>
+                <span className="text-sm relative z-10">Contact</span>
               </Link>
-              <Link to="/roles" className="block px-4 py-3 text-emerald-600 font-medium hover:bg-emerald-50 rounded-lg transition-colors">
-                Login
-              </Link>
+              <div className="border-t border-white/20 mt-2 pt-2">
+                <Link
+                  to="/roles"
+                  className="block w-full bg-gradient-to-r from-[#22C55E] to-[#16A34A] font-medium 
+                            rounded-xl px-6 py-2.5 hover:from-teal-300 hover:to-emerald-300 
+                            hover:shadow-xl hover:shadow-teal-400/30 hover:scale-[1.02] active:scale-95
+                            transition-all duration-300 text-center
+                            relative overflow-hidden
+                            before:absolute before:inset-0 before:bg-white/20 before:rounded-xl 
+                            before:scale-0 hover:before:scale-100 before:transition-transform before:duration-300"
+                >
+                  <span className="relative z-10">Login</span>
+                </Link>
+              </div>
             </div>
           </div>
         )}
       </div>
     </nav>
-  );
-};
+  )
+}
 
-export default Navbar;
+export default Navbar

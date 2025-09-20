@@ -25,7 +25,7 @@ import { AnimatedBackground } from "../components/AnimatedBackground";
 import Navbar from "../components/Navbar";
 import QrScanner from "../components/QrScanner";
 import RiwayatObatModal from "../components/RiwayatObatModal";
-import HeroImage from "../assets/heroo.png";
+import HeroImage from "../assets/hero.png";
 
 const LandingPage = () => {
   const [showScanner, setShowScanner] = useState(false);
@@ -195,7 +195,7 @@ const LandingPage = () => {
                 <div className="flex flex-col sm:flex-row gap-4 mb-12">
                   <Link
                     to="/roles"
-                    className="group inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-2xl hover:from-emerald-700 hover:to-emerald-800 transition-all duration-500 font-semibold shadow-2xl hover:shadow-emerald-500/25 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 relative overflow-hidden"
+                    className="group inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-[#16A34A] to-[#047857] text-white rounded-2xl hover:from-emerald-700 hover:to-emerald-800 transition-all duration-500 font-semibold shadow-2xl hover:shadow-emerald-500/25 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 relative overflow-hidden"
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
                     <span className="relative z-10 flex items-center">

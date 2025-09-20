@@ -53,7 +53,7 @@
                 "ssl-target-name-override": "orderer.medisync.com"
             },
             "tlsCACerts": {
-                "path": "../organizations/ordererOrganizations/medisync.com/tlsca/tlsca.medisync.com-cert.pem"
+                "path": "../organizations/ordererOrganizations/medisync.com/msp/tlscacerts/tlsca.medisync.com-cert.pem"
             }
         }
     },
@@ -64,7 +64,7 @@
                 "ssl-target-name-override": "peer0.org1.medisync.com"
             },
             "tlsCACerts": {
-                "path": "../organizations/peerOrganizations/org1.medisync.com/tlsca/tlsca.org1.medisync.com-cert.pem"
+                "path": "../organizations/peerOrganizations/org1.medisync.com/msp/tlscacerts/tlsca.org1.medisync.com-cert.pem"
             }
         },
         "peer1.org1.medisync.com": {
@@ -73,7 +73,7 @@
                 "ssl-target-name-override": "peer1.org1.medisync.com"
             },
             "tlsCACerts": {
-                "path": "../organizations/peerOrganizations/org1.medisync.com/tlsca/tlsca.org1.medisync.com-cert.pem"
+                "path": "../organizations/peerOrganizations/org1.medisync.com/msp/tlscacerts/tlsca.org1.medisync.com-cert.pem"
             }
         },
         "peer0.org2.medisync.com": {
@@ -82,7 +82,7 @@
                 "ssl-target-name-override": "peer0.org2.medisync.com"
             },
             "tlsCACerts": {
-                "path": "../organizations/peerOrganizations/org2.medisync.com/tlsca/tlsca.org2.medisync.com-cert.pem"
+                "path": "../organizations/peerOrganizations/org2.medisync.com/msp/tlscacerts/tlsca.org2.medisync.com-cert.pem"
             }
         },
         "peer1.org2.medisync.com": {
@@ -91,7 +91,7 @@
                 "ssl-target-name-override": "peer1.org2.medisync.com"
             },
             "tlsCACerts": {
-                "path": "../organizations/peerOrganizations/org2.medisync.com/tlsca/tlsca.org2.medisync.com-cert.pem"
+                "path": "../organizations/peerOrganizations/org2.medisync.com/msp/tlscacerts/tlsca.org2.medisync.com-cert.pem"
             }
         },
         "peer0.org3.medisync.com": {
@@ -100,7 +100,7 @@
                 "ssl-target-name-override": "peer0.org3.medisync.com"
             },
             "tlsCACerts": {
-                "path": "../organizations/peerOrganizations/org3.medisync.com/tlsca/tlsca.org3.medisync.com-cert.pem"
+                "path": "../organizations/peerOrganizations/org3.medisync.com/msp/tlscacerts/tlsca.org3.medisync.com-cert.pem"
             }
         },
         "peer1.org3.medisync.com": {
@@ -109,7 +109,7 @@
                 "ssl-target-name-override": "peer1.org3.medisync.com"
             },
             "tlsCACerts": {
-                "path": "../organizations/peerOrganizations/org3.medisync.com/tlsca/tlsca.org3.medisync.com-cert.pem"
+                "path": "../organizations/peerOrganizations/org3.medisync.com/msp/tlscacerts/tlsca.org3.medisync.com-cert.pem"
             }
         }
     }

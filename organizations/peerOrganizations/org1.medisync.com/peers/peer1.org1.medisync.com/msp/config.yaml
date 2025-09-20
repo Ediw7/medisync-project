@@ -1,14 +1,14 @@
 NodeOUs:
   Enable: true
   ClientOUIdentifier:
-    Certificate: cacerts/ca.org1.medisync.com-cert.pem
+    Certificate: cacerts/localhost-7054-ca-org1.pem
     OrganizationalUnitIdentifier: client
   PeerOUIdentifier:
-    Certificate: cacerts/ca.org1.medisync.com-cert.pem
+    Certificate: cacerts/localhost-7054-ca-org1.pem
     OrganizationalUnitIdentifier: peer
   AdminOUIdentifier:
-    Certificate: cacerts/ca.org1.medisync.com-cert.pem
+    Certificate: cacerts/localhost-7054-ca-org1.pem
     OrganizationalUnitIdentifier: admin
   OrdererOUIdentifier:
-    Certificate: cacerts/ca.org1.medisync.com-cert.pem
+    Certificate: cacerts/localhost-6054-ca-orderer.pem
     OrganizationalUnitIdentifier: orderer

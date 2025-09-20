@@ -18,8 +18,9 @@ async function main() {
             return;
         }
 
+        // --- PERBAIKAN DI BAWAH INI ---
         // Dapatkan path ke material kripto admin Org1
-        const adminCertPath = path.resolve(__dirname, '../organizations/peerOrganizations/org1.medisync.com/users/Admin@org1.medisync.com/msp/signcerts/Admin@org1.medisync.com-cert.pem');
+        const adminCertPath = path.resolve(__dirname, '../organizations/peerOrganizations/org1.medisync.com/users/Admin@org1.medisync.com/msp/signcerts/cert.pem');
         const adminKeyDirPath = path.resolve(__dirname, '../organizations/peerOrganizations/org1.medisync.com/users/Admin@org1.medisync.com/msp/keystore/');
         
         // Pastikan file sertifikat ada

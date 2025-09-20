@@ -1,10 +1,9 @@
-version: '3.7'
-
 networks:
   medisync-net:
+    name: medisync-project_medisync-net
 
 services:
-  # Orderer
+  # Orderer (tetap sama)
   orderer.medisync.com:
     container_name: orderer.medisync.com
     image: hyperledger/fabric-orderer:2.5.13
@@ -18,6 +17,12 @@ services:
       - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
       - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
       - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+
+       # --- TAMBAHKAN 3 BARIS DI BAWAH INI ---
+      - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+
       - ORDERER_GENERAL_GENESISMETHOD=file
       - ORDERER_GENERAL_GENESISFILE=/var/hyperledger/orderer/orderer.genesis.block
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric
@@ -25,16 +30,120 @@ services:
     volumes:
       - ./system-genesis-block/genesis.block:/var/hyperledger/orderer/orderer.genesis.block
       - ./organizations/ordererOrganizations/medisync.com/orderers/orderer.medisync.com/msp:/var/hyperledger/orderer/msp
-      - ./organizations/ordererOrganizations/medisync.com/orderers/orderer.medisync.com/tls/:/var/hyperledger/orderer/tls
+      - ./organizations/ordererOrganizations/medisync.com/orderers/orderer.medisync.com/tls:/var/hyperledger/orderer/tls
     ports:
       - 7050:7050
     networks:
       - medisync-net
 
-  # --- CouchDB Databases ---
+  # Orderer CA
+  # Orderer CA
+ # Orderer CA
+  ca.orderer.medisync.com:
+    container_name: ca.orderer.medisync.com
+    image: medisync/fabric-ca:1.5.7
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-orderer
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_PORT=6054
+      - FABRIC_CA_SERVER_OPERATIONS_LISTENADDRESS=0.0.0.0:16054
+      - FABRIC_CA_SERVER_OU_NODE_OUS_ENABLE=true
+    ports:
+      - "6054:6054"
+      - "16054:16054"
+    command: >
+      sh -c '
+      mkdir -p /etc/hyperledger/fabric-ca-server/tls &&
+      openssl genrsa -out /etc/hyperledger/fabric-ca-server/tls/tls-key.pem 2048 &&
+      openssl req -new -x509 -days 3650 -key /etc/hyperledger/fabric-ca-server/tls/tls-key.pem -out /etc/hyperledger/fabric-ca-server/tls/tls-cert.pem -subj "/C=ID/ST=Jawa Tengah/L=Semarang/O=Hyperledger/OU=Fabric/CN=ca.orderer.medisync.com" -addext "subjectAltName=DNS:localhost,DNS:ca.orderer.medisync.com" &&
+      fabric-ca-server start -b admin:adminpw -d --cfg.affiliations.allowremove --cfg.identities.allowremove --tls.certfile /etc/hyperledger/fabric-ca-server/tls/tls-cert.pem --tls.keyfile /etc/hyperledger/fabric-ca-server/tls/tls-key.pem
+      '
+    volumes:
+      - ./organizations/fabric-ca/ordererOrg:/etc/hyperledger/fabric-ca-server
+    networks:
+      - medisync-net
+
+  # Certificate Authorities for Peers
+  ca.org1.medisync.com:
+    container_name: ca.org1.medisync.com
+    image: medisync/fabric-ca:1.5.7
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-org1
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_PORT=7054
+      - FABRIC_CA_SERVER_OPERATIONS_LISTENADDRESS=0.0.0.0:17054
+      - FABRIC_CA_SERVER_OU_NODE_OUS_ENABLE=true
+    ports:
+      - "7054:7054"
+      - "17054:17054"
+    command: >
+      sh -c '
+      mkdir -p /etc/hyperledger/fabric-ca-server/tls &&
+      openssl genrsa -out /etc/hyperledger/fabric-ca-server/tls/tls-key.pem 2048 &&
+      openssl req -new -x509 -days 3650 -key /etc/hyperledger/fabric-ca-server/tls/tls-key.pem -out /etc/hyperledger/fabric-ca-server/tls/tls-cert.pem -subj "/C=ID/ST=Jawa Tengah/L=Semarang/O=Hyperledger/OU=Fabric/CN=ca.org1.medisync.com" -addext "subjectAltName=DNS:localhost,DNS:ca.org1.medisync.com" &&
+      fabric-ca-server start -b admin:adminpw -d --cfg.affiliations.allowremove --cfg.identities.allowremove --tls.certfile /etc/hyperledger/fabric-ca-server/tls/tls-cert.pem --tls.keyfile /etc/hyperledger/fabric-ca-server/tls/tls-key.pem
+      '
+    volumes:
+      - ./organizations/fabric-ca/org1:/etc/hyperledger/fabric-ca-server
+    networks:
+      - medisync-net
+
+  ca.org2.medisync.com:
+    container_name: ca.org2.medisync.com
+    image: medisync/fabric-ca:1.5.7
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-org2
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_PORT=8054
+      - FABRIC_CA_SERVER_OPERATIONS_LISTENADDRESS=0.0.0.0:18054
+      - FABRIC_CA_SERVER_OU_NODE_OUS_ENABLE=true
+    ports:
+      - "8054:8054"
+      - "18054:18054"
+    command: >
+      sh -c '
+      mkdir -p /etc/hyperledger/fabric-ca-server/tls &&
+      openssl genrsa -out /etc/hyperledger/fabric-ca-server/tls/tls-key.pem 2048 &&
+      openssl req -new -x509 -days 3650 -key /etc/hyperledger/fabric-ca-server/tls/tls-key.pem -out /etc/hyperledger/fabric-ca-server/tls/tls-cert.pem -subj "/C=ID/ST=Jawa Tengah/L=Semarang/O=Hyperledger/OU=Fabric/CN=ca.org2.medisync.com" -addext "subjectAltName=DNS:localhost,DNS:ca.org2.medisync.com" &&
+      fabric-ca-server start -b admin:adminpw -d --cfg.affiliations.allowremove --cfg.identities.allowremove --tls.certfile /etc/hyperledger/fabric-ca-server/tls/tls-cert.pem --tls.keyfile /etc/hyperledger/fabric-ca-server/tls/tls-key.pem
+      '
+    volumes:
+      - ./organizations/fabric-ca/org2:/etc/hyperledger/fabric-ca-server
+    networks:
+      - medisync-net
+
+  ca.org3.medisync.com:
+    container_name: ca.org3.medisync.com
+    image: medisync/fabric-ca:1.5.7
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-org3
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_PORT=9054
+      - FABRIC_CA_SERVER_OPERATIONS_LISTENADDRESS=0.0.0.0:19054
+      - FABRIC_CA_SERVER_OU_NODE_OUS_ENABLE=true
+    ports:
+      - "9054:9054"
+      - "19054:19054"
+    command: >
+      sh -c '
+      mkdir -p /etc/hyperledger/fabric-ca-server/tls &&
+      openssl genrsa -out /etc/hyperledger/fabric-ca-server/tls/tls-key.pem 2048 &&
+      openssl req -new -x509 -days 3650 -key /etc/hyperledger/fabric-ca-server/tls/tls-key.pem -out /etc/hyperledger/fabric-ca-server/tls/tls-cert.pem -subj "/C=ID/ST=Jawa Tengah/L=Semarang/O=Hyperledger/OU=Fabric/CN=ca.org3.medisync.com" -addext "subjectAltName=DNS:localhost,DNS:ca.org3.medisync.com" &&
+      fabric-ca-server start -b admin:adminpw -d --cfg.affiliations.allowremove --cfg.identities.allowremove --tls.certfile /etc/hyperledger/fabric-ca-server/tls/tls-cert.pem --tls.keyfile /etc/hyperledger/fabric-ca-server/tls/tls-key.pem
+      '
+    volumes:
+      - ./organizations/fabric-ca/org3:/etc/hyperledger/fabric-ca-server
+    networks:
+      - medisync-net
+
+  # CouchDB instances
   couchdb0.org1:
     container_name: couchdb0.org1
-    image: couchdb:3.3.3
+    image: couchdb:3.3
     environment:
       - COUCHDB_USER=admin
       - COUCHDB_PASSWORD=adminpw
@@ -45,7 +154,7 @@ services:
 
   couchdb1.org1:
     container_name: couchdb1.org1
-    image: couchdb:3.3.3
+    image: couchdb:3.3
     environment:
       - COUCHDB_USER=admin
       - COUCHDB_PASSWORD=adminpw
@@ -56,7 +165,7 @@ services:
 
   couchdb0.org2:
     container_name: couchdb0.org2
-    image: couchdb:3.3.3
+    image: couchdb:3.3
     environment:
       - COUCHDB_USER=admin
       - COUCHDB_PASSWORD=adminpw
@@ -67,7 +176,7 @@ services:
 
   couchdb1.org2:
     container_name: couchdb1.org2
-    image: couchdb:3.3.3
+    image: couchdb:3.3
     environment:
       - COUCHDB_USER=admin
       - COUCHDB_PASSWORD=adminpw
@@ -75,10 +184,10 @@ services:
       - "8984:5984"
     networks:
       - medisync-net
-  
+
   couchdb0.org3:
     container_name: couchdb0.org3
-    image: couchdb:3.3.3
+    image: couchdb:3.3
     environment:
       - COUCHDB_USER=admin
       - COUCHDB_PASSWORD=adminpw
@@ -89,7 +198,7 @@ services:
 
   couchdb1.org3:
     container_name: couchdb1.org3
-    image: couchdb:3.3.3
+    image: couchdb:3.3
     environment:
       - COUCHDB_USER=admin
       - COUCHDB_PASSWORD=adminpw
@@ -97,37 +206,42 @@ services:
       - "10984:5984"
     networks:
       - medisync-net
-      
-  # --- Peer Services ---
+
+  # Peers
   peer0.org1.medisync.com:
     container_name: peer0.org1.medisync.com
     image: hyperledger/fabric-peer:2.5.13
     environment:
-      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
-      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=medisync-project_medisync-net
-      - FABRIC_LOGGING_SPEC=INFO
-      - CORE_PEER_TLS_ENABLED=true
       - CORE_PEER_ID=peer0.org1.medisync.com
       - CORE_PEER_ADDRESS=peer0.org1.medisync.com:7051
       - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
       - CORE_PEER_CHAINCODEADDRESS=peer0.org1.medisync.com:7052
       - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
-      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org1.medisync.com:7051
       - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org1.medisync.com:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org1.medisync.com:7051
       - CORE_PEER_LOCALMSPID=ProdusenMSP
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=medisync-project_medisync-net
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
       - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
       - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb0.org1:5984
       - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin
       - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=adminpw
-    depends_on:
-      - couchdb0.org1
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
     volumes:
-      - /var/run/:/host/var/run/
+      - /var/run/docker.sock:/host/var/run/docker.sock
       - ./organizations/peerOrganizations/org1.medisync.com/peers/peer0.org1.medisync.com/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/org1.medisync.com/peers/peer0.org1.medisync.com/tls:/etc/hyperledger/fabric/tls
-    command: peer node start
     ports:
       - 7051:7051
+    depends_on:
+      - couchdb0.org1
     networks:
       - medisync-net
 
@@ -135,31 +249,36 @@ services:
     container_name: peer1.org1.medisync.com
     image: hyperledger/fabric-peer:2.5.13
     environment:
-      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
-      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=medisync-project_medisync-net
-      - FABRIC_LOGGING_SPEC=INFO
-      - CORE_PEER_TLS_ENABLED=true
       - CORE_PEER_ID=peer1.org1.medisync.com
       - CORE_PEER_ADDRESS=peer1.org1.medisync.com:8051
       - CORE_PEER_LISTENADDRESS=0.0.0.0:8051
       - CORE_PEER_CHAINCODEADDRESS=peer1.org1.medisync.com:8052
       - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:8052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer1.org1.medisync.com:8051
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.org1.medisync.com:8051
-      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org1.medisync.com:7051
       - CORE_PEER_LOCALMSPID=ProdusenMSP
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=medisync-project_medisync-net
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
       - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
       - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb1.org1:5984
       - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin
       - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=adminpw
-    depends_on:
-      - couchdb1.org1
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
     volumes:
-      - /var/run/:/host/var/run/
+      - /var/run/docker.sock:/host/var/run/docker.sock
       - ./organizations/peerOrganizations/org1.medisync.com/peers/peer1.org1.medisync.com/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/org1.medisync.com/peers/peer1.org1.medisync.com/tls:/etc/hyperledger/fabric/tls
-    command: peer node start
     ports:
       - 8051:8051
+    depends_on:
+      - couchdb1.org1
     networks:
       - medisync-net
 
@@ -167,31 +286,36 @@ services:
     container_name: peer0.org2.medisync.com
     image: hyperledger/fabric-peer:2.5.13
     environment:
-      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
-      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=medisync-project_medisync-net
-      - FABRIC_LOGGING_SPEC=INFO
-      - CORE_PEER_TLS_ENABLED=true
       - CORE_PEER_ID=peer0.org2.medisync.com
       - CORE_PEER_ADDRESS=peer0.org2.medisync.com:9051
       - CORE_PEER_LISTENADDRESS=0.0.0.0:9051
       - CORE_PEER_CHAINCODEADDRESS=peer0.org2.medisync.com:9052
       - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:9052
-      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org2.medisync.com:9051
       - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org2.medisync.com:9051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org2.medisync.com:9051
       - CORE_PEER_LOCALMSPID=PBFMSP
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=medisync-project_medisync-net
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
       - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
       - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb0.org2:5984
       - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin
       - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=adminpw
-    depends_on:
-      - couchdb0.org2
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
     volumes:
-      - /var/run/:/host/var/run/
+      - /var/run/docker.sock:/host/var/run/docker.sock
       - ./organizations/peerOrganizations/org2.medisync.com/peers/peer0.org2.medisync.com/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/org2.medisync.com/peers/peer0.org2.medisync.com/tls:/etc/hyperledger/fabric/tls
-    command: peer node start
     ports:
       - 9051:9051
+    depends_on:
+      - couchdb0.org2
     networks:
       - medisync-net
 
@@ -199,31 +323,36 @@ services:
     container_name: peer1.org2.medisync.com
     image: hyperledger/fabric-peer:2.5.13
     environment:
-      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
-      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=medisync-project_medisync-net
-      - FABRIC_LOGGING_SPEC=INFO
-      - CORE_PEER_TLS_ENABLED=true
       - CORE_PEER_ID=peer1.org2.medisync.com
       - CORE_PEER_ADDRESS=peer1.org2.medisync.com:10051
       - CORE_PEER_LISTENADDRESS=0.0.0.0:10051
       - CORE_PEER_CHAINCODEADDRESS=peer1.org2.medisync.com:10052
       - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:10052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer1.org2.medisync.com:10051
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.org2.medisync.com:10051
-      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org2.medisync.com:9051
       - CORE_PEER_LOCALMSPID=PBFMSP
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=medisync-project_medisync-net
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
       - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
       - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb1.org2:5984
       - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin
       - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=adminpw
-    depends_on:
-      - couchdb1.org2
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
     volumes:
-      - /var/run/:/host/var/run/
+      - /var/run/docker.sock:/host/var/run/docker.sock
       - ./organizations/peerOrganizations/org2.medisync.com/peers/peer1.org2.medisync.com/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/org2.medisync.com/peers/peer1.org2.medisync.com/tls:/etc/hyperledger/fabric/tls
-    command: peer node start
     ports:
       - 10051:10051
+    depends_on:
+      - couchdb1.org2
     networks:
       - medisync-net
 
@@ -231,31 +360,36 @@ services:
     container_name: peer0.org3.medisync.com
     image: hyperledger/fabric-peer:2.5.13
     environment:
-      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
-      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=medisync-project_medisync-net
-      - FABRIC_LOGGING_SPEC=INFO
-      - CORE_PEER_TLS_ENABLED=true
       - CORE_PEER_ID=peer0.org3.medisync.com
       - CORE_PEER_ADDRESS=peer0.org3.medisync.com:11051
       - CORE_PEER_LISTENADDRESS=0.0.0.0:11051
       - CORE_PEER_CHAINCODEADDRESS=peer0.org3.medisync.com:11052
       - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:11052
-      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org3.medisync.com:11051
       - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org3.medisync.com:11051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org3.medisync.com:11051
       - CORE_PEER_LOCALMSPID=ApotekMSP
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=medisync-project_medisync-net
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
       - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
       - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb0.org3:5984
       - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin
       - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=adminpw
-    depends_on:
-      - couchdb0.org3
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
     volumes:
-      - /var/run/:/host/var/run/
+      - /var/run/docker.sock:/host/var/run/docker.sock
       - ./organizations/peerOrganizations/org3.medisync.com/peers/peer0.org3.medisync.com/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/org3.medisync.com/peers/peer0.org3.medisync.com/tls:/etc/hyperledger/fabric/tls
-    command: peer node start
     ports:
       - 11051:11051
+    depends_on:
+      - couchdb0.org3
     networks:
       - medisync-net
 
@@ -263,34 +397,40 @@ services:
     container_name: peer1.org3.medisync.com
     image: hyperledger/fabric-peer:2.5.13
     environment:
-      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
-      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=medisync-project_medisync-net
-      - FABRIC_LOGGING_SPEC=INFO
-      - CORE_PEER_TLS_ENABLED=true
       - CORE_PEER_ID=peer1.org3.medisync.com
       - CORE_PEER_ADDRESS=peer1.org3.medisync.com:12051
       - CORE_PEER_LISTENADDRESS=0.0.0.0:12051
       - CORE_PEER_CHAINCODEADDRESS=peer1.org3.medisync.com:12052
       - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:12052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer1.org3.medisync.com:12051
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.org3.medisync.com:12051
-      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org3.medisync.com:11051
       - CORE_PEER_LOCALMSPID=ApotekMSP
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=medisync-project_medisync-net
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
       - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
       - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb1.org3:5984
       - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin
       - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=adminpw
-    depends_on:
-      - couchdb1.org3
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
     volumes:
-      - /var/run/:/host/var/run/
+      - /var/run/docker.sock:/host/var/run/docker.sock
       - ./organizations/peerOrganizations/org3.medisync.com/peers/peer1.org3.medisync.com/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/org3.medisync.com/peers/peer1.org3.medisync.com/tls:/etc/hyperledger/fabric/tls
-    command: peer node start
     ports:
       - 12051:12051
+    depends_on:
+      - couchdb1.org3
     networks:
       - medisync-net
-  
+
+  # CLI
   cli:
     container_name: cli
     image: hyperledger/fabric-tools:2.5.13
@@ -300,18 +440,27 @@ services:
       - GOPATH=/opt/gopath
       - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
       - FABRIC_LOGGING_SPEC=INFO
-      - CORE_PEER_ID=cli
+      - CORE_PEER_TLS_ENABLED=true
       - CORE_PEER_ADDRESS=peer0.org1.medisync.com:7051
       - CORE_PEER_LOCALMSPID=ProdusenMSP
-      - CORE_PEER_TLS_ENABLED=true
       - CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.medisync.com/peers/peer0.org1.medisync.com/tls/ca.crt
       - CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.medisync.com/users/Admin@org1.medisync.com/msp
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
     command: /bin/bash
     volumes:
-        - /var/run/:/host/var/run/
-        - ./organizations:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/
-        - ./chaincode:/opt/gopath/src/github.com/chaincode
-        - ./channel-artifacts:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/channel-artifacts
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./channel-artifacts:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/channel-artifacts
+      # PERBAIKAN: Buat path source lebih spesifik
+      - ./organizations/peerOrganizations:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations
+      - ./organizations/ordererOrganizations:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations
+      - ./chaincode:/opt/gopath/src/github.com/chaincode
+    depends_on:
+      - orderer.medisync.com
+      - peer0.org1.medisync.com
+      - peer1.org1.medisync.com
+      - peer0.org2.medisync.com
+      - peer1.org2.medisync.com
+      - peer0.org3.medisync.com
+      - peer1.org3.medisync.com
     networks:
-        - medisync-net
+      - medisync-net

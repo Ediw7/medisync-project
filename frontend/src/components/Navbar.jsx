@@ -9,7 +9,7 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = React.useState(false)
 
   return (
-    <nav className="sticky top-0 z-50 p-4 bg-gray-200/0">
+    <nav className="sticky top-0 z-50 pt-4 bg-gray-200/0">
       <div className="container mx-auto max-w-4xl ">
         <div
           className="flex h-14 items-center justify-between px-6 

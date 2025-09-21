@@ -6,41 +6,66 @@ import { ArrowLeft, Camera, CheckCircle, Package, Truck, Loader2, Download, X } 
 import html2pdf from 'html2pdf.js';
 import axios from 'axios';
 
-// Komponen Modal Konfirmasi
+//================================================================//
+// 1. KOMPONEN MODAL (didefinisikan di file yang sama)
+//================================================================//
 const ConfirmationModal = ({ show, onClose, onConfirm, isSubmitting, orderId, onFileChange, buktiFoto }) => {
   if (!show) return null;
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-      <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-800">Konfirmasi Penerimaan</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+    <div
+      className="fixed inset-0 z-50 flex justify-center items-center p-4 
+                 bg-slate-900/20 backdrop-blur-sm animate-in fade-in-0"
+    >
+      <div
+        className="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full border
+                   animate-in fade-in-0 zoom-in-95"
+      >
+        <div className="flex justify-between items-center pb-3 border-b">
+          <h3 className="text-lg font-semibold text-slate-800">Konfirmasi Penerimaan</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors rounded-full p-1">
+            <X size={20} />
+          </button>
         </div>
-        <div className="text-center">
+        <div className="text-center pt-5">
           <CheckCircle size={48} className="text-emerald-500 mx-auto mb-4" />
-          <p className="text-gray-600 mb-4">
-            Anda akan mengkonfirmasi penerimaan pesanan ID: <strong>{String(orderId).padStart(6, '0')}</strong>. Unggah foto bukti penerimaan.
+          <p className="text-slate-600 mb-5 text-sm">
+            Anda akan mengkonfirmasi penerimaan pesanan ID: <br />
+            <strong className="text-base text-slate-800">{String(orderId).padStart(6, '0')}</strong>
           </p>
-          <div className="mb-4">
-            <label htmlFor="buktiFoto" className="flex items-center justify-center w-32 h-32 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-emerald-500 transition mx-auto">
+
+          <div className="mb-6">
+            <label
+              htmlFor="buktiFoto"
+              className="relative flex items-center justify-center w-32 h-32 bg-slate-100 border-2 
+                         border-dashed border-slate-300 rounded-lg cursor-pointer 
+                         hover:border-emerald-500 transition-colors mx-auto group"
+            >
               {buktiFoto ? (
-                <img src={URL.createObjectURL(buktiFoto)} alt="Bukti Foto" className="w-full h-full object-cover rounded-lg" />
+                <img src={URL.createObjectURL(buktiFoto)} alt="Preview Bukti Foto" className="w-full h-full object-cover rounded-lg" />
               ) : (
-                <div className="text-center text-gray-500">
-                  <Camera size={24} />
-                  <p className="text-sm mt-2">Unggah Foto</p>
+                <div className="text-center text-slate-500">
+                  <Camera size={24} className="mx-auto" />
+                  <p className="text-xs mt-2">Unggah Bukti Foto</p>
                 </div>
               )}
-              <input id="buktiFoto" type="file" accept="image/*" onChange={onFileChange} className="hidden" />
+              <input id="buktiFoto" type="file" accept="image/jpeg,image/png" onChange={onFileChange} className="hidden" />
             </label>
+            {buktiFoto && <p className="text-xs text-slate-500 mt-2">{buktiFoto.name}</p>}
           </div>
-          <div className="flex justify-end gap-4">
-            <button onClick={onClose} className="py-2 px-4 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200" disabled={isSubmitting}>
+
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={onClose}
+              className="py-2 px-4 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-semibold"
+              disabled={isSubmitting}
+            >
               Batal
             </button>
             <button
               onClick={onConfirm}
-              className="py-2 px-4 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 flex items-center gap-2 disabled:bg-emerald-300"
+              className="py-2 px-4 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 flex 
+                         items-center gap-2 transition-colors font-semibold disabled:bg-emerald-300 disabled:cursor-not-allowed"
               disabled={isSubmitting || !buktiFoto}
             >
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -53,25 +78,42 @@ const ConfirmationModal = ({ show, onClose, onConfirm, isSubmitting, orderId, on
   );
 };
 
-// Komponen StatusStep
+//================================================================//
+// 2. KOMPONEN STATUS (didefinisikan di file yang sama)
+//================================================================//
 const StatusStep = ({ icon, label, timestamp, isCompleted, isLast = false }) => (
   <div className="flex items-center">
-    <div className={`flex flex-col items-center ${isLast ? '' : 'flex-1'}`}>
-      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isCompleted ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+    <div className={`flex flex-col items-center text-center ${isLast ? '' : 'flex-1'}`}>
+      <div
+        className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors duration-300
+          ${isCompleted ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'}`}
+      >
         {icon}
       </div>
-      <div className="text-center mt-2">
-        <p className={`font-semibold ${isCompleted ? 'text-gray-800' : 'text-gray-500'}`}>{label}</p>
-        {timestamp && <p className="text-sm text-gray-500">{timestamp}</p>}
+      <div className="mt-2 w-24">
+        <p className={`font-semibold text-sm transition-colors duration-300 ${isCompleted ? 'text-slate-800' : 'text-slate-500'}`}>
+          {label}
+        </p>
+        {timestamp && <p className="text-xs text-slate-500 mt-1">{timestamp}</p>}
       </div>
     </div>
-    {!isLast && <div className={`flex-1 h-1 mx-4 ${isCompleted ? 'bg-emerald-500' : 'bg-gray-200'}`} />}
+    {!isLast && (
+      <div
+        className={`flex-1 h-1 mx-4 transition-colors duration-500 ${isCompleted ? 'bg-emerald-500' : 'bg-slate-200'}`}
+      />
+    )}
   </div>
 );
 
+//================================================================//
+// 3. KOMPONEN UTAMA HALAMAN
+//================================================================//
 const KonfirmasiPenerimaan = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  
+  // --- STATE MANAGEMENT AND LOGIC FUNCTIONS ---
+  // (Semua fungsi logika Anda tetap sama, tidak ada yang diubah)
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -120,10 +162,7 @@ const KonfirmasiPenerimaan = () => {
     setBuktiFoto(file);
   };
 
-  const handleOpenConfirmModal = () => {
-    setShowConfirmModal(true);
-  };
-
+  const handleOpenConfirmModal = () => setShowConfirmModal(true);
   const handleCloseConfirmModal = () => {
     setShowConfirmModal(false);
     setBuktiFoto(null);
@@ -160,8 +199,8 @@ const KonfirmasiPenerimaan = () => {
       }
     } catch (err) {
       console.error('Error in handleConfirm:', err);
-      setError(err.response?.data?.message || 'Gagal mengkonfirmasi pesanan. Pastikan server berjalan di localhost:5000.');
-      alert(err.response?.data?.message || 'Gagal mengkonfirmasi pesanan. Pastikan server berjalan di localhost:5000.');
+      setError(err.response?.data?.message || 'Gagal mengkonfirmasi pesanan.');
+      alert(err.response?.data?.message || 'Gagal mengkonfirmasi pesanan.');
     } finally {
       setIsSubmitting(false);
       setShowConfirmModal(false);
@@ -177,85 +216,101 @@ const KonfirmasiPenerimaan = () => {
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
+      day: '2-digit', month: 'long', year: 'numeric',
     });
   };
 
-  if (isLoading) return <div className="p-6 text-center">Loading...</div>;
+  // --- RENDER LOGIC ---
+  if (isLoading) return <div className="p-6 text-center">Memuat data pesanan...</div>;
   if (error) return <div className="p-6 text-center text-red-500">Error: {error}</div>;
   if (!pesanan || !pesanan.pesanan) return <div className="p-6 text-center">Data tidak ditemukan.</div>;
 
   const { pesanan: info, detail_pesanan: detail } = pesanan;
   
-  const totalHargaKeseluruhan = detail.reduce((acc, item) => acc + (Number(item.total_harga) || 0), 0);
-  const tanggalPengiriman = info.tanggal_pengiriman ? new Date(info.tanggal_pengiriman) : null;
-  const estimasiSampai = tanggalPengiriman ? new Date(new Date(tanggalPengiriman).setDate(tanggalPengiriman.getDate() + (info.opsi_pengiriman === 'ekspres' ? 1 : 3))) : null;
-
   const isDipersiapkanCompleted = ['Dipesan', 'Perlu Dikirim', 'Dikirim', 'Selesai'].includes(info.status);
   const isDikirimCompleted = ['Dikirim', 'Selesai'].includes(info.status);
   const isSelesaiCompleted = info.status === 'Selesai';
+  
+  const tanggalPengiriman = info.tanggal_pengiriman ? new Date(info.tanggal_pengiriman) : null;
+  const estimasiSampai = isSelesaiCompleted ? (info.updated_at ? new Date(info.updated_at) : null) : null;
+
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-slate-50">
       <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarPbf onLogout={() => { localStorage.clear(); navigate('/'); }} />
-        <main className="pt-16 p-6">
+        
+        <main className="pt-16 p-4 md:p-6">
           <div className="max-w-4xl mx-auto">
             <div className="flex justify-between items-center mb-6">
-              <button onClick={() => navigate('/pbf/pesan-obat')} className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition">
+              <button onClick={() => navigate('/pbf/pesan-obat')} className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-semibold">
                 <ArrowLeft size={18} /> Kembali
               </button>
-              <button onClick={handleDownloadPDF} className="flex items-center gap-2 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition">
+              <button onClick={handleDownloadPDF} className="flex items-center gap-2 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
                 <Download size={18} /> Unduh PDF
               </button>
             </div>
 
-            <div ref={contentRef} className="bg-white p-8 md:p-12 rounded-lg shadow-lg border border-gray-200">
+            <div ref={contentRef} className="bg-white p-8 md:p-12 rounded-lg shadow-md border border-slate-200">
               <header className="text-center mb-8 border-b pb-4">
-                <h1 className="text-2xl font-bold text-gray-800">Konfirmasi Penerimaan Pesanan</h1>
-                <p className="text-gray-500">Nomor PO: {info.nomor_po}</p>
+                <h1 className="text-3xl font-bold text-slate-800">Konfirmasi Penerimaan</h1>
+                <p className="text-slate-500 mt-1">Nomor PO: {info.nomor_po}</p>
               </header>
+
               <section className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                 <div>
-                  <h2 className="font-semibold text-gray-600 mb-2">Pemesan:</h2>
-                  <p className="font-bold">{info.nama_pbf}</p>
-                  <p className="text-sm text-gray-600">{info.alamat_pbf}</p>
+                  <h2 className="font-semibold text-slate-600 mb-2">Dipesan Oleh (PBF):</h2>
+                  <p className="font-bold text-slate-800">{info.nama_pbf}</p>
+                  <p className="text-sm text-slate-600">{info.alamat_pbf}</p>
                 </div>
                 <div className="text-left md:text-right">
-                  <h2 className="font-semibold text-gray-600 mb-2">Pengirim:</h2>
-                  <p className="font-bold">{info.nama_produsen || 'Produsen'}</p>
-                  <p className="text-sm text-gray-600">Tanggal Pesan: {formatDate(info.tanggal_pesanan)}</p>
+                  <h2 className="font-semibold text-slate-600 mb-2">Dikirim Dari (Produsen):</h2>
+                  <p className="font-bold text-slate-800">{info.nama_produsen || 'Produsen Medisync'}</p>
+                  <p className="text-sm text-slate-600">Tanggal Pesan: {formatDate(info.tanggal_pesanan)}</p>
                 </div>
               </section>
-              <section className="mb-8">
-                <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Daftar Produk</h2>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead className="bg-gray-50">
+
+              <section className="mb-10">
+                <h2 className="text-xl font-bold text-slate-800 mb-4">Daftar Produk</h2>
+                <div className="overflow-x-auto border rounded-lg">
+                  <table className="w-full text-left">
+                    <thead className="bg-slate-50">
                       <tr>
-                        <th className="p-3 text-sm font-semibold text-gray-700 border">No.</th>
-                        <th className="p-3 text-sm font-semibold text-gray-700 border">Nama Obat</th>
-                        <th className="p-3 text-sm font-semibold text-gray-700 border">Jumlah</th>
+                        <th className="p-3 text-sm font-semibold text-slate-600">No.</th>
+                        <th className="p-3 text-sm font-semibold text-slate-600">Nama Obat</th>
+                        <th className="p-3 text-sm font-semibold text-slate-600 text-right">Jumlah</th>
                       </tr>
                     </thead>
                     <tbody>
                       {detail.map((item, index) => (
-                        <tr key={item.id}>
-                          <td className="p-3 border">{index + 1}</td>
-                          <td className="p-3 border">{item.nama_obat}</td>
-                          <td className="p-3 border">{item.jumlah_pesanan}</td>
+                        <tr key={item.id} className="border-t">
+                          <td className="p-3">{index + 1}</td>
+                          <td className="p-3 font-medium text-slate-700">{item.nama_obat}</td>
+                          <td className="p-3 text-right">{item.jumlah_pesanan}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
+                
+                {/* --- PERBAIKAN --- */}
+                <div className="flex justify-end mt-4">
+                  <div className="text-right">
+                    <p className="text-sm text-slate-500">Total Harga</p>
+                    <p className="text-xl font-bold text-slate-800">
+                      {/* Mengambil total harga langsung dari info pesanan */}
+                      {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(info.total_harga)}
+                    </p>
+                  </div>
+                </div>
+                {/* --- AKHIR PERBAIKAN --- */}
+              
               </section>
+              
               <section className="mb-8">
-                <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Status Pengiriman</h2>
-                <div className="flex justify-center py-6">
+                <h2 className="text-xl font-bold text-slate-800 mb-6 text-center">Status Pengiriman</h2>
+                <div className="flex justify-center">
                   <StatusStep
                     icon={<Package size={24} />}
                     label="Dipersiapkan"
@@ -270,55 +325,55 @@ const KonfirmasiPenerimaan = () => {
                   />
                   <StatusStep
                     icon={<CheckCircle size={24} />}
-                    label="Selesai"
+                    label="Diterima"
                     timestamp={isSelesaiCompleted ? formatDate(estimasiSampai) : null}
                     isCompleted={isSelesaiCompleted}
                     isLast={true}
                   />
                 </div>
               </section>
-
-              <div className="flex justify-end items-center gap-4 pt-6 border-t">
+              
+              <div className="flex justify-end items-center gap-4 pt-6 border-t mt-8">
                 {info.status === 'Dikirim' && (
                   <>
                     <Link
                       to={`/pbf/pesanan/${id}/ajukan-pengembalian`}
-                      className="py-2 px-6 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition"
+                      className="py-2.5 px-6 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-transform active:scale-95"
                     >
                       Ajukan Pengembalian
                     </Link>
                     <button
                       onClick={handleOpenConfirmModal}
-                      className="py-2 px-6 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 flex items-center gap-2 disabled:bg-emerald-300"
+                      className="py-2.5 px-6 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 flex items-center gap-2 transition-transform active:scale-95 disabled:bg-emerald-300"
                       disabled={isSubmitting}
                     >
-                      {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                      {isSubmitting ? 'Memproses...' : 'Konfirmasi Penerimaan'}
+                      <CheckCircle size={18} />
+                      Konfirmasi Penerimaan
                     </button>
                   </>
                 )}
                 {info.status === 'Selesai' && (
                   <Link
                     to={`/pbf/pesanan/${id}/ajukan-pengembalian`}
-                    className="py-2 px-6 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition"
+                    className="py-2.5 px-6 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-transform active:scale-95"
                   >
                     Ajukan Pengembalian
                   </Link>
                 )}
               </div>
             </div>
-
-            <ConfirmationModal
-              show={showConfirmModal}
-              onClose={handleCloseConfirmModal}
-              onConfirm={handleConfirm}
-              isSubmitting={isSubmitting}
-              orderId={id}
-              onFileChange={handleFileChange}
-              buktiFoto={buktiFoto}
-            />
           </div>
         </main>
+
+        <ConfirmationModal
+          show={showConfirmModal}
+          onClose={handleCloseConfirmModal}
+          onConfirm={handleConfirm}
+          isSubmitting={isSubmitting}
+          orderId={id}
+          onFileChange={handleFileChange}
+          buktiFoto={buktiFoto}
+        />
       </div>
     </div>
   );

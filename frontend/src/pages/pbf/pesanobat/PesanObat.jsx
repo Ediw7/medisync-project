@@ -276,17 +276,12 @@ const PesanObat = () => {
                                   return (
                                     <>
                                       <Link
-                                        to={`/pbf/pesanan/${item.id}/ajukan-pengembalian`}
+                                        to={`/pbf/pesanan/${item.id}/xxx`}
                                         className="text-red-600 hover:text-red-800 font-medium"
                                       >
-                                        Ajukan Pengembalian
+                                       Lihat Riwayat
                                       </Link>
-                                      <button
-                                        onClick={() => handleOpenSelesaiModal(item.id)}
-                                        className="text-gray-600 hover:text-gray-800 font-medium p-0"
-                                      >
-                                        Selesai
-                                      </button>
+                                      
                                     </>
                                   );
                                 }

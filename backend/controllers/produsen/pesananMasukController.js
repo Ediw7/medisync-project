@@ -35,7 +35,11 @@ const pesananMasukController = {
             0
           ) AS total_harga,
           p.status,
-          p.tanggal_pesanan
+          p.tanggal_pesanan,
+          (SELECT dp.id_aset_blockchain 
+           FROM detail_pesanan dp 
+           WHERE dp.id_pesanan = p.id 
+           LIMIT 1) AS id_aset_blockchain
         FROM pesanan p
         JOIN users pbf ON p.id_pbf = pbf.id
         WHERE p.id_produsen = ? AND pbf.role = 'pbf'

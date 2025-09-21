@@ -7,6 +7,7 @@ const authRoutes = require('./routes/auth');
 const produksiRoutes = require('./routes/produsen/produksiRoute'); 
 const pesananMasukRoutes = require('./routes/produsen/pesananMasukRoute');
 const pembatalanRoutes = require('./routes/produsen/pembatalanRoute');
+const riwayatProdusenRoutes = require('./routes/produsen/riwayatRoute'); 
 const laporananalitikRoutes = require('./routes/produsen/laporananalitikRoute');
 const pesananPbfRoutes = require('./routes/pbf/pesananRoute'); 
 const pbfRoutes = require('./routes/pbf/pbfRoute');
@@ -15,19 +16,6 @@ const blockchainRoutes = require('./routes/blockchain');
 const publicRoutes = require('./routes/publicRoute');
 const produksiController = require('./controllers/produsen/produksiController');
 
-// Log untuk debugging
-console.log('Routes loaded:', {
-  authRoutes,
-  produksiRoutes,
-  pesananMasukRoutes,
-  pesananPbfRoutes,
-  laporananalitikRoutes,
-  pbfRoutes,
-  penerimaanRoutes,
-  blockchainRoutes,
-  publicRoutes,
-  produksiController,
-});
 
 const app = express();
 
@@ -42,6 +30,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/produksi', produksiRoutes);
 app.use('/api/produsen/pesanan-masuk', pesananMasukRoutes);
 app.use('/api/produsen/pembatalan', pembatalanRoutes);
+app.use('/api/produsen/riwayat', riwayatProdusenRoutes);
 app.use('/api/produsen/laporananalitik', laporananalitikRoutes);
 app.use('/api/pbf/pesanan', pesananPbfRoutes);
 

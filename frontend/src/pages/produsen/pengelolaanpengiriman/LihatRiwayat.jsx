@@ -2,192 +2,164 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
-// Mengimpor ikon yang diperlukan untuk layout baru
-import { ArrowLeft, CheckCircle, Package, Truck, Loader2, X, ClipboardCopy } from 'lucide-react'; 
+import { ArrowLeft, CheckCircle, Package, Truck, Loader2, X, ClipboardCopy } from 'lucide-react';
 
-const LihatRiwayat = () => {
-  const navigate = useNavigate();
-  const { id } = useParams();
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  
-  // State untuk modal
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false); // Nanti ganti true jika fetch data
+// --- Komponen Modal (Tidak ada perubahan) ---
+const BuktiPenerimaanModal = ({ isOpen, onClose, imageUrl }) => {
+  if (!isOpen) return null;
+  const fullImageUrl = imageUrl ? (imageUrl.startsWith('http') ? imageUrl : `http://localhost:5000/${imageUrl}`) : null;
 
-  // Kita tetap gunakan state dummy data dari LihatRiwayat
-  const [riwayatData, setRiwayatData] = useState({
-    idPesanan: '000076',
-    namaPbf: 'PBF Bandung',
-    totalHarga: 45000000,
-    status: 'Selesai',
-    // Data tambahan dari layout LihatStatus
-    noResi: 'RES-250915-14-0869',
-    noSuratJalan: 'SJ-250915-14-0869',
-    waktuPesan: new Date('2025-09-15T10:00:00'),
-    estimasiSampai: new Date('2025-09-17T00:00:00'), // Asumsi estimasi
-    pengirim: 'Produsen',
-    // URL Bukti untuk modal
-    buktiPenerimaUrl: 'https://i.imgur.com/g0P3kco.jpeg', // Placeholder (Ganti dengan data asli API)
-    // Data Riwayat Blockchain
-    riwayatBlockchain: [
-      { txId: 'a1b2c3d4...', status: 'DIPRODUKSI', timestamp: '15-09-2025 10:00', oleh: 'ProdusenMSP' },
-      { txId: 'e5f6g7h8...', status: 'DIKIRIM_KE_PBF', timestamp: '17-09-2025 16:00', oleh: 'ProdusenMSP' },
-      { txId: 'i9j0k1l2...', status: 'DITERIMA_PBF', timestamp: '17-09-2025 19:00', oleh: 'PBFMSP' },
-    ]
-  });
-
-  // useEffect untuk fetch data riwayat asli (saat ini dinonaktifkan karena pakai dummy)
-  // useEffect(() => {
-  //   const fetchData = async () => {
-  //     setIsLoading(true);
-  //     // const response = await fetch(...);
-  //     // const result = await response.json();
-  //     // setRiwayatData(result.data);
-  //     // setIsLoading(false);
-  //   };
-  //   fetchData();
-  // }, [id]);
-
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/');
-  };
-
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    alert(`Teks "${text}" telah disalin.`);
-  };
-
-  // --- Mengambil Komponen StatusStep dari LihatStatus.jsx ---
-  const StatusStep = ({ icon, label, timestamp, isCompleted, isLast = false, children }) => (
-    <div className="flex items-center">
-      <div className={`flex flex-col items-center ${isLast ? '' : 'flex-1'}`}>
-        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isCompleted ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
-          {icon}
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in-0" onClick={onClose}>
+      <div className="bg-white p-4 rounded-lg shadow-2xl relative w-full max-w-lg overflow-hidden animate-in fade-in-0 zoom-in-95" onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-between items-center pb-3 mb-4 border-b">
+          <h3 className="text-lg font-semibold text-slate-800">Bukti Penerimaan</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-full"><X size={20} /></button>
         </div>
-        <div className="text-center mt-2">
-            <p className={`font-semibold ${isCompleted ? 'text-gray-800' : 'text-gray-500'}`}>{label}</p>
-            {timestamp && <p className="text-sm text-gray-500">{timestamp}</p>}
-            {children} {/* Slot untuk link "Lihat Bukti Penerima" */}
-        </div>
+        {fullImageUrl ? (
+          <div className="bg-slate-100 p-2 rounded">
+            <img src={fullImageUrl} alt="Bukti Penerimaan Barang" className="w-full h-auto max-h-[70vh] object-contain rounded"/>
+          </div>
+        ) : <p className="text-center text-slate-500">Gambar tidak tersedia.</p>}
       </div>
-      {!isLast && (
-        <div className={`flex-1 h-1 mx-4 ${isCompleted ? 'bg-emerald-500' : 'bg-gray-200'}`} />
-      )}
     </div>
   );
+};
+
+// --- Komponen StatusStep (Tidak ada perubahan) ---
+const StatusStep = ({ icon, label, timestamp, isCompleted, isLast = false, children }) => (
+    <div className="flex items-center">
+      <div className={`flex flex-col items-center text-center ${isLast ? '' : 'flex-1'}`}>
+        <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors duration-300 ${isCompleted ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'}`}>{icon}</div>
+        <div className="mt-2 w-24">
+            <p className={`font-semibold text-sm transition-colors duration-300 ${isCompleted ? 'text-slate-800' : 'text-slate-500'}`}>{label}</p>
+            {timestamp && <p className="text-xs text-slate-500 mt-1">{timestamp}</p>}
+            {children}
+        </div>
+      </div>
+      {!isLast && (<div className={`flex-1 h-1 mx-4 transition-colors duration-500 ${isCompleted ? 'bg-emerald-500' : 'bg-slate-200'}`} />)}
+    </div>
+);
+
+// --- Komponen Halaman Utama (Logika Fetching Diubah) ---
+const LihatRiwayat = () => {
+  const navigate = useNavigate();
+  const { assetId } = useParams(); // Menggunakan assetId dari URL
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [riwayatData, setRiwayatData] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!assetId) {
+        setError("ID Aset tidak ditemukan di URL.");
+        setIsLoading(false);
+        return;
+      }
+      setIsLoading(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`http://localhost:5000/api/produsen/riwayat/${assetId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.message || `Error: ${response.status}`);
+        }
+        const result = await response.json();
+        setRiwayatData(result.data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [assetId]);
+
+  const handleLogout = () => { localStorage.clear(); navigate('/'); };
+  const copyToClipboard = (text) => { navigator.clipboard.writeText(text); alert(`Teks "${text}" telah disalin.`); };
+  const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-';
+  const formatTimestamp = (isoString) => isoString ? new Date(isoString).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '-';
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <Loader2 className="animate-spin h-8 w-8 text-emerald-600" />
-      </div>
-    );
+    return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin h-8 w-8 text-emerald-600" /></div>;
+  }
+  if (error) {
+    return <div className="p-6 text-center text-red-500">Error: {error}</div>;
+  }
+  if (!riwayatData) {
+    return <div className="p-6 text-center text-slate-500">Data riwayat tidak ditemukan.</div>;
   }
 
-  // --- LOGIKA MAPPING DATA BLOCKCHAIN KE STATUS UI ---
-  // (Kita cari data dari array dummy)
-  const dataProduksi = riwayatData.riwayatBlockchain.find(item => item.status === 'DIPRODUKSI');
-  const dataKirim = riwayatData.riwayatBlockchain.find(item => item.status === 'DIKIRIM_KE_PBF');
-  const dataTerima = riwayatData.riwayatBlockchain.find(item => item.status === 'DITERIMA_PBF');
+  const { onChain, offChain } = riwayatData;
+  const dataProduksi = onChain.riwayat.find(item => item.status === 'DIPRODUKSI');
+  const dataKirim = onChain.riwayat.find(item => item.status === 'DIKIRIM_KE_PBF');
+  const dataTerima = onChain.riwayat.find(item => item.status === 'DITERIMA_PBF');
 
   const isDipersiapkanCompleted = !!dataProduksi;
   const isDikirimCompleted = !!dataKirim;
   const isSelesaiCompleted = !!dataTerima;
 
-  const formatDate = (date) => date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-slate-50">
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={handleLogout} />
-        <main className="pt-16 p-6">
+        <main className="pt-16 p-4 md:p-6">
           <div className="max-w-4xl mx-auto">
-            <div className="flex items-center mb-6">
-              <button onClick={() => navigate('/produsen/pengelolaan-pengiriman')} className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
-                <ArrowLeft size={18} /> Kembali
-              </button>
-            </div>
-
-            {/* --- INI ADALAH LAYOUT DARI LihatStatus.jsx --- */}
-            <div className="bg-white p-8 rounded-lg shadow-lg border border-gray-200">
-              <header className="mb-8">
-                {/* Judul tetap Riwayat Pengiriman, tapi sub-judul dari LihatStatus */}
-                <h1 className="text-2xl font-bold text-gray-800">Riwayat Pengiriman (Jejak Blockchain)</h1>
-                <p className="text-gray-500">Lihat Proses Pengiriman dari ID: {riwayatData.idPesanan}</p>
+            <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-600 hover:text-slate-900 font-semibold mb-6">
+              <ArrowLeft size={18} /> Kembali
+            </button>
+            <div className="bg-white p-8 rounded-lg shadow-md border border-slate-200">
+              <header className="mb-8 text-center border-b pb-4">
+                <h1 className="text-3xl font-bold text-slate-800">Riwayat Pengiriman</h1>
+                <p className="text-slate-500 mt-1">Jejak Transaksi Blockchain untuk Pesanan #{String(offChain.id).padStart(6, '0')}</p>
               </header>
-              
-              {/* Detail Header dari LihatStatus */}
-              <section className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+              <section className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12 text-sm">
                 <div>
-                  <p className="text-sm text-gray-500">No Resi</p>
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold text-lg">{riwayatData.noResi}</p>
-                    <button onClick={() => copyToClipboard(riwayatData.noResi)} className="text-gray-400 hover:text-emerald-600">
-                        <ClipboardCopy size={16}/>
-                    </button>
+                  <p className="text-slate-500">No Resi</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="font-semibold text-slate-700">{offChain.nomor_resi || '-'}</p>
+                    {offChain.nomor_resi && <button onClick={() => copyToClipboard(offChain.nomor_resi)} className="text-slate-400 hover:text-emerald-600"><ClipboardCopy size={14}/></button>}
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Pengirim</p>
-                  <p className="font-semibold text-lg">{riwayatData.pengirim}</p>
+                  <p className="text-slate-500">Pengirim</p>
+                  <p className="font-semibold text-slate-700 mt-1">{offChain.nama_produsen}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Waktu Pesan</p>
-                  <p className="font-semibold text-lg">{formatDate(riwayatData.waktuPesan)}</p>
+                  <p className="text-slate-500">Waktu Pesan</p>
+                  <p className="font-semibold text-slate-700 mt-1">{formatDate(offChain.tanggal_pesanan)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">ID Pesanan</p>
-                  <p className="font-semibold text-lg">{riwayatData.idPesanan}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">No Surat Jalan</p>
-                  <p className="font-semibold text-lg">{riwayatData.noSuratJalan}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Tujuan</p>
-                  <p className="font-semibold text-lg">{riwayatData.namaPbf}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Estimasi Sampai</p>
-                  <p className="font-semibold text-lg">{formatDate(riwayatData.estimasiSampai)}</p>
-                </div>
-                 <div>
-                  <p className="text-sm text-gray-500">Status Final</p>
-                  <span className="px-2 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800">
-                      {riwayatData.status}
-                  </span>
+                  <p className="text-slate-500">Status Final</p>
+                  <span className="px-2 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 mt-1 inline-block">{offChain.status}</span>
                 </div>
               </section>
-
-              {/* Timeline Horizontal dari LihatStatus, tapi diisi data Blockchain */}
               <section className="flex justify-center py-6">
                 <StatusStep 
                   icon={<Package size={24}/>} 
                   label="DIPRODUKSI" 
-                  timestamp={isDipersiapkanCompleted ? dataProduksi.timestamp : null} 
+                  timestamp={isDipersiapkanCompleted ? formatTimestamp(dataProduksi.timestamp) : null} 
                   isCompleted={isDipersiapkanCompleted} />
                 <StatusStep 
                   icon={<Truck size={24}/>} 
-                  label="DIKIRIM KE PBF" 
-                  timestamp={isDikirimCompleted ? dataKirim.timestamp : null} 
+                  label="DIKIRIM" 
+                  timestamp={isDikirimCompleted ? formatTimestamp(dataKirim.timestamp) : null} 
                   isCompleted={isDikirimCompleted} />
                 <StatusStep 
                   icon={<CheckCircle size={24}/>} 
-                  label="DITERIMA PBF" 
-                  timestamp={isSelesaiCompleted ? dataTerima.timestamp : null} 
+                  label="DITERIMA" 
+                  timestamp={isSelesaiCompleted ? formatTimestamp(dataTerima.timestamp) : null} 
                   isCompleted={isSelesaiCompleted} 
                   isLast={true}
                 >
-                  {/* Tampilkan link HANYA jika selesai (DITERIMA) DAN ada URL bukti */}
-                  {isSelesaiCompleted && riwayatData.buktiPenerimaUrl && (
-                    <button
-                      onClick={() => setIsModalOpen(true)}
-                      className="text-sm text-emerald-600 hover:underline mt-1"
-                    >
-                      Lihat bukti Penerima
-                    </button>
+                  {isSelesaiCompleted && offChain.buktiPenerimaUrl && (
+                    <button onClick={() => setIsModalOpen(true)} className="text-xs text-emerald-600 hover:underline mt-1 font-semibold">Lihat Bukti</button>
                   )}
                 </StatusStep>
               </section>
@@ -195,37 +167,13 @@ const LihatRiwayat = () => {
           </div>
         </main>
       </div>
-
-      {/* MODAL (Pop-up) untuk Bukti Penerima */}
-      {isModalOpen && riwayatData.buktiPenerimaUrl && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm"
-          onClick={() => setIsModalOpen(false)} 
-        >
-          <div 
-            className="bg-white p-0 rounded-lg shadow-2xl relative w-full max-w-xl overflow-hidden"
-            onClick={(e) => e.stopPropagation()} 
-          >
-            <div className="flex justify-between items-center p-4 border-b bg-emerald-600 text-white">
-              <h3 className="text-lg font-semibold">Bukti Penerima</h3>
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="text-white opacity-70 hover:opacity-100"
-              >
-                <X size={24} />
-              </button>
-            </div>
-            <div className="p-4 bg-gray-100">
-                <img 
-                    src={riwayatData.buktiPenerimaUrl} 
-                    alt="Bukti Penerima" 
-                    className="w-full h-auto rounded"
-                />
-            </div>
-          </div>
-        </div>
-      )}
+      <BuktiPenerimaanModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        imageUrl={offChain.buktiPenerimaUrl}
+      />
     </div>
   );
 };
+
 export default LihatRiwayat;

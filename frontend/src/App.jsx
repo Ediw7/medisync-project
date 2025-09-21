@@ -88,7 +88,7 @@ function App() {
       <Route path="/produsen/pengelolaan-pengiriman/rincian-pengiriman/:id" element={<RincianPengiriman />} />
       <Route path="/produsen/pengelolaan-pengiriman/surat-jalan/:id" element={<SuratJalanProdusen />} />
       <Route path="/produsen/pengelolaan-pengiriman/lihat-status/:id" element={<LihatStatus />} />
-      <Route path="/produsen/pengelolaan-pengiriman/lihat-riwayat/:id" element={<LihatRiwayat />} />
+      <Route path="/produsen/pengelolaan-pengiriman/lihat-riwayat/:assetId" element={<LihatRiwayat />} />
         <Route path="/produsen/pengelolaan-pengiriman/konfirmasi-pembatalan/:id" element={<KonfirmasiPembatalan />} /> 
 
         <Route path="/produsen/laporan-analitik" element={<LaporanAnalitik />} />

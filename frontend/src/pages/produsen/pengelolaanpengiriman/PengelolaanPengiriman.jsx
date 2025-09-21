@@ -220,8 +220,8 @@ const PengelolaanPengiriman = () => {
                               Lihat Status
                             </Link>
                           )}
-                          {item.status === 'Selesai' && (
-                            <Link to={`/produsen/pengelolaan-pengiriman/lihat-riwayat/${item.id}`} className="text-emerald-600 hover:text-emerald-800">
+                          {item.status === 'Selesai' && item.id_aset_blockchain && (
+                            <Link to={`/produsen/pengelolaan-pengiriman/lihat-riwayat/${item.id_aset_blockchain}`} className="text-emerald-600 hover:text-emerald-800">
                               Lihat Riwayat
                             </Link>
                           )}

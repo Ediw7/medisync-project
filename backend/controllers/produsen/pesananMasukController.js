@@ -159,78 +159,109 @@ const pesananMasukController = {
     }
   },
 
-  updateStatusWithDetails: async (req, res) => {
+  // Di dalam file: backend/controllers/produsen/pesananMasukController.js
+
+updateStatusWithDetails: async (req, res) => {
+    const { id } = req.params; // Ini adalah id_pesanan
+    const { status, nomorResi, nomorSuratJalan, tanggalPengiriman, alamatTujuan, waktuPengiriman, catatan, hashSuratJalan, opsiPengiriman } = req.body;
+    const idProdusen = req.user.id;
+
+    let gateway;
+    let dbConnection;
+
     try {
-      console.log('Request params:', req.params);
-      console.log('Request body:', req.body);
-      const { id } = req.params;
-      const { status, nomorResi, nomorSuratJalan, tanggalPengiriman, alamatTujuan, waktuPengiriman, catatan, hashSuratJalan, opsiPengiriman } = req.body;
-      const idProdusen = req.user.id;
-
+      // --- Langkah 1: Validasi Input ---
       if (status !== 'Dikirim') {
-        return res.status(400).json({ success: false, message: 'Status tidak valid untuk atur pengiriman. Gunakan: Dikirim' });
+        return res.status(400).json({ success: false, message: 'Status tidak valid. Gunakan: Dikirim' });
       }
-
       if (!tanggalPengiriman || !nomorResi || !nomorSuratJalan || !alamatTujuan) {
-        return res.status(400).json({ success: false, message: 'Tanggal pengiriman, nomor resi, nomor surat jalan, dan alamat tujuan wajib diisi.' });
+        return res.status(400).json({ success: false, message: 'Data surat jalan wajib diisi lengkap.' });
       }
 
-      const tanggalPengirimanDate = new Date(tanggalPengiriman);
-      if (isNaN(tanggalPengirimanDate.getTime())) {
-        return res.status(400).json({ success: false, message: 'Format tanggal pengiriman tidak valid.' });
-      }
+      dbConnection = await db.getConnection();
+      await dbConnection.beginTransaction();
 
-      const opsi = opsiPengiriman?.toLowerCase() || 'standar';
-
-      const [existing] = await db.query('SELECT id FROM pesanan WHERE id = ? AND id_produsen = ?', [id, idProdusen]);
+      // --- Langkah 2: Proses Database Off-Chain (MySQL) ---
+      const [existing] = await dbConnection.query('SELECT id, id_pbf, nama_pbf FROM pesanan WHERE id = ? AND id_produsen = ?', [id, idProdusen]);
       if (existing.length === 0) {
-        return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan atau Anda tidak memiliki akses.' });
+        throw new Error('Pesanan tidak ditemukan atau Anda tidak memiliki akses.');
       }
 
       const sqlSuratJalan = `
-        INSERT INTO surat_jalan_produsen (id_pesanan, nomor_resi, nomor_surat_jalan, tanggal_pengiriman, alamat_tujuan, waktu_pengiriman, catatan, hash_surat_jalan, opsi_pengiriman, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        INSERT INTO surat_jalan_produsen (id_pesanan, nomor_resi, nomor_surat_jalan, tanggal_pengiriman, alamat_tujuan, waktu_pengiriman, catatan, hash_surat_jalan, opsi_pengiriman)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE 
-          nomor_resi = VALUES(nomor_resi),
-          nomor_surat_jalan = VALUES(nomor_surat_jalan),
-          tanggal_pengiriman = VALUES(tanggal_pengiriman),
-          alamat_tujuan = VALUES(alamat_tujuan),
-          waktu_pengiriman = VALUES(waktu_pengiriman),
-          catatan = VALUES(catatan),
-          hash_surat_jalan = VALUES(hash_surat_jalan),
-          opsi_pengiriman = VALUES(opsi_pengiriman)
-      `;
-      await db.query(sqlSuratJalan, [id, nomorResi, nomorSuratJalan, tanggalPengiriman, alamatTujuan, waktuPengiriman || null, catatan || null, hashSuratJalan || null, opsi]);
-
-      const [result] = await db.query(
-        `UPDATE pesanan SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND id_produsen = ?`,
-        [status, id, idProdusen]
+          nomor_resi = VALUES(nomor_resi), nomor_surat_jalan = VALUES(nomor_surat_jalan), tanggal_pengiriman = VALUES(tanggal_pengiriman),
+          alamat_tujuan = VALUES(alamat_tujuan), waktu_pengiriman = VALUES(waktu_pengiriman), catatan = VALUES(catatan),
+          hash_surat_jalan = VALUES(hash_surat_jalan), opsi_pengiriman = VALUES(opsi_pengiriman)`;
+      
+      await dbConnection.query(sqlSuratJalan, [id, nomorResi, nomorSuratJalan, tanggalPengiriman, alamatTujuan, waktuPengiriman || null, catatan || null, hashSuratJalan || null, opsiPengiriman?.toLowerCase() || 'standar']);
+      
+      const [detailRows] = await dbConnection.query(
+        `SELECT dp.id as detail_pesanan_id, pr.batch_id, dp.jumlah_pesanan
+         FROM detail_pesanan dp JOIN produksi pr ON dp.id_produksi = pr.id
+         WHERE dp.id_pesanan = ?`, [id]
       );
 
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ success: false, message: 'Gagal memperbarui status pesanan.' });
+      if (detailRows.length === 0) {
+        throw new Error('Tidak ada detail obat yang ditemukan untuk pesanan ini.');
       }
+      
+      // --- Langkah 3: Proses On-Chain (Hyperledger Fabric) ---
+      gateway = await getGateway(); // Gunakan getGateway yang ada di file ini
+      const network = await gateway.getNetwork('medisyncchannel');
+      const contract = network.getContract('medisync');
 
-      const [detailRows] = await db.query(
-        `SELECT dp.id_produksi, pr.batch_id, dp.jumlah_pesanan
-         FROM detail_pesanan dp
-         JOIN produksi pr ON dp.id_produksi = pr.id
-         WHERE dp.id_pesanan = ?`,
-        [id]
+      const namaPbf = existing[0].nama_pbf;
+      const obatIds = detailRows.map(row => row.batch_id);
+      const jumlahPesanan = detailRows.map(row => ({ obatId: row.batch_id, jumlah: row.jumlah_pesanan }));
+
+      console.log('Submitting ON-CHAIN transaction for shipment:', nomorSuratJalan);
+      const transaction = contract.createTransaction('ProdusenContract:transferToPbf');
+      
+      const resultBuffer = await transaction.submit(
+        id.toString().padStart(6, '0'), // Pastikan ID pesanan sesuai format
+        hashSuratJalan || 'TIDAK_ADA_HASH',
+        namaPbf,
+        JSON.stringify(obatIds),
+        JSON.stringify(jumlahPesanan)
       );
 
-      for (const row of detailRows) {
-        await db.query(
-          `UPDATE produksi SET jumlah = jumlah - ? WHERE id = ? AND id_produsen = ?`,
-          [row.jumlah_pesanan, row.id_produksi, idProdusen]
-        );
-      }
+      const resultJson = JSON.parse(resultBuffer.toString());
+      const createdAssetIds = resultJson.createdAssetIds;
+      console.log('ON-CHAIN transaction successful! New asset IDs:', createdAssetIds);
 
-      await pesananMasukController.recordToBlockchainForShipment(req, res);
-      return;
+      // --- Langkah 4: Simpan ID Aset Blockchain ke MySQL ---
+      if (createdAssetIds && createdAssetIds.length > 0) {
+        for (const assetId of createdAssetIds) {
+          // Ekstrak batch ID asli dari ID aset baru (asumsi format 'batchId-pesananId')
+          const originalBatchId = assetId.substring(0, assetId.lastIndexOf('-')); 
+          const correspondingDetail = detailRows.find(d => d.batch_id === originalBatchId);
+          if (correspondingDetail) {
+            await dbConnection.query(
+              'UPDATE detail_pesanan SET id_aset_blockchain = ? WHERE id = ?',
+              [assetId, correspondingDetail.detail_pesanan_id]
+            );
+             console.log(`Updated detail_pesanan ID ${correspondingDetail.detail_pesanan_id} with blockchain asset ID ${assetId}`);
+          }
+        }
+      }
+      
+      // --- Langkah 5: Finalisasi Update di MySQL ---
+      await dbConnection.query('UPDATE surat_jalan_produsen SET status_blockchain = ? WHERE id_pesanan = ?', ['Tercatat', id]);
+      await dbConnection.query('UPDATE pesanan SET status = ? WHERE id = ?', [status, id]);
+      
+      await dbConnection.commit();
+      
+      res.json({ success: true, message: `Pesanan berhasil dikirim dan dicatat ke blockchain.` });
+
     } catch (error) {
       console.error('Error in updateStatusWithDetails:', error);
+      if (dbConnection) await dbConnection.rollback();
       res.status(500).json({ success: false, message: 'Kesalahan Server Internal: ' + error.message });
+    } finally {
+      if (gateway) gateway.disconnect();
+      if (dbConnection) dbConnection.release();
     }
   },
 

@@ -23,62 +23,38 @@ async function calculateFileHash(filePath) {
   }
 }
 
-// Fungsi untuk membuat koneksi ke Hyperledger Fabric
+// Ganti fungsi getGateway Anda dengan yang ini
 async function getGateway() {
   try {
     console.log('Initializing Fabric Gateway connection...');
+    
+    // 1. Tentukan path ke wallet yang sudah dibuat oleh enrollAdminPbf.js
+    const walletPath = path.resolve(__dirname, '..', '..', 'wallet');
+    const wallet = await Wallets.newFileSystemWallet(walletPath);
+    console.log(`Loading wallet from: ${walletPath}`);
+
+    // 2. Pastikan identitas admin PBF ada di dalam wallet
+    const identity = await wallet.get('pbfAdmin');
+    if (!identity) {
+        throw new Error('Identitas "pbfAdmin" tidak ditemukan di dalam wallet. Jalankan enrollAdminPbf.js terlebih dahulu.');
+    }
+
+    // 3. Muat connection profile
     const ccpPath = path.resolve(__dirname, '..', '..', 'connection-org2.json');
     console.log(`Loading connection profile from: ${ccpPath}`);
-    if (!await fs.access(ccpPath).then(() => true).catch(() => false)) {
-      throw new Error(`Connection profile not found at: ${ccpPath}`);
-    }
     const ccp = JSON.parse(await fs.readFile(ccpPath, 'utf8'));
 
-    const certPath = path.resolve(__dirname, '..', '..', 'wallet', 'pbf-user', 'signcerts', 'cert.pem');
-    const keyPath = path.resolve(__dirname, '..', '..', 'wallet', 'pbf-user', 'keystore', 'key.pem');
-    console.log(`Loading cert from: ${certPath}, key from: ${keyPath}`);
-    if (!await fs.access(certPath).then(() => true).catch(() => false)) {
-      throw new Error(`Certificate not found at: ${certPath}`);
-    }
-    if (!await fs.access(keyPath).then(() => true).catch(() => false)) {
-      throw new Error(`Private key not found at: ${keyPath}`);
-    }
-    const cert = await fs.readFile(certPath);
-    const key = await fs.readFile(keyPath);
-
-    const tlsCaCertPath = path.resolve(__dirname, '..', '..', 'organizations', 'peerOrganizations', 'org2.medisync.com', 'tlsca', 'tlsca.org2.medisync.com-cert.pem');
-    console.log(`Loading TLS CA cert from: ${tlsCaCertPath}`);
-    if (!await fs.access(tlsCaCertPath).then(() => true).catch(() => false)) {
-      throw new Error(`TLS CA certificate not found at: ${tlsCaCertPath}`);
-    }
-    const tlsCaCert = await fs.readFile(tlsCaCertPath);
-
-    const wallet = await Wallets.newInMemoryWallet();
-    const identity = {
-      credentials: {
-        certificate: cert,
-        privateKey: key,
-      },
-      mspId: 'PBFMSP',
-      type: 'X.509',
-    };
-    await wallet.put('pbf-user', identity);
-
-    const client = new grpc.Client(
-      'localhost:9051',
-      grpc.credentials.createSsl(tlsCaCert),
-      { 'grpc.ssl_target_name_override': 'peer0.org2.medisync.com' }
-    );
-
+    // 4. Buat koneksi gateway (lebih sederhana)
     const gateway = new Gateway();
-    await gateway.connect(client, {
-      wallet,
-      identity: 'pbf-user',
-      discovery: { enabled: true, asLocalhost: true },
+    await gateway.connect(ccp, {
+        wallet,
+        identity: 'pbfAdmin', // Gunakan identitas dari wallet
+        discovery: { enabled: true, asLocalhost: true }
     });
 
     console.log('Gateway connection established');
     return gateway;
+
   } catch (error) {
     console.error('Error initializing gateway:', error);
     throw new Error(`Gagal menginisialisasi koneksi ke blockchain: ${error.message}`);
@@ -87,7 +63,7 @@ async function getGateway() {
 
 const penerimaanController = {
   // Mengonfirmasi penerimaan pesanan dengan unggah foto
-  confirmPenerimaan: async (req, res) => {
+   confirmPenerimaan: async (req, res) => {
     const { id } = req.params;
     const idPbf = req.user.id;
     const buktiFoto = req.file;
@@ -111,17 +87,18 @@ const penerimaanController = {
       );
 
       if (pesanan.length === 0) {
+        await dbConnection.rollback();
         return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan.' });
       }
 
       if (pesanan[0].status !== 'Dikirim') {
+        await dbConnection.rollback();
         return res.status(400).json({
           success: false,
           message: 'Pesanan hanya dapat dikonfirmasi jika statusnya "Dikirim".',
         });
       }
 
-      // Pastikan file ada
       if (!await fs.access(buktiFoto.path).then(() => true).catch(() => false)) {
         throw new Error('File bukti foto tidak ditemukan di server.');
       }
@@ -134,29 +111,38 @@ const penerimaanController = {
       const network = await gateway.getNetwork('medisyncchannel');
       const contract = network.getContract('medisync');
 
-      // Ambil detail pesanan untuk mendapatkan batch_id
+      // Ambil ID aset yang benar dari kolom baru yang kita buat
       const [detailPesanan] = await dbConnection.query(
-        'SELECT pr.batch_id FROM detail_pesanan dp JOIN produksi pr ON dp.id_produksi = pr.id WHERE dp.id_pesanan = ?',
+        'SELECT id_aset_blockchain FROM detail_pesanan WHERE id_pesanan = ?',
         [id]
       );
 
-      if (detailPesanan.length === 0) {
-        throw new Error('Detail pesanan tidak ditemukan.');
+      if (detailPesanan.length === 0 || !detailPesanan[0].id_aset_blockchain) {
+        throw new Error('ID Aset Blockchain untuk kiriman ini tidak ditemukan di database. Pastikan produsen sudah mencatat pengiriman.');
       }
 
       // Panggil chaincode terimaBarang untuk setiap item
       for (const item of detailPesanan) {
-        console.log(`Submitting transaction for batch_id: ${item.batch_id}`);
-        const transaction = contract.createTransaction('PbfContract:terimaBarang');
-        transaction.setEndorsingOrganizations('PBFMSP');
-        await transaction.submit(item.batch_id, hashBuktiFoto);
-        console.log(`Transaction for batch_id: ${item.batch_id} submitted successfully`);
+        if (item.id_aset_blockchain) { // Pastikan ID tidak null/kosong
+          console.log(`Submitting transaction for asset_id: ${item.id_aset_blockchain}`);
+          const transaction = contract.createTransaction('PbfContract:terimaBarang');
+          transaction.setEndorsingOrganizations('PBFMSP', 'ProdusenMSP');
+          // Gunakan ID yang benar
+          await transaction.submit(item.id_aset_blockchain, hashBuktiFoto);
+          console.log(`Transaction for asset_id: ${item.id_aset_blockchain} submitted successfully`);
+        }
       }
 
       // Update status pesanan di MySQL
       await dbConnection.query(
-        'UPDATE pesanan SET status = ?, bukti_foto = ?, catatan_khusus = ? WHERE id = ?',
-        ['Selesai', buktiFoto.path, `Bukti penerimaan: ${buktiFoto.path}, Hash: ${hashBuktiFoto}`, id]
+        'UPDATE pesanan SET status = ?, bukti_foto = ? WHERE id = ?',
+        ['Selesai', buktiFoto.path, id]
+      );
+      
+      // Anda bisa menambahkan hash ke catatan khusus jika perlu
+      await dbConnection.query(
+        'UPDATE pesanan SET catatan_khusus = CONCAT(IFNULL(catatan_khusus, ""), ?) WHERE id = ?',
+        [`\nBukti penerimaan: ${buktiFoto.path}, Hash: ${hashBuktiFoto}`, id]
       );
 
       await dbConnection.commit();
@@ -165,7 +151,7 @@ const penerimaanController = {
       console.error('Error in confirmPenerimaan:', error);
       if (dbConnection) await dbConnection.rollback();
       if (buktiFoto && await fs.access(buktiFoto.path).then(() => true).catch(() => false)) {
-        await fs.unlink(buktiFoto.path);
+        await fs.unlink(buktiFoto.path); // Hapus file jika terjadi error
       }
       res.status(500).json({ success: false, message: `Gagal konfirmasi: ${error.message}` });
     } finally {

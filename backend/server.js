@@ -31,7 +31,7 @@ app.use('/api/produksi', produksiRoutes);
 app.use('/api/produsen/pesanan-masuk', pesananMasukRoutes);
 app.use('/api/produsen/pembatalan', pembatalanRoutes);
 app.use('/api/produsen/riwayat', riwayatProdusenRoutes);
-app.use('/api/produsen/laporananalitik', laporananalitikRoutes);
+app.use('/api/produsen', laporananalitikRoutes);
 app.use('/api/pbf/pesanan', pesananPbfRoutes);
 
 app.use('/api/pbf', pbfRoutes)

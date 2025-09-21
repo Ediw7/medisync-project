@@ -16,7 +16,14 @@ import {
 } from 'chart.js';
 
 ChartJS.register(
-  CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
 );
 
 const LaporanAnalitik = () => {
@@ -24,6 +31,7 @@ const LaporanAnalitik = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [produksiChartData, setProduksiChartData] = useState({ labels: [], datasets: [] });
   const [stokChartData, setStokChartData] = useState({ labels: [], datasets: [] });
+  const [avgDeliveryDays, setAvgDeliveryDays] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -35,19 +43,23 @@ const LaporanAnalitik = () => {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('Silakan login terlebih dahulu');
 
-        const response = await fetch('http://localhost:5000/api/laporananalitik', {
-          headers: { 'Authorization': `Bearer ${token}` },
+        const response = await fetch('http://localhost:5000/api/produsen/laporananalitik', {
+          headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (!response.ok) throw new Error('Gagal mengambil data');
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.message || 'Gagal mengambil data');
+        }
 
         const result = await response.json();
         if (!result.success) throw new Error(result.message);
 
-        const { produksi, stok } = result.data;
+        const { produksi, stok, delivery } = result.data;
 
         setProduksiChartData(produksi);
         setStokChartData(stok);
+        setAvgDeliveryDays(delivery.avgDeliveryDays);
       } catch (error) {
         setError(error.message);
       } finally {
@@ -68,7 +80,37 @@ const LaporanAnalitik = () => {
       legend: {
         position: 'bottom',
       },
+      title: {
+        display: true,
+        text: (ctx) => ctx.chart.data.datasets[0]?.label || '',
+      },
     },
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: 'Jumlah',
+        },
+      },
+      x: {
+        title: {
+          display: true,
+          text: 'Bulan',
+        },
+      },
+    },
+  };
+
+  const deliveryChartData = {
+    labels: ['Rata-rata'],
+    datasets: [
+      {
+        label: 'Waktu Pengiriman (Hari)',
+        data: [avgDeliveryDays],
+        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+      },
+    ],
   };
 
   return (
@@ -87,9 +129,11 @@ const LaporanAnalitik = () => {
             <div className="bg-white p-6 rounded-lg shadow">
               <h2 className="text-lg font-semibold mb-4">Produksi per Bulan</h2>
               {isLoading ? (
-                <p className="text-center text-gray-400 py-16">Loading...</p>
+                <p className="text-center text-gray-400 py-16">Memuat...</p>
               ) : error ? (
                 <p className="text-center text-red-500 py-16">{error}</p>
+              ) : produksiChartData.labels.length === 0 ? (
+                <p className="text-center text-gray-400 py-16">Tidak ada data produksi tersedia</p>
               ) : (
                 <Line options={chartOptions} data={produksiChartData} />
               )}
@@ -99,19 +143,37 @@ const LaporanAnalitik = () => {
             <div className="bg-white p-6 rounded-lg shadow">
               <h2 className="text-lg font-semibold mb-4">Stok Obat vs Minimum</h2>
               {isLoading ? (
-                <p className="text-center text-gray-400 py-16">Loading...</p>
+                <p className="text-center text-gray-400 py-16">Memuat...</p>
               ) : error ? (
                 <p className="text-center text-red-500 py-16">{error}</p>
+              ) : stokChartData.labels.length === 0 ? (
+                <p className="text-center text-gray-400 py-16">Tidak ada data stok tersedia</p>
               ) : (
                 <Bar options={chartOptions} data={stokChartData} />
               )}
             </div>
 
-            {/* Chart Rata-rata Waktu Pengiriman (Placeholder) */}
+            {/* Metrik Rata-rata Waktu Pengiriman */}
             <div className="bg-white p-6 rounded-lg shadow lg:col-span-2">
-              <h2 className="text-lg font-semibold mb-4">Rata-rata Waktu Pengiriman (Bulan)</h2>
-              <p className="text-center text-gray-400 py-16">Data pengiriman belum tersedia.</p>
-              {/* Future implementation: Add a line or bar chart for delivery times */}
+  <h2 className="text-lg font-semibold mb-4">Rata-rata Waktu Pengiriman</h2>
+  {isLoading ? (
+    <p className="text-center text-gray-400 py-16">Memuat...</p>
+  ) : error ? (
+    <p className="text-center text-red-500 py-16">{error}</p>
+  ) : (
+    // Add a more robust check here
+    typeof avgDeliveryDays === 'number' && avgDeliveryDays > 0 ? (
+      <div className="flex flex-col items-center">
+        <Bar options={chartOptions} data={deliveryChartData} />
+        <p className="mt-4 text-gray-600">
+          Rata-rata waktu pengiriman: <strong>{avgDeliveryDays.toFixed(2)} hari</strong>
+        </p>
+      </div>
+    ) : (
+      // Show this if the value is 0, null, or undefined
+      <p className="text-center text-gray-400 py-16">Tidak ada data pengiriman tersedia</p>
+    )
+  )}
             </div>
           </div>
         </main>

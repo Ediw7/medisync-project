@@ -6,6 +6,9 @@ const { authenticateToken, authorizeRole } = require('../../middleware/auth');
 // Semua rute di sini dilindungi dan hanya untuk Produsen
 router.use(authenticateToken, authorizeRole('produsen'));
 
+
+
+
 // Mengambil semua pesanan masuk untuk produsen yang sedang login
 router.get('/', pesananMasukController.getAll);
 
@@ -17,6 +20,8 @@ router.get('/:id/surat-jalan', pesananMasukController.getSuratJalanById);
 
 // Mengubah status pesanan dengan detail tambahan (misalnya untuk atur pengiriman)
 router.put('/:id/status', pesananMasukController.updateStatusWithDetails);
+
+
 
 
 // Mencatat pengiriman ke blockchain

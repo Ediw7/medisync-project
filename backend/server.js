@@ -7,7 +7,7 @@ const authRoutes = require('./routes/auth');
 const produksiRoutes = require('./routes/produsen/produksiRoute'); 
 const pesananMasukRoutes = require('./routes/produsen/pesananMasukRoute');
 const pembatalanRoutes = require('./routes/produsen/pembatalanRoute');
-const riwayatProdusenRoutes = require('./routes/produsen/riwayatRoute'); 
+const riwayatRoute = require('./routes/produsen/riwayatRoute');
 const laporananalitikRoutes = require('./routes/produsen/laporananalitikRoute');
 const pesananPbfRoutes = require('./routes/pbf/pesananRoute'); 
 const pbfRoutes = require('./routes/pbf/pbfRoute');
@@ -30,7 +30,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/produksi', produksiRoutes);
 app.use('/api/produsen/pesanan-masuk', pesananMasukRoutes);
 app.use('/api/produsen/pembatalan', pembatalanRoutes);
-app.use('/api/produsen/riwayat', riwayatProdusenRoutes);
+app.use('/api/produsen/riwayat-distribusi', riwayatRoute);
 app.use('/api/produsen', laporananalitikRoutes);
 app.use('/api/pbf/pesanan', pesananPbfRoutes);
 

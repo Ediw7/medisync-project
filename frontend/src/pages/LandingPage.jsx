@@ -1,13 +1,12 @@
-// src/pages/LandingPage.jsx
-
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
   CheckCircle,
   Github,
-  Twitter,
-  Linkedin,
+  QrCode,
+  HeartHandshake,
+  ArrowBigUpDash,
   Heart,
   Zap,
   Blocks,
@@ -26,7 +25,8 @@ import Navbar from "../components/Navbar";
 import QrScanner from "../components/QrScanner";
 import RiwayatObatModal from "../components/RiwayatObatModal";
 import HeroImage from "../assets/hero.png";
-import Logo from "../assets/logo.png";
+import LogoPutih from "../assets/logo-putih.png";
+
 
 const LandingPage = () => {
   const [showScanner, setShowScanner] = useState(false);
@@ -161,13 +161,13 @@ const LandingPage = () => {
   return (
     // Light theme change: Changed background to white and default text to dark gray
     <div className="min-h-screen bg-gray-200/30 text-gray-800">
+        <AnimatedBackground />
       <Navbar />
 
       {/* The max-w-7xl container was removed from here to allow the hero section 
         to have a full-width background, and was added inside each section instead.
       */}
       <div>
-        <AnimatedBackground />
 
         {/* The Hero Section code you provided already uses a light theme, so it fits perfectly. */}
         <section className="pb-20 overflow-hidden relative">
@@ -246,8 +246,6 @@ const LandingPage = () => {
                             className="w-full h-auto rounded-xl mb-24  "
                           />
                   </div>
-
-                <div className="absolute -top-10 -right-10 h-40 w-40 bg-[#16A34A]/70 rounded-full blur-3xl animate-pulse mix-blend-screen"></div>
                 <div className="absolute -bottom-0 -left-10 h-32 w-32 bg-[#22C55E]/60 animate-pulse blur-2xl mix-blend-screen"></div>
               </div>
             </div>
@@ -508,90 +506,52 @@ const LandingPage = () => {
         </section>
       </div>
 
-      <footer className="relative pt-20 pb-10 overflow-hidden border-t border-gray-200/80 bg-gray-200">
-        {/* Elemen Latar Belakang untuk Efek Kaca */}
-        <div className="absolute inset-0">
-          <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-[#16A34A]/5 rounded-full blur-3xl animate-float"></div>
-          <div className="absolute top-0 right-1/4 w-72 h-72 bg-[#22C55E]/10 animate-liquid blur-3xl"></div>
+      <footer className="bg-slate-900 text-white">
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        {/* Main footer content */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <img src={LogoPutih} alt="MediSync Logo" className="h-16 w-auto" />
+          </div>
+
+          {/* Navigation Links */}
+          <nav className="flex items-center gap-8">
+            <a href="#" className="text-gray-300 hover:text-white transition-colors duration-200">
+              About
+            </a>
+            <a href="#" className="text-gray-300 hover:text-white transition-colors duration-200">
+              Services
+            </a>
+            <a href="#" className="text-gray-300 hover:text-white transition-colors duration-200">
+              Contact
+            </a>
+          </nav>
+
+          {/* Social Icons */}
+          <div className="flex items-center gap-4">
+            <a href="#" className="text-gray-400 hover:text-white transition-colors duration-200" aria-label="GitHub">
+              <Github size={20} />
+            </a>
+            <a href="#" className="text-gray-400 hover:text-white transition-colors duration-200" aria-label="QR Code">
+              <QrCode size={20} />
+            </a>
+            <a href="#" className="text-gray-400 hover:text-white transition-colors duration-200" aria-label="Collaboration">
+              <HeartHandshake size={20} />
+            </a>
+            <a href="#" className="text-gray-400 hover:text-white transition-colors duration-200" aria-label="Back to Top">
+              <ArrowBigUpDash size={20} />
+            </a>
+          </div>
         </div>
 
-        <liquid-glass
-          class="relative z-10 max-w-7xl mx-auto rounded-3xl"
-          inset="true"
-          shape="soft"
-          blur="10"
-          noise="0.02"
-          scale="60"
-        >
-          <div className="p-8 lg:p-12">
-            {/* Bagian Atas: Link-link */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
-              {/* Kolom Brand */}
-              <div className="col-span-2 md:col-span-1">
-                <div className="flex items-center space-x-2 mb-4">
-                  <img src={Logo} alt="MediSync Logo" className="h-20 w-auto" />
-                </div>
-                <p className="text-gray-500 text-sm">
-                  Mengamankan rantai pasok farmasi dengan teknologi blockchain.
-                </p>
-              </div>
-
-              {/* Kolom Link */}
-              <div>
-                <h3 className="text-md font-semibold mb-4 text-gray-800">
-                  Resources
-                </h3>
-                <ul className="space-y-2">
-                  {resourcesLinks.map((link, index) => (
-                    <li key={index}>
-                      <a
-                        href={link.href}
-                        className="text-gray-600 hover:text-[#16A34A] transition-colors"
-                      >
-                        {link.text}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h3 className="text-md font-semibold mb-4 text-gray-800">
-                  Platform
-                </h3>
-                <ul className="space-y-2">
-                  {platformLinks.map((link, index) => (
-                    <li key={index}>
-                      <a
-                        href={link.href}
-                        className="text-gray-600 hover:text-[#16A34A] transition-colors"
-                      >
-                        {link.text}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h3 className="text-md font-semibold mb-4 text-gray-800">
-                  Community
-                </h3>
-                <ul className="space-y-2">
-                  {communityLinks.map((link, index) => (
-                    <li key={index}>
-                      <a
-                        href={link.href}
-                        className="text-gray-600 hover:text-[#16A34A] transition-colors"
-                      >
-                        {link.text}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-        </liquid-glass>
-      </footer>
+        {/* Divider */}
+        <div className="border-t border-slate-700 mt-8 pt-6">
+          {/* Copyright */}
+          <p className="text-left text-gray-400 text-sm">© Copyright 2025, All Rights Reserved by MediSync</p>
+        </div>
+      </div>
+    </footer>
 
       {/* --- MODALS (No style changes needed for these) --- */}
       {showScanner && (

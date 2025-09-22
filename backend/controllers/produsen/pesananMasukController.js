@@ -21,7 +21,9 @@ async function getGateway() {
 }
 
 const pesananMasukController = {
-  getAll: async (req, res) => {
+  // backend/controllers/produsen/pesananMasukController.js
+
+getAll: async (req, res) => {
     try {
       const idProdusen = req.user.id;
       const sql = `
@@ -46,12 +48,27 @@ const pesananMasukController = {
         ORDER BY p.tanggal_pesanan DESC
       `;
       const [rows] = await db.query(sql, [idProdusen]);
+
+      // --- TAMBAHAN UNTUK MENGAMBIL DETAIL SETIAP PESANAN ---
+      const sqlDetail = `
+        SELECT dp.id, dp.nama_obat, dp.jumlah_pesanan, pr.batch_id
+        FROM detail_pesanan dp
+        LEFT JOIN produksi pr ON dp.id_produksi = pr.id
+        WHERE dp.id_pesanan = ?
+      `;
+
+      for (const pesanan of rows) {
+        const [detail] = await db.query(sqlDetail, [pesanan.id]);
+        pesanan.detail_pesanan = detail; // Sisipkan detail ke dalam objek pesanan
+      }
+      // --- AKHIR TAMBAHAN ---
+
       res.json({ success: true, data: rows });
     } catch (error) {
       console.error('Error in getAll pesanan masuk:', error);
       res.status(500).json({ success: false, message: 'Kesalahan Server Internal: ' + error.message });
     }
-  },
+},
   
 
   getPesananById: async (req, res) => {

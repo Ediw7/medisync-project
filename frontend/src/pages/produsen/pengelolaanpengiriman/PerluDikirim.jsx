@@ -97,10 +97,12 @@ const PerluDikirim = () => {
             <button className="text-gray-600 font-medium py-2 px-3 rounded-lg hover:bg-gray-200 transition">
               Atur Pengiriman Massal
             </button>
-            <button className="bg-emerald-600 text-white font-medium py-2 px-3 rounded-lg hover:bg-emerald-700 transition flex items-center gap-2">
-              <CalendarPlus size={18} />
-              <span>Atur pickup massal</span>
-            </button>
+            <button 
+            onClick={() => navigate('/produsen/pengelolaan-pengiriman/pengiriman-massal')}
+            className="bg-emerald-600 text-white font-medium py-2 px-3 rounded-lg hover:bg-emerald-700 transition flex items-center gap-2">
+            <CalendarPlus size={18} />
+            <span>Pengiriman Massal</span>
+          </button>
           </div>
         </div>
 

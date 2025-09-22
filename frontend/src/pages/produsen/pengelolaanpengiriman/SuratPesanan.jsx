@@ -102,7 +102,7 @@ const SuratPesanan = () => {
           <div className="max-w-4xl mx-auto">
             <div className="flex justify-between items-center mb-6">
               <button
-                onClick={() => navigate('/produsen/pesanan-masuk')}
+                onClick={() => navigate('/produsen/pengelolaan-pengiriman')}
                 className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition"
               >
                 <ArrowLeft size={18} /> Kembali ke Daftar Pesanan Masuk

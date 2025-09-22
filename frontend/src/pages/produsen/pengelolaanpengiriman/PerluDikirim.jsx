@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
+import { Search, CalendarPlus } from 'lucide-react';
 
 // Komponen nav item untuk handle state aktif
 const NavItem = ({ to, children }) => {
   const location = useLocation();
   const isActive = location.pathname === to;
 
-  const baseClass = "py-3 px-1 text-center font-medium transition whitespace-nowrap";
+ const baseClass = "py-3 px-1 text-center font-medium transition whitespace-nowrap";
   const activeClass = "text-emerald-600 border-b-2 border-emerald-600 pointer-events-none cursor-default";
   const inactiveClass = "text-gray-600 hover:text-emerald-600";
 
@@ -33,6 +34,7 @@ const PerluDikirim = () => {
   const [pesananData, setPesananData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -75,30 +77,56 @@ const PerluDikirim = () => {
     }
   };
 
+  const filteredData = pesananData.filter(item =>
+    item.nama_pbf.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    String(item.id).includes(searchQuery)
+  );
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={handleLogout} />
         <main className="pt-16 p-6">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-2xl font-bold">Pesanan Perlu Dikirim</h1>
-              <p className="text-gray-500">Daftar pesanan yang menunggu untuk diatur pengirimannya</p>
-            </div>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Pesanan Perlu Dikirim</h1>
+            <p className="text-gray-500">Daftar pesanan yang menunggu untuk diatur pengirimannya</p>
           </div>
+          <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+            <button className="text-gray-600 font-medium py-2 px-3 rounded-lg hover:bg-gray-200 transition">
+              Atur Pengiriman Massal
+            </button>
+            <button 
+            onClick={() => navigate('/produsen/pengelolaan-pengiriman/pengiriman-massal')}
+            className="bg-emerald-600 text-white font-medium py-2 px-3 rounded-lg hover:bg-emerald-700 transition flex items-center gap-2">
+            <CalendarPlus size={18} />
+            <span>Pengiriman Massal</span>
+          </button>
+          </div>
+        </div>
 
           <div className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="p-4 border-b">
-              <div className="flex space-x-2">
-                <NavItem to="/produsen/pengelolaan-pengiriman">Semua</NavItem>
-                <NavItem to="/produsen/pengelolaan-pengiriman/perlu-dikirim">Perlu dikirim</NavItem>
-                <NavItem to="/produsen/pengelolaan-pengiriman/dikirim">Dikirim</NavItem>
-                <NavItem to="/produsen/pengelolaan-pengiriman/selesai">Selesai</NavItem>
-                <NavItem to="/produsen/pengelolaan-pengiriman/pembatalan">Pembatalan</NavItem>
-                <NavItem to="/produsen/pengelolaan-pengiriman/pengembalian">Pengembalian</NavItem>
-              </div>
+           <div className="p-4 border-b flex flex-wrap items-center gap-x-4 gap-y-3">
+               <div className="flex items-center gap-x-2">
+              <NavItem to="/produsen/pengelolaan-pengiriman">Semua</NavItem>
+              <NavItem to="/produsen/pengelolaan-pengiriman/perlu-dikirim">Perlu dikirim</NavItem>
+              <NavItem to="/produsen/pengelolaan-pengiriman/dikirim">Dikirim</NavItem>
+              <NavItem to="/produsen/pengelolaan-pengiriman/selesai">Selesai</NavItem>
+              <NavItem to="/produsen/pengelolaan-pengiriman/pembatalan">Pembatalan</NavItem>
+              <NavItem to="/produsen/pengelolaan-pengiriman/pengembalian">Pengembalian</NavItem>
             </div>
+            <div className="relative w-full sm:w-auto sm:ml-auto">
+              <input
+                type="text"
+                placeholder="Cari PBF atau ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-4 py-2 border rounded-lg w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            </div>
+          </div>
 
             <div className="overflow-x-auto">
               {error && (
@@ -131,31 +159,36 @@ const PerluDikirim = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {pesananData.length > 0 ? pesananData.map((item) => (
-                      <tr key={item.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.nama_pbf}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{String(item.id).padStart(6, '0')}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 hover:underline">
-                          <Link to={`/produsen/pengelolaanpengiriman/detail/${item.id}/surat`}>Lihat Surat</Link>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp. {item.total_harga.toLocaleString('id-ID')}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(item.status)}`}>
-                            {item.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <Link to={`/produsen/pengelolaanpengiriman/atur-pengiriman/${item.id}`} className="text-emerald-600 hover:text-emerald-800">
-                            Atur Pengiriman
-                          </Link>
-                        </td>
-                      </tr>
-                    )) : (
-                      <tr>
-                        <td colSpan="6" className="text-center py-10 text-gray-500">Tidak ada pesanan yang perlu dikirim.</td>
-                      </tr>
-                    )}
-                  </tbody>
+  {filteredData.length > 0 ? filteredData.map((item) => (
+    <tr key={item.id} className="hover:bg-gray-50">
+      {/* vvv TAMBAHKAN DUA KOLOM INI vvv */}
+      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.nama_pbf}</td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{String(item.id).padStart(6, '0')}</td>
+      {/* ^^^ AKHIR TAMBAHAN ^^^ */}
+      
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 hover:underline">
+        <Link to={`/produsen/pengelolaan-pengiriman/detail/${item.id}/surat`}>Lihat Surat</Link>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp. {item.total_harga.toLocaleString('id-ID')}</td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(item.status)}`}>
+          {item.status}
+        </span>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+        <Link to={`/produsen/pengelolaan-pengiriman/atur-pengiriman/${item.id}`} className="text-emerald-600 hover:text-emerald-800">
+          Atur Pengiriman
+        </Link>
+      </td>
+    </tr>
+  )) : (
+    <tr>
+      <td colSpan="6" className="text-center py-10 text-gray-500">
+        {searchQuery ? 'Pencarian tidak ditemukan.' : 'Tidak ada pesanan yang perlu dikirim.'}
+      </td>
+    </tr>
+  )}
+</tbody>
                 </table>
               )}
             </div>

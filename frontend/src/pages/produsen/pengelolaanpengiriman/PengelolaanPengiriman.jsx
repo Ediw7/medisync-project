@@ -4,13 +4,14 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
+import { Search, CalendarPlus } from 'lucide-react'; 
 
 // Komponen nav item untuk handle state aktif
 const NavItem = ({ to, children }) => {
   const location = useLocation();
   const isActive = location.pathname === to;
 
-  const baseClass = "py-2 px-4 text-center font-medium transition";
+  const baseClass = "py-3 px-1 text-center font-medium transition whitespace-nowrap";
   const activeClass = "text-emerald-600 border-b-2 border-emerald-600 pointer-events-none cursor-default";
   const inactiveClass = "text-gray-600 hover:text-emerald-600";
 
@@ -117,24 +118,29 @@ const PengelolaanPengiriman = () => {
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={handleLogout} />
         <main className="pt-16 p-6">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-2xl font-bold">Pengelolaan Pengiriman</h1>
-              <p className="text-gray-500">Kelola pesanan dan pengiriman ke PBF</p>
-            </div>
-            <div className="flex gap-4">
-              <button className="bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition">
-                Atur Pengiriman Massal
-              </button>
-              <button className="bg-emerald-600 text-white py-2 px-4 rounded-lg hover:bg-emerald-700 transition">
-                Pengiriman Massal
-              </button>
-            </div>
+        {/* Kontainer header yang dibuat responsif */}
+       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Pengelolaan Pengiriman</h1>
+            <p className="text-gray-500">Kelola pesanan dan pengiriman ke PBF</p>
           </div>
+          {/* Kontainer untuk tombol-tombol */}
+          <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+            {/* Gaya tombol pertama disesuaikan */}
+            <button className="text-gray-600 font-medium py-2 px-3 rounded-lg hover:bg-gray-200 transition">
+              Atur Pengiriman Massal
+            </button>
+            {/* Tombol kedua disesuaikan (ikon & teks) */}
+            <button className="bg-emerald-600 text-white font-medium py-2 px-3 rounded-lg hover:bg-emerald-700 transition flex items-center gap-2">
+              <CalendarPlus size={18} />
+              <span>Atur pickup massal</span>
+            </button>
+          </div>
+        </div>
 
           <div className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="p-4 border-b flex justify-between items-center">
-              <div className="flex space-x-2">
+          <div className="p-4 border-b flex flex-wrap items-center gap-x-4 gap-y-3">
+               <div className="flex items-center gap-x-2">
                 <NavItem to="/produsen/pengelolaan-pengiriman">Semua</NavItem>
                 <NavItem to="/produsen/pengelolaan-pengiriman/perlu-dikirim">Perlu dikirim</NavItem>
                 <NavItem to="/produsen/pengelolaan-pengiriman/dikirim">Dikirim</NavItem>
@@ -142,17 +148,18 @@ const PengelolaanPengiriman = () => {
                 <NavItem to="/produsen/pengelolaan-pengiriman/pembatalan">Pembatalan</NavItem>
                 <NavItem to="/produsen/pengelolaan-pengiriman/pengembalian">Pengembalian</NavItem>
               </div>
-              <div className="relative">
+               <div className="relative w-full sm:w-auto sm:ml-auto">
                 <input
                   type="text"
                   placeholder="Cari PBF atau ID Pesanan..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="pl-10 pr-4 py-2 border rounded-lg w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
                 <svg className="w-5 h-5 absolute left-3 top-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                 </svg>
+                
               </div>
             </div>
 

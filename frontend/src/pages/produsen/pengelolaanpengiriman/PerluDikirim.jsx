@@ -8,7 +8,7 @@ const NavItem = ({ to, children }) => {
   const location = useLocation();
   const isActive = location.pathname === to;
 
-  const baseClass = "py-2 px-4 text-center font-medium transition";
+  const baseClass = "py-3 px-1 text-center font-medium transition whitespace-nowrap";
   const activeClass = "text-emerald-600 border-b-2 border-emerald-600 pointer-events-none cursor-default";
   const inactiveClass = "text-gray-600 hover:text-emerald-600";
 

@@ -37,16 +37,56 @@ async function getGateway() {
 const produksiController = {
   // Mengambil semua jadwal produksi milik produsen yang sedang login
   getAll: async (req, res) => {
-  try {
-    const [rows] = await db.query(
-      'SELECT id, batch_id, nama_obat, jumlah, status, tanggal_produksi, tanggal_kadaluarsa, qr_code_url FROM produksi WHERE id_produsen = ? ORDER BY tanggal_produksi DESC',
-      [req.user.id]
-    );
-    res.json({ success: true, data: rows });
-  } catch (error) {
-    console.error('Error in getAll:', error);
-    res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
-  }
+    try {
+      // Ambil parameter filter & sorting dari req.query
+      const { month, year, minJumlah, maxJumlah, status, sortBy, sortOrder } = req.query;
+
+      // Persiapkan query dasar
+      let sql = `
+        SELECT id, batch_id, nama_obat, jumlah, status, tanggal_produksi, tanggal_kadaluarsa, qr_code_url 
+        FROM produksi 
+        WHERE id_produsen = ?`;
+      const params = [req.user.id];
+
+      // Tambahkan filter secara dinamis
+      if (status) {
+        sql += ' AND status = ?';
+        params.push(status);
+      }
+      if (month) {
+        sql += ' AND MONTH(tanggal_produksi) = ?';
+        params.push(month);
+      }
+      if (year) {
+        sql += ' AND YEAR(tanggal_produksi) = ?';
+        params.push(year);
+      }
+      if (minJumlah) {
+        sql += ' AND jumlah >= ?';
+        params.push(minJumlah);
+      }
+      if (maxJumlah) {
+        sql += ' AND jumlah <= ?';
+        params.push(maxJumlah);
+      }
+      
+      // Tambahkan sorting secara dinamis
+      const allowedSortBy = ['batch_id', 'nama_obat', 'tanggal_produksi', 'jumlah', 'status'];
+      const direction = sortOrder?.toLowerCase() === 'asc' ? 'ASC' : 'DESC'; // Default DESC
+      
+      if (sortBy && allowedSortBy.includes(sortBy)) {
+        sql += ` ORDER BY ${sortBy} ${direction}`;
+      } else {
+        // Default sort
+        sql += ' ORDER BY tanggal_produksi DESC';
+      }
+
+      const [rows] = await db.query(sql, params);
+      res.json({ success: true, data: rows });
+    } catch (error) {
+      console.error('Error in getAll:', error);
+      res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+    }
 },
   // Mengambil satu data produksi berdasarkan ID
   getById: async (req, res) => {

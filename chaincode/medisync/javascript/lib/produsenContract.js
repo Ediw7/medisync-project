@@ -9,48 +9,53 @@ class ProdusenContract extends Contract {
         return assetJSON && assetJSON.length > 0;
     }
 
-    async createObat(ctx, id, namaObat, nomorIzinEdar, komposisi, dosis, tanggalProduksi, tanggalKadaluarsa, bentukSediaan, penanggungJawab, jumlah, hargaPerUnit, hashHasilUjiMutu) {
-        const mspID = ctx.clientIdentity.getMSPID();
-        if (mspID !== 'ProdusenMSP') {
-            throw new Error(`ERROR: Organisasi ${mspID} tidak diizinkan untuk membuat aset obat.`);
-        }
-
-        const exists = await this.assetExists(ctx, id);
-        if (exists) {
-            throw new Error(`ERROR: Obat dengan ID Batch ${id} sudah ada.`);
-        }
-
-        const timestamp = new Date(ctx.stub.getTxTimestamp().seconds.low * 1000).toISOString();
-
-        const obat = {
-            docType: 'obat',
-            id: id,
-            namaObat: namaObat,
-            nomorIzinEdar: nomorIzinEdar,
-            komposisi: komposisi,
-            dosis: dosis,
-            bentukSediaan: bentukSediaan,
-            tanggalProduksi: tanggalProduksi,
-            tanggalKadaluarsa: tanggalKadaluarsa,
-            penanggungJawab: penanggungJawab,
-            jumlah: Number(jumlah) || 0,
-            hargaPerUnit: Number(hargaPerUnit) || 0,
-            pemilikSaatIni: mspID,
-            statusSaatIni: 'DIPRODUKSI',
-            hashDokumen: {
-                hasilUjiMutu: hashHasilUjiMutu,
-                suratJalan: ''
-            },
-            riwayat: [{
-                pemilik: mspID,
-                status: 'DIPRODUKSI',
-                timestamp: timestamp
-            }]
-        };
-
-        await ctx.stub.putState(id, Buffer.from(JSON.stringify(obat)));
-        return JSON.stringify(obat);
+    async createObat(ctx, id, namaObat, nomorIzinEdar, komposisi, dosis, tanggalProduksi, tanggalKadaluarsa, bentukSediaan, penanggungJawab, jumlah, hargaPerUnit, hashHasilUjiMutu, namaPerusahaan) {
+    const mspID = ctx.clientIdentity.getMSPID();
+    if (mspID !== 'ProdusenMSP') {
+        throw new Error(`ERROR: Organisasi ${mspID} tidak diizinkan untuk membuat aset obat.`);
     }
+
+    if (!namaPerusahaan || namaPerusahaan.trim() === '') {
+        throw new Error('ERROR: Nama perusahaan (dari nama_resmi di DB users) wajib disediakan dan tidak boleh kosong.');
+    }
+
+    const exists = await this.assetExists(ctx, id);
+    if (exists) {
+        throw new Error(`ERROR: Obat dengan ID Batch ${id} sudah ada.`);
+    }
+
+    const timestamp = new Date(ctx.stub.getTxTimestamp().seconds.low * 1000).toISOString();
+
+    const obat = {
+        docType: 'obat',
+        id: id,
+        namaObat: namaObat,
+        nomorIzinEdar: nomorIzinEdar,
+        komposisi: komposisi,
+        dosis: dosis,
+        bentukSediaan: bentukSediaan,
+        tanggalProduksi: tanggalProduksi,
+        tanggalKadaluarsa: tanggalKadaluarsa,
+        penanggungJawab: penanggungJawab,
+        jumlah: Number(jumlah) || 0,
+        hargaPerUnit: Number(hargaPerUnit) || 0,
+        pemilikSaatIni: mspID,
+        statusSaatIni: 'DIPRODUKSI',
+        hashDokumen: {
+            hasilUjiMutu: hashHasilUjiMutu,
+            suratJalan: ''
+        },
+        namaPerusahaan: namaPerusahaan,  // Sekarang defined dari param (dari DB)
+        riwayat: [{
+            pemilik: mspID,
+            status: 'DIPRODUKSI',
+            timestamp: timestamp
+        }]
+    };
+
+    await ctx.stub.putState(id, Buffer.from(JSON.stringify(obat)));
+    return JSON.stringify(obat);
+}
 
     async readObat(ctx, id) {
         const assetJSON = await ctx.stub.getState(id);
@@ -128,6 +133,7 @@ class ProdusenContract extends Contract {
                     hasilUjiMutu: obatAsli.hashDokumen.hasilUjiMutu, // Warisi hash mutu
                     suratJalan: hashSuratJalan
                 },
+                namaPerusahaan: obatAsli.namaPerusahaan,
                 riwayat: [{
                     pemilik: 'PBFMSP',
                     status: 'DIKIRIM_KE_PBF',

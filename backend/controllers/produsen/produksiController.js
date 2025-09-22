@@ -384,6 +384,13 @@ const produksiController = {
       return res.status(400).json({ success: false, message: 'Hanya batch yang sudah Selesai yang bisa dicatat ke blockchain.' });
     }
 
+    // Ambil nama_resmi dari DB off-chain (tabel users, kolom nama_resmi)
+    const [userRows] = await dbConnection.query('SELECT nama_resmi FROM users WHERE id = ?', [id_produsen]);
+    if (userRows.length === 0 || !userRows[0].nama_resmi || userRows[0].nama_resmi.trim() === '') {
+      return res.status(400).json({ success: false, message: 'Error: Nama resmi perusahaan tidak ditemukan di database users.' });
+    }
+    const namaPerusahaan = userRows[0].nama_resmi;
+
     gateway = await getGateway();
     const network = await gateway.getNetwork('medisyncchannel');
     const contract = network.getContract('medisync');
@@ -403,21 +410,23 @@ const produksiController = {
       prodData.penanggung_jawab,
       prodData.jumlah,
       prodData.harga_per_unit || 0,
-      prodData.hash_sertifikat_analisis || 'TIDAK ADA HASH'
+      prodData.hash_sertifikat_analisis || 'TIDAK ADA HASH',
+      namaPerusahaan  // Dari DB, wajib
     );
     console.log('ON-CHAIN transaction successful.');
 
-    const qrDataUrl = `http://localhost:5173/blockchain-detail/${prodData.batch_id}`; // Ini bisa dihapus jika frontend langsung pakai rute publik
-    const qrCodeDataUrl = await qrcode.toDataURL(`http://localhost:5000/api/public/blockchain-detail/${prodData.batch_id}`);
+    // Set URL QR ke frontend
+    const qrDataUrl = `http://localhost:5173/blockchain-detail/${prodData.batch_id}`;
 
+    // Generate QR dengan URL frontend (ganti hardcode backend menjadi qrDataUrl)
+    const qrCodeDataUrl = await qrcode.toDataURL(qrDataUrl);
+
+    // Update DB dengan QR baru
     await dbConnection.query(
       'UPDATE produksi SET status = ?, qr_code_url = ? WHERE id = ?',
       ['Tercatat di Blockchain', qrCodeDataUrl, id]
     );
     console.log('OFF-CHAIN status and QR code updated.');
-
-    const [userRows] = await dbConnection.query('SELECT nama_resmi FROM users WHERE id = ?', [id_produsen]);
-    const namaPerusahaan = userRows.length > 0 ? userRows[0].nama_resmi : 'PT Medisync';
 
     res.json({
       success: true,
@@ -432,7 +441,6 @@ const produksiController = {
     if (dbConnection) dbConnection.release();
   }
 },
-
 getBlockchainDetail: async (req, res) => {
     const { batch_id } = req.params;
     let gateway;
@@ -456,7 +464,10 @@ getBlockchainDetail: async (req, res) => {
         const result = await contract.evaluateTransaction('ProdusenContract:readObat', batch_id);
         const blockchainData = JSON.parse(result.toString());
 
-        // Gabungkan data dari blockchain dan tambahkan nama perusahaan dari database
+        console.log('=== DEBUG for', batch_id, '===');
+        console.log('Raw blockchainData:', JSON.stringify(blockchainData, null, 2));  // Log full raw untuk cek namaPerusahaan
+
+        // Gabungkan data dari blockchain
         const responseData = {
             batch_id: blockchainData.id,
             nama_obat: blockchainData.namaObat,
@@ -465,10 +476,12 @@ getBlockchainDetail: async (req, res) => {
             penanggung_jawab: blockchainData.penanggungJawab,
             jumlah: blockchainData.jumlah,
             hash_sertifikat: blockchainData.hashDokumen.hasilUjiMutu,
-            nama_perusahaan: prodData.id_produsen ? (await db.query('SELECT nama_resmi FROM users WHERE id = ?', [prodData.id_produsen]))[0][0].nama_resmi : 'PT Medisync',
+            nama_perusahaan: blockchainData.namaPerusahaan || 'Nama Perusahaan Tidak Tersedia',  // Ambil dari ledger
             status_saat_ini: blockchainData.statusSaatIni,
             riwayat: blockchainData.riwayat
         };
+
+        console.log('Final responseData nama_perusahaan:', responseData.nama_perusahaan);  // Log spesifik
 
         res.json({ success: true, data: responseData });
     } catch (error) {

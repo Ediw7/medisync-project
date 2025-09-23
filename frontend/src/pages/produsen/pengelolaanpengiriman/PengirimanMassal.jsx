@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
@@ -12,6 +12,8 @@ const PengirimanMassal = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState('terbaru'); // 'terbaru' atau 'terlama'
+  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
   
   // --- State baru untuk checkbox ---
   const [selectedPesanan, setSelectedPesanan] = useState([]);
@@ -44,20 +46,40 @@ const PengirimanMassal = () => {
     fetchData();
   }, [navigate]);
 
-  const filteredData = pesananData.filter(item =>
-    item.nama_pbf.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    String(item.id).includes(searchQuery)
-  );
+  const processedData = useMemo(() => {
+    // 1. Logika Filter (termasuk filter nama obat)
+    let data = pesananData.filter(item => {
+      const query = searchQuery.toLowerCase();
+      const matchPbf = item.nama_pbf.toLowerCase().includes(query);
+      const matchId = String(item.id).includes(query);
+      // Cek apakah ada nama obat di dalam detail pesanan yang cocok
+      const matchObat = item.detail_pesanan?.some(detail => 
+        detail.nama_obat.toLowerCase().includes(query)
+      );
+      return matchPbf || matchId || matchObat;
+    });
+
+    // 2. Logika Sorting
+    data.sort((a, b) => {
+      if (sortOrder === 'terbaru') {
+        return b.id - a.id; // ID terbesar (terbaru) di atas
+      } else {
+        return a.id - b.id; // ID terkecil (terlama) di atas
+      }
+    });
+
+    return data;
+}, [pesananData, searchQuery, sortOrder]); // Akan dihitung ulang jika dependensi ini berubah
 
   // --- Handler untuk checkbox ---
   const handleSelectAll = (e) => {
-    if (e.target.checked) {
-      const allIds = filteredData.map(item => item.id);
-      setSelectedPesanan(allIds);
-    } else {
-      setSelectedPesanan([]);
-    }
-  };
+  if (e.target.checked) {
+    const allIds = processedData.map(item => item.id); // Gunakan processedData
+    setSelectedPesanan(allIds);
+  } else {
+    setSelectedPesanan([]);
+  }
+};
 
   const handleSelectOne = (id) => {
     setSelectedPesanan(prevSelected =>
@@ -100,9 +122,31 @@ const PengirimanMassal = () => {
                     className="pl-10 pr-4 py-2 border rounded-lg w-full sm:w-80 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
-                <button className="border rounded-lg py-2 px-4 flex items-center gap-2 text-gray-600 hover:bg-gray-100">
-                  Urutkan <ChevronDown size={16} />
-                </button>
+                {/* Tombol Urutkan dengan Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
+                className="border rounded-lg py-2 px-4 flex items-center gap-2 text-gray-600 hover:bg-gray-100"
+              >
+                Urutkan <ChevronDown size={16} />
+              </button>
+              {isSortDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border">
+                  <button
+                    onClick={() => { setSortOrder('terbaru'); setIsSortDropdownOpen(false); }}
+                    className={`block w-full text-left px-4 py-2 text-sm ${sortOrder === 'terbaru' ? 'bg-emerald-100 text-emerald-700' : 'text-gray-700 hover:bg-gray-100'}`}
+                  >
+                    Pesanan Terbaru
+                  </button>
+                  <button
+                    onClick={() => { setSortOrder('terlama'); setIsSortDropdownOpen(false); }}
+                    className={`block w-full text-left px-4 py-2 text-sm ${sortOrder === 'terlama' ? 'bg-emerald-100 text-emerald-700' : 'text-gray-700 hover:bg-gray-100'}`}
+                  >
+                    Pesanan Terlama
+                  </button>
+                </div>
+              )}
+            </div>
               </div>
               <p className="text-sm text-gray-600 font-medium">{selectedPesanan.length} Pesanan dipilih</p>
             </div>
@@ -117,7 +161,7 @@ const PengirimanMassal = () => {
                           type="checkbox"
                           className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                           onChange={handleSelectAll}
-                          checked={filteredData.length > 0 && selectedPesanan.length === filteredData.length}
+                          checked={processedData.length > 0 && selectedPesanan.length === processedData.length} // Gunakan processedData
                         />
                         <span className="ml-4">Semua</span>
                       </th>
@@ -130,7 +174,7 @@ const PengirimanMassal = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredData.map((item) => (
+                    {processedData.map((item) => ( // Gunakan processedData
                       <tr key={item.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <input

@@ -89,6 +89,17 @@ const PengirimanMassal = () => {
     );
   };
 
+  const handleAturPickupMassal = () => {
+    if (selectedPesanan.length === 0) {
+      alert('Pilih setidaknya satu pesanan untuk diatur pengirimannya.');
+      return;
+    }
+    // Navigasi ke halaman baru sambil mengirim state
+    navigate('/produsen/pengelolaan-pengiriman/atur-pickup-massal', { 
+      state: { selectedIds: selectedPesanan } 
+    });
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
@@ -102,10 +113,14 @@ const PengirimanMassal = () => {
             </div>
             <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
               <button className="text-gray-600 font-medium py-2 px-3 rounded-lg hover:bg-gray-200 transition">Atur Pengiriman Pengiriman Massal</button>
-              <button className="bg-emerald-600 text-white font-medium py-2 px-3 rounded-lg hover:bg-emerald-700 transition flex items-center gap-2">
-                <CalendarPlus size={18} />
-                <span>Atur pickup massal</span>
-              </button>
+              <button 
+            onClick={handleAturPickupMassal}
+            className="bg-emerald-600 text-white font-medium py-2 px-3 rounded-lg hover:bg-emerald-700 transition flex items-center gap-2 disabled:bg-gray-400"
+            disabled={selectedPesanan.length === 0} // Tombol non-aktif jika tidak ada yang dipilih
+          >
+            <CalendarPlus size={18} />
+            <span>Atur pickup massal</span>
+          </button>
             </div>
           </div>
 

@@ -76,28 +76,17 @@ getAll: async (req, res) => {
     const { id } = req.params;
     const idProdusen = req.user.id;
     const sqlPesanan = `
-      SELECT 
-        p.id,
-        p.nomor_po,
-        p.nama_pbf,
-        p.alamat_pbf,
-        p.nomor_siup,
-        p.kontak_telepon,
-        p.kontak_email,
-        p.nomor_sia_sika,
-        p.tanda_tangan_apoteker,
-        p.nama_apoteker,
-        p.nomor_sipa,
-        COALESCE((SELECT SUM(dp.total_harga) FROM detail_pesanan dp WHERE dp.id_pesanan = p.id), 0) AS total_harga,
-        p.status,
-        p.tanggal_pesanan,
-        p.tujuan_distribusi,
-        p.catatan_khusus,
-        p.updated_at AS tanggal_pengajuan_pembatalan
-      FROM pesanan p
-      JOIN users pbf ON p.id_pbf = pbf.id
-      WHERE p.id = ? AND p.id_produsen = ? AND pbf.role = 'pbf'
-    `;
+  SELECT 
+    p.*, 
+    pbf.nama_resmi AS nama_pbf,
+    pbf.alamat AS alamat_pbf,
+    produsen.nama_resmi AS nama_produsen,
+    produsen.alamat AS alamat_produsen
+  FROM pesanan p
+  JOIN users pbf ON p.id_pbf = pbf.id
+  JOIN users produsen ON p.id_produsen = produsen.id
+  WHERE p.id = ? AND p.id_produsen = ?
+`;
     const [pesanan] = await db.query(sqlPesanan, [id, idProdusen]);
 
     if (pesanan.length === 0) {

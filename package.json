@@ -8,6 +8,7 @@
     "dotenv": "^17.2.2",
     "liquid-glass": "^1.0.0",
     "nodemailer": "^7.0.6",
-    "nodemailer-sendgrid-transport": "^0.2.0"
+    "nodemailer-sendgrid-transport": "^0.2.0",
+    "ogl": "^1.0.11"
   }
 }

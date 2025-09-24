@@ -139,13 +139,27 @@ const DetailProduksi = () => {
                 <DetailItem label="Jumlah" value={`${produksi.jumlah} pcs`} />
                 <DetailItem label="Penanggung Jawab" value={produksi.penanggung_jawab} />
                 <DetailItem label="Status" value={produksi.status} />
-                <DetailItem
+                 <DetailItem
                   label="Tanggal Produksi"
-                  value={new Date(produksi.tanggal_produksi).toLocaleDateString('id-ID')}
+                  value={
+                    new Date(produksi.tanggal_produksi).toLocaleDateString('id-ID', {
+                      day: 'numeric',
+                      month: 'numeric',
+                      year: 'numeric',
+                      timeZone: 'UTC', // Kunci perbaikannya ada di sini
+                    })
+                  }
                 />
                 <DetailItem
                   label="Tanggal Kadaluarsa"
-                  value={new Date(produksi.tanggal_kadaluarsa).toLocaleDateString('id-ID')}
+                  value={
+                    new Date(produksi.tanggal_kadaluarsa).toLocaleDateString('id-ID', {
+                      day: 'numeric',
+                      month: 'numeric',
+                      year: 'numeric',
+                      timeZone: 'UTC', // Kunci perbaikannya ada di sini
+                    })
+                  }
                 />
                 <DetailItem label="Prioritas" value={produksi.prioritas} />
                 <div className="col-span-full">

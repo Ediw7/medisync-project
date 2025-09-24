@@ -31,7 +31,7 @@ const Navbar = () => {
             </Link>
           </div>
 
-          <div className="hidden md:flex items-center gap-6 text-base text-[#16A34A] relative z-10 font-semibold">
+          <div className="hidden md:flex items-center gap-6 text-base text-[#121212] relative z-10 font-semibold">
             <Link
               to="/about"
               className="hover:[#047857] hover:scale-105 transition-all duration-300 ease-out

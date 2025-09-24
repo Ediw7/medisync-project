@@ -19,14 +19,14 @@ import {
   Camera,
   Link as LinkIcon,
 } from "lucide-react";
-import { AnimatedBackground } from "../components/AnimatedBackground";
+import { AnimatedBackground } from "../components/BackgroundLanding";
 // Assuming these components are in the correct path
 import Navbar from "../components/Navbar";
+import Threads from "../components/Threads";
 import QrScanner from "../components/QrScanner";
 import RiwayatObatModal from "../components/RiwayatObatModal";
 import HeroImage from "../assets/hero.png";
 import LogoPutih from "../assets/logo-putih.png";
-
 
 const LandingPage = () => {
   const [showScanner, setShowScanner] = useState(false);
@@ -161,138 +161,98 @@ const LandingPage = () => {
   return (
     // Light theme change: Changed background to white and default text to dark gray
     <div className="min-h-screen bg-gray-200/30 text-gray-800">
-        <AnimatedBackground />
+      {/* <AnimatedBackground /> */}
       <Navbar />
 
       {/* The max-w-7xl container was removed from here to allow the hero section 
         to have a full-width background, and was added inside each section instead.
       */}
+      {/* The Hero Section code you provided already uses a light theme, so it fits perfectly. */}
       <div>
-
-        {/* The Hero Section code you provided already uses a light theme, so it fits perfectly. */}
-        <section className="pb-20 overflow-hidden relative">
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute top-20 left-10 w-72 h-72 bg-gradient-to-br from-emerald-500/10 to-emerald-700/5 rounded-full blur-3xl animate-float"></div>
-            <div className="absolute bottom-20 right-10 w-96 h-96 bg-gradient-to-br from-emerald-600/10 to-emerald-500/10 animate-liquid blur-2xl"></div>
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-br from-emerald-400/5 to-emerald-600/10 rounded-full blur-3xl animate-pulse"></div>
+        <div
+          style={{ width: "100%", height: "700px", position: "relative" }}
+          className=""
+        >
+          {/* Komponen Threads sebagai Latar Belakang Animasi */}
+          <div className="absolute inset-0 z-0">
+            <Threads
+              color={[0.133, 0.772, 0.368]}
+              amplitude={3}
+              distance={0.1}
+              enableMouseInteraction={false}
+            />
           </div>
+          <AnimatedBackground />
 
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid lg:grid-cols-2 gap-12 items-center relative z-10">
-              {/* Left Column - Content */}
-              <div className="animate-fade-in mt-12">
-                <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-                  Rantai Pasok Farmasi
-                  <span className="text-[#047857]/90 block">Transparan</span>
-                </h1>
-
-                <p className="text-xl text-gray-600 mb-8 leading-relaxed max-w-xl">
-                  Amankan keaslian produk dari produsen hingga pasien dengan
-                  sistem pelacakan berbasis teknologi blockchain yang tidak
-                  dapat diubah.
-                </p>
-
-                {/* CTAs */}
-                <div className="flex flex-col sm:flex-row gap-4 mb-12">
-                  <Link
-                    to="/roles"
-                    className="group inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-[#16A34A] to-[#047857] text-white rounded-2xl hover:from-emerald-700 hover:to-emerald-800 transition-all duration-500 font-semibold shadow-2xl hover:shadow-emerald-500/25 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 relative overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                    <span className="relative z-10 flex items-center">
-                      Masuk Platform
-                      <ArrowRight
-                        size={20}
-                        className="ml-2 group-hover:translate-x-1 transition-transform"
-                      />
-                    </span>
-                  </Link>
-
-                  <button
-                    onClick={() => setShowScanner(true)}
-                    className="inline-flex items-center justify-center px-8 py-4 bg-white/20 backdrop-blur-md border-2 border-emerald-600/50 text-emerald-600 rounded-2xl hover:bg-white/30 hover:border-emerald-600 transition-all duration-500 font-semibold hover:scale-110 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 shadow-xl hover:shadow-2xl"
-                  >
-                    <Camera size={20} className="mr-2" />
-                    Lacak dengan QR Code
-                  </button>
-                </div>
-
-                {/* Quick Stats */}
-                <div className="grid grid-cols-3 gap-6">
-                  {[
-                    { number: "99.9%", label: "Akurasi Tracking" },
-                    { number: "24/7", label: "Monitoring" },
-                    { number: "100+", label: "Mitra Terpercaya" },
-                  ].map((stat, index) => (
-                    <div key={index} className="text-center">
-                      <div className="text-2xl font-bold text-emerald-600">
-                        {stat.number}
-                      </div>
-                      <div className="text-sm text-gray-500 font-medium">
-                        {stat.label}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Right Column - Visual */}
-              <div className="relative ">
-                <div className="relative z-10">
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-3xl"></div>
-                          <img
-                            src={HeroImage}
-                            alt="Hero Visual"
-                            className="w-full h-auto rounded-xl mb-24  "
-                          />
+          {/* Konten Hero Section di atas Latar Belakang */}
+          <main className="relative w-full min-h-[700px] flex items-center justify-center">
+            <section className="relative z-10 w-full">
+              <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div className="flex flex-col items-center text-center gap-8">
+                  {/* Judul */}
+                  <div className="max-w-3xl">
+                    <h1 className="text-4xl lg:text-6xl font-bold text-foreground leading-tight text-balance">
+                      Rantai Pasok Farmasi
+                      <span className="text-[#047857]/90 block">
+                        Transparan
+                      </span>
+                    </h1>
                   </div>
-                <div className="absolute -bottom-0 -left-10 h-32 w-32 bg-[#22C55E]/60 animate-pulse blur-2xl mix-blend-screen"></div>
-              </div>
-            </div>
-          </div>
-        </section>
 
-        {/* --- PARTNER COMPANIES SECTION --- */}
-        <section id="partners" className="py-20 relative overflow-hidden">
-          {/* Liquid Glass Background */}
-          <div className="absolute inset-0">
-            <div className="absolute top-20 right-1/3 w-72 h-72 bg-[#22C55E]/5 rounded-full blur-3xl animate-[float_6s_ease-in-out_infinite]"></div>
-            <div className="absolute bottom-20 left-1/3 w-96 h-96 bg-[#16A34A]/10 animate-[liquid_8s_ease-in-out_infinite] blur-2xl"></div>
-          </div>
+                  {/* Deskripsi */}
+                  <p className="text-lg lg:text-xl text-[#121212]/70  leading-relaxed max-w-2xl">
+                    Amankan keaslian produk dari produsen hingga pasien dengan
+                    sistem pelacakan berbasis teknologi blockchain yang tidak
+                    dapat diubah.
+                  </p>
 
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16 animate-[fadeIn_0.6s_ease-out] relative z-10">
-              <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-                Mitra Terpercaya
-              </h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                Bekerja sama dengan perusahaan farmasi terkemuka di Indonesia
-              </p>
-            </div>
+                  {/* Tombol Aksi */}
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <Link
+                      to="/roles"
+                      className="group inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-[#16A34A] to-[#047857] text-white rounded-2xl hover:from-emerald-700 hover:to-emerald-800 transition-all duration-500 font-semibold shadow-2xl hover:shadow-emerald-500/25 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 relative overflow-hidden"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                      <span className="relative z-10 flex items-center">
+                        Masuk Platform
+                        <ArrowRight
+                          size={20}
+                          className="ml-2 group-hover:translate-x-1 transition-transform"
+                        />
+                      </span>
+                    </Link>
 
-            <div className="bg-gradient-to-r from-emerald-500/90 to-emerald-600/90 backdrop-blur-xl rounded-3xl p-8 lg:p-12 shadow-3xl relative z-10">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 relative">
-                {partners.map((partner, index) => (
-                  <div
-                    key={index}
-                    className="text-center group animate-[slideUp_0.6s_ease-out] hover:scale-110 transition-all duration-500"
-                    style={{ animationDelay: `${index * 0.1}s` }}
-                  >
-                    <div className="h-16 w-16 bg-gradient-to-br from-white to-white backdrop-blur-sm rounded-3xl flex items-center justify-center mb-4 mx-auto group-hover:bg-gradient-to-br group-hover:from-white group-hover:to-white transition-all duration-500 shadow-lg group-hover:shadow-xl border border-white/50 group-hover:animate-[glow_2s_ease-in-out_infinite_alternate]">
-                      <Building2 size={32} className="text-[#16A34A]" />
-                    </div>
-                    <div className="text-lg font-bold text-white mb-1 group-hover:text-white transition-all duration-300">
-                      {partner.name}
-                    </div>
-                    <div className="text-sm font-semibold text-white leading-tight group-hover:text-white transition-colors duration-300">
-                      {partner.type}
-                    </div>
+                    <button
+                      onClick={() => setShowScanner(true)}
+                      className="inline-flex items-center justify-center px-8 py-4 bg-white/20 backdrop-blur-md border-2 border-emerald-600/50 text-emerald-600 rounded-2xl hover:bg-white/30 hover:border-emerald-600 transition-all duration-500 font-semibold hover:scale-110 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 shadow-xl hover:shadow-2xl"
+                    >
+                      <Camera size={20} className="mr-2" />
+                      Lacak dengan QR Code
+                    </button>
                   </div>
-                ))}
+
+                  {/* Statistik */}
+                  <div className="grid grid-cols-3 gap-6 max-w-md">
+                    {[
+                      { number: "99.9%", label: "Akurasi Tracking" },
+                      { number: "24/7", label: "Monitoring" },
+                      { number: "100+", label: "Mitra Terpercaya" },
+                    ].map((stat) => (
+                      <div key={stat.label} className="text-center">
+                        <div className="text-2xl font-bold text-primary">
+                          {stat.number}
+                        </div>
+                        <div className="text-sm text-muted-foreground font-medium">
+                          {stat.label}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        </section>
+            </section>
+          </main>
+        </div>
 
         {/* --- FEATURES SECTION --- */}
 
@@ -311,7 +271,7 @@ const LandingPage = () => {
               <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
                 Fitur Unggulan Platform
               </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              <p className="text-xl text-[#121212] max-w-3xl mx-auto">
                 Teknologi blockchain terdepan untuk memastikan integritas dan
                 transparansi rantai pasok farmasi
               </p>
@@ -507,51 +467,82 @@ const LandingPage = () => {
       </div>
 
       <footer className="bg-slate-900 text-white">
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        {/* Main footer content */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-          {/* Logo */}
-          <div className="flex items-center gap-3">
-            <img src={LogoPutih} alt="MediSync Logo" className="h-16 w-auto" />
+        <div className="max-w-7xl mx-auto px-6 py-12">
+          {/* Main footer content */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+            {/* Logo */}
+            <div className="flex items-center gap-3">
+              <img
+                src={LogoPutih}
+                alt="MediSync Logo"
+                className="h-16 w-auto"
+              />
+            </div>
+
+            {/* Navigation Links */}
+            <nav className="flex items-center gap-8">
+              <a
+                href="#"
+                className="text-gray-300 hover:text-white transition-colors duration-200"
+              >
+                About
+              </a>
+              <a
+                href="#"
+                className="text-gray-300 hover:text-white transition-colors duration-200"
+              >
+                Services
+              </a>
+              <a
+                href="#"
+                className="text-gray-300 hover:text-white transition-colors duration-200"
+              >
+                Contact
+              </a>
+            </nav>
+
+            {/* Social Icons */}
+            <div className="flex items-center gap-4">
+              <a
+                href="#"
+                className="text-gray-400 hover:text-white transition-colors duration-200"
+                aria-label="GitHub"
+              >
+                <Github size={20} />
+              </a>
+              <a
+                href="#"
+                className="text-gray-400 hover:text-white transition-colors duration-200"
+                aria-label="QR Code"
+              >
+                <QrCode size={20} />
+              </a>
+              <a
+                href="#"
+                className="text-gray-400 hover:text-white transition-colors duration-200"
+                aria-label="Collaboration"
+              >
+                <HeartHandshake size={20} />
+              </a>
+              <a
+                href="#"
+                className="text-gray-400 hover:text-white transition-colors duration-200"
+                aria-label="Back to Top"
+              >
+                <ArrowBigUpDash size={20} />
+              </a>
+            </div>
           </div>
 
-          {/* Navigation Links */}
-          <nav className="flex items-center gap-8">
-            <a href="#" className="text-gray-300 hover:text-white transition-colors duration-200">
-              About
-            </a>
-            <a href="#" className="text-gray-300 hover:text-white transition-colors duration-200">
-              Services
-            </a>
-            <a href="#" className="text-gray-300 hover:text-white transition-colors duration-200">
-              Contact
-            </a>
-          </nav>
-
-          {/* Social Icons */}
-          <div className="flex items-center gap-4">
-            <a href="#" className="text-gray-400 hover:text-white transition-colors duration-200" aria-label="GitHub">
-              <Github size={20} />
-            </a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors duration-200" aria-label="QR Code">
-              <QrCode size={20} />
-            </a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors duration-200" aria-label="Collaboration">
-              <HeartHandshake size={20} />
-            </a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors duration-200" aria-label="Back to Top">
-              <ArrowBigUpDash size={20} />
-            </a>
+          {/* Divider */}
+          <div className="border-t border-slate-700 mt-8 pt-6">
+            {/* Copyright */}
+            <p className="text-left text-gray-400 text-sm">
+              © Copyright 2025, All Rights Reserved by MediSync
+            </p>
           </div>
         </div>
-
-        {/* Divider */}
-        <div className="border-t border-slate-700 mt-8 pt-6">
-          {/* Copyright */}
-          <p className="text-left text-gray-400 text-sm">© Copyright 2025, All Rights Reserved by MediSync</p>
-        </div>
-      </div>
-    </footer>
+      </footer>
 
       {/* --- MODALS (No style changes needed for these) --- */}
       {showScanner && (

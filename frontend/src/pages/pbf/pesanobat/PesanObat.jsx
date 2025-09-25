@@ -55,6 +55,8 @@ const PesanObat = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Semua Status');
+  const [dateRange, setDateRange] = useState({ startDate: null, endDate: null });
+  const [isDateFilterOpen, setIsDateFilterOpen] = useState(false);
 
   const [showSelesaiModal, setShowSelesaiModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
@@ -90,17 +92,33 @@ const PesanObat = () => {
   };
 
   const filteredData = useMemo(() => {
-     // (Fungsi filteredData tidak berubah)
     return pesananData
       .filter(item => {
+        // Filter Status (tidak berubah)
         if (statusFilter === 'Semua Status') return true;
         return item.status === statusFilter;
       })
       .filter(item =>
+        // Filter Pencarian (tidak berubah)
         (item.nomor_po?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         (item.nama_pbf?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-      );
-  }, [pesananData, searchTerm, statusFilter]);
+      )
+      .filter(item => {
+        // --- TAMBAHAN: Logika Filter Tanggal ---
+        if (!dateRange.startDate || !dateRange.endDate) {
+          return true; // Jika tidak ada rentang, tampilkan semua
+        }
+        const itemDate = new Date(item.tanggal_pesanan);
+        const startDate = new Date(dateRange.startDate);
+        const endDate = new Date(dateRange.endDate);
+
+        // Atur waktu untuk memastikan perbandingan inklusif
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+
+        return itemDate >= startDate && itemDate <= endDate;
+      });
+}, [pesananData, searchTerm, statusFilter, dateRange]); // <-- Tambahkan dateRange di sini
 
   const getStatusBadge = (status) => {
     // (Fungsi getStatusBadge tidak berubah)
@@ -197,15 +215,75 @@ const PesanObat = () => {
                   <option>Ditolak</option>
                   <option>Dikembalikan</option>
                 </select>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <input
-                    type="text"
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
-                    placeholder="Filter Tanggal (Segera Hadir)"
-                    disabled
-                  />
-                </div>
+                {/* Filter Tanggal Fungsional dengan Dropdown */}
+<div className="relative">
+  <button
+    onClick={() => setIsDateFilterOpen(!isDateFilterOpen)}
+    className="w-full flex items-center justify-between pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+  >
+    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+    <span className="text-sm text-gray-700">
+      {dateRange.startDate && dateRange.endDate
+        ? `${formatDate(dateRange.startDate)} - ${formatDate(dateRange.endDate)}`
+        : 'Filter Tanggal'}
+    </span>
+    {dateRange.startDate && (
+      <X
+        size={16}
+        className="text-gray-500 hover:text-red-500"
+        onClick={(e) => {
+          e.stopPropagation(); // Mencegah dropdown terbuka saat reset
+          setDateRange({ startDate: null, endDate: null });
+          setIsDateFilterOpen(false);
+        }}
+      />
+    )}
+  </button>
+
+  {isDateFilterOpen && (
+    <div className="absolute right-0 mt-2 w-72 bg-white p-4 rounded-lg shadow-xl z-20 border">
+      <p className="text-sm font-semibold mb-2">Pilih Rentang Tanggal</p>
+      <div className="flex items-center gap-2 mb-2">
+        <div>
+          <label className="text-xs text-gray-500">Mulai</label>
+          <input
+            type="date"
+            value={dateRange.startDate || ''}
+            onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
+            className="w-full p-1 border rounded-md text-sm"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-gray-500">Selesai</label>
+          <input
+            type="date"
+            value={dateRange.endDate || ''}
+            onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
+            className="w-full p-1 border rounded-md text-sm"
+          />
+        </div>
+      </div>
+      <div className="flex gap-2 mt-2 mb-4">
+          <button onClick={() => {
+              const today = new Date();
+              const lastWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7);
+              setDateRange({ startDate: lastWeek.toISOString().split('T')[0], endDate: today.toISOString().split('T')[0] });
+          }} className="text-xs border px-2 py-1 rounded hover:bg-gray-100">7 Hari Terakhir</button>
+           <button onClick={() => {
+              const today = new Date();
+              const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+              setDateRange({ startDate: startOfMonth.toISOString().split('T')[0], endDate: today.toISOString().split('T')[0] });
+          }} className="text-xs border px-2 py-1 rounded hover:bg-gray-100">Bulan Ini</button>
+      </div>
+      <button
+        onClick={() => setIsDateFilterOpen(false)}
+        className="w-full py-2 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700"
+      >
+        Terapkan
+      </button>
+    </div>
+  )}
+</div>
               </div>
             </div>
 

@@ -2,38 +2,59 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SidebarPbf from '../../components/SidebarPbf';
 import NavbarPbf from '../../components/NavbarPbf';
-import { ShoppingCart, Truck, CheckCircle, Box, Eye } from 'lucide-react';
+import { ShoppingCart, Truck, CheckCircle, Box, Loader2 } from 'lucide-react';
 
 const PbfDashboard = () => {
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Data dummy untuk statistik dan tabel
+  // State untuk data dinamis, diinisialisasi kosong
   const [stats, setStats] = useState({
-    totalDipesan: 250,
-    pengirimanAktif: 12,
-    stokTersedia: 120,
-    pesananSelesai: 8,
+    totalDipesan: 0,
+    pengirimanAktif: 0,
+    stokTersedia: 0,
+    pesananBelumSelesai: 0,
   });
-
-  const [stokTerbaru, setStokTerbaru] = useState([
-    { id: 1, batchId: 'PCL-001', namaObat: 'Paracetamol 500mg', stok: 1200, kadaluarsa: '22-02-2028' },
-    { id: 2, batchId: 'ACL-002', namaObat: 'Amoxicillin 500mg', stok: 1000, kadaluarsa: '22-02-2026' },
-    { id: 3, batchId: 'OMP-003', namaObat: 'Omeprazole 500mg', stok: 0, kadaluarsa: '22-02-2026' },
-  ]);
-
-  const [pesananTerbaru, setPesananTerbaru] = useState([
-    { id: 1, namaApotek: 'Apotek Maju', obat: 'Paracetamol', batchId: 'PCL-001', jumlah: 1200, status: 'Diproses' },
-    { id: 2, namaApotek: 'Apotek Sentosa', obat: 'Amoxicillin', batchId: 'ACL-002', jumlah: 1000, status: 'Diterima' },
-    { id: 3, namaApotek: 'Apotek Farma', obat: 'Omeprazole', batchId: 'OMP-003', jumlah: 1000, status: 'Dikirim' },
-  ]);
+  const [stokTerbaru, setStokTerbaru] = useState([]);
+  const [pesananTerbaru, setPesananTerbaru] = useState([]);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login/pbf');
-    }
+    const fetchDashboardData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          navigate('/login/pbf');
+          return;
+        }
+
+        const response = await fetch('http://localhost:5000/api/pbf/dashboard', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+
+        if (!response.ok) throw new Error('Gagal mengambil data dasbor');
+        
+        const result = await response.json();
+        if (result.success) {
+          setStats(result.data.stats);
+          setStokTerbaru(result.data.stokTerbaru);
+          setPesananTerbaru(result.data.pesananTerbaru);
+        } else {
+          throw new Error(result.message || 'Data tidak tersedia');
+        }
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
   }, [navigate]);
+
 
   const handleLogout = () => {
     localStorage.clear();
@@ -44,7 +65,7 @@ const PbfDashboard = () => {
     <div className="bg-white p-6 rounded-xl shadow-lg flex items-center gap-6">
       <div className="bg-emerald-100 p-4 rounded-full">{icon}</div>
       <div>
-        <p className="text-3xl font-bold text-gray-800">{value} <span className="text-xl font-medium text-gray-500">{unit}</span></p>
+        <p className="text-3xl font-bold text-gray-800">{value.toLocaleString('id-ID')} <span className="text-xl font-medium text-gray-500">{unit}</span></p>
         <p className="text-gray-500">{label}</p>
       </div>
     </div>
@@ -58,6 +79,15 @@ const PbfDashboard = () => {
       default: return 'bg-gray-100 text-gray-800';
     }
   };
+  
+  if (isLoading) {
+    return (
+       <div className="flex justify-center items-center h-screen">
+          <Loader2 className="animate-spin h-8 w-8 text-emerald-600" />
+          <p className="ml-2">Memuat data dasbor...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -66,13 +96,14 @@ const PbfDashboard = () => {
         <NavbarPbf onLogout={handleLogout} />
         <main className="pt-16 p-6">
           <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+           {error && <div className="p-4 mb-4 bg-red-100 text-red-700 rounded-lg">{error}</div>}
 
           {/* Kartu Statistik */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <StatCard icon={<ShoppingCart size={32} className="text-emerald-600"/>} value={stats.totalDipesan} label="Total obat dipesan" unit="box" />
+            <StatCard icon={<ShoppingCart size={32} className="text-emerald-600"/>} value={stats.totalDipesan} label="Total pesanan" unit="pesanan" />
             <StatCard icon={<Truck size={32} className="text-emerald-600"/>} value={stats.pengirimanAktif} label="Pengiriman Aktif" unit="unit" />
             <StatCard icon={<CheckCircle size={32} className="text-emerald-600"/>} value={stats.stokTersedia} label="Stok Tersedia" unit="box" />
-            <StatCard icon={<Box size={32} className="text-emerald-600"/>} value={stats.pesananSelesai} label="Pesanan belum selesai" unit="box" />
+            <StatCard icon={<Box size={32} className="text-emerald-600"/>} value={stats.pesananBelumSelesai} label="Pesanan belum selesai" unit="pesanan" />
           </div>
 
           {/* Tabel */}
@@ -91,12 +122,12 @@ const PbfDashboard = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {stokTerbaru.map(item => (
-                      <tr key={item.id}>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">{item.batchId}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{item.namaObat}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{item.stok} box</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-yellow-600 font-medium">{item.kadaluarsa}</td>
+                    {stokTerbaru.map((item, index) => (
+                      <tr key={index}>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">{item.batch_id}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{item.nama_obat}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{item.stok.toLocaleString('id-ID')} box</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-yellow-600 font-medium">{new Date(item.tanggal_kadaluarsa).toLocaleDateString('id-ID')}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -122,7 +153,7 @@ const PbfDashboard = () => {
                       <tr key={item.id}>
                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">{item.namaApotek}</td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{item.obat}<br/><span className="text-xs text-gray-400">Batch ID: {item.batchId}</span></td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{item.jumlah} box</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{item.jumlah.toLocaleString('id-ID')} box</td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm">
                           <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(item.status)}`}>
                             {item.status}

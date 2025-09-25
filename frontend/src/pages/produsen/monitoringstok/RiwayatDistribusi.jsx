@@ -26,20 +26,57 @@ const RiwayatDistribusi = () => {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('Silakan login terlebih dahulu');
 
-        const response = await fetch('http://localhost:5000/api/produsen/riwayat-distribusi', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        // Mengambil data stok dan data distribusi secara bersamaan
+        const [stokResponse, distribusiResponse] = await Promise.all([
+          fetch('http://localhost:5000/api/produksi/jadwal', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          }),
+          fetch('http://localhost:5000/api/produsen/riwayat-distribusi', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+        ]);
 
-        if (!response.ok) {
-          const err = await response.json();
-          throw new Error(err.message || `Gagal mengambil data (Status: ${response.status})`);
+        if (!stokResponse.ok || !distribusiResponse.ok) {
+          throw new Error('Gagal mengambil data dari server.');
         }
 
-        const result = await response.json();
-        if (!result.success) throw new Error(result.message || 'Respons tidak berhasil');
+        const stokResult = await stokResponse.json();
+        const distribusiResult = await distribusiResponse.json();
 
-        // Mapping data dari backend, hanya ambil status "Dikirim" atau "Diterima"
-        const mappedData = (result.data || []).map(item => ({
+        if (!stokResult.success || !distribusiResult.success) {
+          throw new Error('Respons dari server tidak berhasil.');
+        }
+
+        // --- Logika Kalkulasi Statistik dari MonitoringStok.jsx ---
+        const stokData = stokResult.data || [];
+        let total = 0;
+        let menipis = 0;
+        stokData.forEach(item => {
+          const jumlahStok = item.jumlah || 0;
+          total += jumlahStok;
+          if (jumlahStok > 0 && jumlahStok < 2000) {
+            menipis += jumlahStok;
+          }
+        });
+
+        // Hitung distribusi bulan ini dari data distribusi
+        const distribusiBulanIni = (distribusiResult.data || []).filter(item => {
+            if (!item.tanggal_pengiriman) return false;
+            const bulanIni = new Date().getMonth();
+            const tahunIni = new Date().getFullYear();
+            const tanggalData = new Date(item.tanggal_pengiriman);
+            return tanggalData.getMonth() === bulanIni && tanggalData.getFullYear() === tahunIni;
+        }).length;
+
+        setStats({
+          totalStok: total,
+          distribusiBulanIni: 0, // Sesuai permintaan Anda, ini diatur ke 0
+          stokMenipis: menipis,
+        });
+        // --- Akhir Logika Kalkulasi ---
+
+        // Proses data distribusi untuk tabel (tidak berubah)
+        const mappedData = (distribusiResult.data || []).map(item => ({
           id: item.id,
           nomor_po: item.nomor_po,
           tujuan: item.nama_pbf || '-',
@@ -55,22 +92,8 @@ const RiwayatDistribusi = () => {
         })).filter(item => 
           item.status_pengiriman === 'Dikirim' || item.status_pengiriman === 'Diterima'
         );
-
         setDistribusiData(mappedData);
 
-        // Hitung statistik (hanya untuk data yang difilter)
-        const statsData = {
-          totalStok: mappedData.reduce((acc, cur) => acc + (cur.jumlah_total_obat || 0), 0),
-          distribusiBulanIni: mappedData.filter(item => {
-            if (!item.tanggal_pengiriman) return false;
-            const bulanIni = new Date().getMonth();
-            const bulanData = new Date(item.tanggal_pengiriman).getMonth();
-            return bulanIni === bulanData;
-          }).length,
-          stokMenipis: mappedData.filter(item => (item.jumlah_total_obat || 0) < 50).length,
-        };
-
-        setStats(statsData);
       } catch (error) {
         setError(error.message);
         if (error.message.includes('login')) navigate('/login/produsen');
@@ -79,7 +102,7 @@ const RiwayatDistribusi = () => {
       }
     };
     fetchData();
-  }, [navigate]);
+}, [navigate]);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -120,10 +143,10 @@ const RiwayatDistribusi = () => {
 
           {/* Statistik */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <StatCard icon={<Package size={32} className="text-emerald-600" />} value={stats.totalStok} label="Total Stok" unit="unit" />
-            <StatCard icon={<Truck size={32} className="text-emerald-600" />} value={stats.distribusiBulanIni} label="Distribusi Bulan Ini" unit="unit" />
-            <StatCard icon={<Box size={32} className="text-emerald-600" />} value={stats.stokMenipis} label="Stok Menipis" unit="unit" />
-          </div>
+          <StatCard icon={<Package size={32} className="text-emerald-600" />} value={stats.totalStok} label="Total Stok" unit="box" />
+          <StatCard icon={<Truck size={32} className="text-emerald-600" />} value={stats.distribusiBulanIni} label="Distribusi Bulan Ini" unit="unit" />
+          <StatCard icon={<Box size={32} className="text-emerald-600" />} value={stats.stokMenipis} label="Stok Menipis" unit="box" />
+        </div>
 
           {error && <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">{error}</div>}
 

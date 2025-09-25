@@ -38,6 +38,7 @@ const riwayatController = {
       SELECT
         p.id, p.nomor_po, p.status, p.tanggal_pesanan,
         sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman,
+        sjp.opsi_pengiriman,
         pbf.nama_resmi AS nama_pbf,
         produsen.nama_resmi AS nama_produsen,
         p.bukti_foto AS buktiPenerimaUrl,

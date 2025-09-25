@@ -97,7 +97,7 @@ const PengelolaanPengiriman = () => {
     switch (status) {
       case 'Perlu Dikirim': return 'bg-orange-100 text-orange-800';
       case 'Dikirim': return 'bg-blue-100 text-blue-800';
-      case 'Selesai': return 'bg-gray-100 text-gray-800';
+      case 'Selesai': return 'bg-emerald-100 text-emerald-800';
       case 'Ditolak': return 'bg-red-100 text-red-800';
       
       // --- TAMBAHAN/PENYESUAIAN ---

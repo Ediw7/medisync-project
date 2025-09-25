@@ -135,7 +135,7 @@ const Selesai = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.nama_pbf}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{String(item.id).padStart(6, '0')}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 hover:underline">
-                          <Link to={`/produsen/pengelolaanpengiriman/detail/${item.id}/surat`}>Lihat Surat</Link>
+                          <Link to={`/produsen/pengelolaan-pengiriman/detail/${item.id}/surat`}>Lihat Surat</Link>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp. {item.total_harga.toLocaleString('id-ID')}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -144,10 +144,15 @@ const Selesai = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <Link to={`/produsen/pengelolaanpengiriman/detail/${item.id}`} className="text-emerald-600 hover:text-emerald-800">
-                            Lihat Detail
+                        {/* Gunakan id_aset_blockchain untuk URL dan pastikan datanya ada */}
+                        {item.id_aset_blockchain ? (
+                          <Link to={`/produsen/pengelolaan-pengiriman/lihat-riwayat/${item.id_aset_blockchain}`} className="text-emerald-600 hover:text-emerald-800">
+                            Lihat Riwayat
                           </Link>
-                        </td>
+                        ) : (
+                          <span className="text-gray-400">Riwayat T/A</span>
+                        )}
+                      </td>
                       </tr>
                     )) : (
                       <tr>

@@ -105,10 +105,12 @@ const LihatRiwayat = () => {
   const isDikirimCompleted = !!dataKirim;
   const isSelesaiCompleted = !!dataTerima;
   
-  // Hitung estimasi sampai
-  const tanggalPengiriman = offChain.tanggal_pengiriman ? new Date(offChain.tanggal_pengiriman) : new Date();
-  const estimasiSampai = new Date(tanggalPengiriman);
-  estimasiSampai.setDate(tanggalPengiriman.getDate() + 3); // Asumsi standar 3 hari
+  // Hitung estimasi sampai secara dinamis
+const tanggalPengiriman = offChain.tanggal_pengiriman ? new Date(offChain.tanggal_pengiriman) : new Date();
+const estimasiSampai = new Date(tanggalPengiriman);
+// Cek opsi pengiriman dari data offChain (standar: 3 hari, ekspres: 1 hari)
+const hariTambah = offChain.opsi_pengiriman === 'ekspres' ? 1 : 3;
+estimasiSampai.setDate(tanggalPengiriman.getDate() + hariTambah);
 
   return (
     <div className="flex min-h-screen bg-gray-50">

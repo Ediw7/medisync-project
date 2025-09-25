@@ -161,10 +161,10 @@ const PerluDikirim = () => {
                   <tbody className="bg-white divide-y divide-gray-200">
   {filteredData.length > 0 ? filteredData.map((item) => (
     <tr key={item.id} className="hover:bg-gray-50">
-      {/* vvv TAMBAHKAN DUA KOLOM INI vvv */}
+      
       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.nama_pbf}</td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{String(item.id).padStart(6, '0')}</td>
-      {/* ^^^ AKHIR TAMBAHAN ^^^ */}
+      
       
       <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 hover:underline">
         <Link to={`/produsen/pengelolaan-pengiriman/detail/${item.id}/surat`}>Lihat Surat</Link>

@@ -42,8 +42,9 @@ const Pembatalan = () => {
         const result = await response.json();
         if (!result.success) throw new Error(result.message || 'Data pesanan tidak tersedia');
 
-        // Filter status "Pembatalan"
-        const filteredData = (result.data || []).filter(item => item.status === 'Pembatalan');
+        // Filter untuk semua status yang terkait dengan pembatalan
+        const relevantStatuses = ['Pembatalan Diajukan', 'Dibatalkan'];
+        const filteredData = (result.data || []).filter(item => relevantStatuses.includes(item.status));
         setPesananData(filteredData);
       } catch (error) {
         setError(error.message);
@@ -61,17 +62,19 @@ const Pembatalan = () => {
   };
 
   const getStatusBadge = (status) => {
-    switch (status) {
-      case 'Dipesan': return 'bg-yellow-100 text-yellow-800';
-      case 'Diproses': return 'bg-purple-100 text-purple-800';
-      case 'Dikirim': return 'bg-blue-100 text-blue-800';
-      case 'Diterima': return 'bg-green-100 text-green-800';
-      case 'Ditolak': return 'bg-red-100 text-red-800';
-      case 'Pengembalian': return 'bg-orange-100 text-orange-800';
-      case 'Pembatalan': return 'bg-gray-300 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+  switch (status) {
+    case 'Perlu Dikirim': return 'bg-orange-100 text-orange-800';
+    case 'Dikirim': return 'bg-blue-100 text-blue-800';
+    case 'Selesai': return 'bg-green-100 text-green-800';
+    case 'Ditolak': return 'bg-red-100 text-red-800';
+    case 'Pembatalan Diajukan': return 'bg-yellow-100 text-yellow-800';
+    // Perbaikan: Gunakan status 'Dibatalkan' dengan warna yang benar
+    case 'Dibatalkan': return 'bg-red-100 text-red-800'; 
+    case 'Pengembalian Diajukan': return 'bg-indigo-100 text-indigo-800';
+    case 'Dikembalikan': return 'bg-purple-100 text-purple-800';
+    default: return 'bg-gray-100 text-gray-800';
+  }
+};
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -143,10 +146,18 @@ const Pembatalan = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <Link to={`/produsen/pengelolaanpengiriman/detail/${item.id}`} className="text-emerald-600 hover:text-emerald-800">
-                            Lihat Detail
+                        {/* Logika kondisional untuk tombol aksi yang benar */}
+                        {item.status === 'Pembatalan Diajukan' && (
+                          <Link to={`/produsen/pengelolaan-pengiriman/konfirmasi-pembatalan/${item.id}`} className="text-blue-600 hover:text-blue-800">
+                            Konfirmasi Pembatalan
                           </Link>
-                        </td>
+                        )}
+                        {item.status === 'Dibatalkan' && (
+                          <Link to={`/produsen/pengelolaan-pengiriman/konfirmasi-pembatalan/${item.id}`} className="text-blue-600 hover:text-blue-800">
+                            Lihat Detail Pembatalan
+                          </Link>
+                        )}
+                      </td>
                       </tr>
                     )) : (
                       <tr>

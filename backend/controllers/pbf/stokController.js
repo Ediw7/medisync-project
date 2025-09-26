@@ -1,8 +1,8 @@
-// backend/controllers/pbf/stokController.js
 'use strict';
 const db = require('../../config/db');
 
 const stokController = {
+  // --- FUNGSI 1: Mengambil semua data stok dan statistik ---
   getStokData: async (req, res) => {
     const idPbf = req.user.id;
     try {
@@ -29,7 +29,7 @@ const stokController = {
       let stokMenipis = 0;
       stokList.forEach(item => {
         totalStok += item.stok;
-        if (item.stok > 0 && item.stok < 1000) { // Batas stok menipis
+        if (item.stok > 0 && item.stok < 2000) { // Batas stok menipis
           stokMenipis += item.stok;
         }
       });
@@ -51,6 +51,50 @@ const stokController = {
 
     } catch (error) {
       console.error('Error in getStokData (PBF):', error);
+      res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+    }
+  },
+
+  // --- FUNGSI 2: Mengambil detail satu item stok ---
+  getStokDetailById: async (req, res) => {
+    const { id } = req.params; // Ini adalah detail_pesanan_id
+    const idPbf = req.user.id;
+
+    try {
+      const sql = `
+        SELECT 
+          dp.id,
+          dp.nama_obat,
+          dp.jumlah_pesanan AS stok,
+          dp.harga_per_unit,
+          pr.batch_id,
+          pr.nomor_izin_edar,
+          pr.dosis,
+          pr.bentuk_sediaan,
+          pr.tanggal_produksi,
+          pr.tanggal_kadaluarsa,
+          pr.komposisi_obat,
+          pr.hash_sertifikat_analisis,
+          pr.dokumen_bpom_path,
+          pr.sertifikat_analisis_path,
+          produsen.nama_resmi as nama_produsen
+        FROM detail_pesanan dp
+        JOIN produksi pr ON dp.id_produksi = pr.id
+        JOIN pesanan p ON dp.id_pesanan = p.id
+        JOIN users produsen ON pr.id_produsen = produsen.id
+        WHERE dp.id = ? AND p.id_pbf = ?
+      `;
+      
+      const [rows] = await db.query(sql, [id, idPbf]);
+
+      if (rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Detail stok tidak ditemukan atau Anda tidak memiliki akses.' });
+      }
+
+      res.json({ success: true, data: rows[0] });
+
+    } catch (error) {
+      console.error('Error in getStokDetailById (PBF):', error);
       res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
     }
   }

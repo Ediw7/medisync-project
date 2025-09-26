@@ -9,5 +9,6 @@ router.use(authenticateToken, authorizeRole('pbf'));
 
 // Route untuk mengambil semua data stok dan statistik
 router.get('/', stokController.getStokData);
+router.get('/detail/:id', stokController.getStokDetailById);
 
 module.exports = router;

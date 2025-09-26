@@ -5,7 +5,7 @@ const fs = require('fs').promises; // Hanya satu deklarasi fs
 const path = require('path');
 const crypto = require('crypto');
 const nano = require('nano')(`http://${process.env.COUCHDB_USER}:${process.env.COUCHDB_PASSWORD}@127.0.0.1:5984`);
-const { Gateway, Wallets } = require('@hyperledger/fabric-gateway');
+const { Gateway, Wallets } = require('fabric-network');
 const grpc = require('@grpc/grpc-js');
 
 // Fungsi untuk menghitung hash file
@@ -27,47 +27,34 @@ async function calculateFileHash(filePath) {
 // Fungsi untuk membuat koneksi ke Hyperledger Fabric
 async function getGateway() {
   try {
-    console.log('Initializing Fabric Gateway connection...');
-    const ccpPath = path.resolve(__dirname, '..', '..', 'config', 'connection.json');
+    // 1. Tentukan path ke wallet yang sudah ada
+    const walletPath = path.resolve(__dirname, '..', '..', 'wallet');
+    const wallet = await Wallets.newFileSystemWallet(walletPath);
+
+    // 2. Pastikan identitas admin PBF ada di dalam wallet
+    const identity = await wallet.get('pbfAdmin');
+    if (!identity) {
+        throw new Error('Identitas "pbfAdmin" tidak ditemukan di dalam wallet. Jalankan enrollAdminPbf.js terlebih dahulu.');
+    }
+
+    // 3. Muat connection profile untuk Organisasi 2 (PBF)
+    const ccpPath = path.resolve(__dirname, '..', '..', 'connection-org2.json');
     const ccp = JSON.parse(await fs.readFile(ccpPath, 'utf8'));
 
-    const certPath = path.resolve(__dirname, '..', '..', 'config', 'cert.pem');
-    const keyPath = path.resolve(__dirname, '..', '..', 'config', 'key.pem');
-    const cert = await fs.readFile(certPath);
-    const key = await fs.readFile(keyPath);
-
-    const tlsCaCertPath = path.resolve(__dirname, '..', '..', 'organizations', 'peerOrganizations', 'org2.medisync.com', 'tlsca', 'tlsca.org2.medisync.com-cert.pem');
-    const tlsCaCert = await fs.readFile(tlsCaCertPath);
-
-    const wallet = await Wallets.newInMemoryWallet();
-    const identity = {
-      credentials: {
-        certificate: cert,
-        privateKey: key,
-      },
-      mspId: 'PBFMSP',
-      type: 'X.509',
-    };
-    await wallet.put('pbf-user', identity);
-
-    const client = new grpc.Client(
-      'localhost:9051',
-      grpc.credentials.createSsl(tlsCaCert),
-      { 'grpc.ssl_target_name_override': 'peer0.org2.medisync.com' }
-    );
-
+    // 4. Buat koneksi gateway
     const gateway = new Gateway();
-    await gateway.connect(client, {
-      wallet,
-      identity: 'pbf-user',
-      discovery: { enabled: true, asLocalhost: true },
+    await gateway.connect(ccp, {
+        wallet,
+        identity: 'pbfAdmin', // Gunakan identitas PBF dari wallet
+        discovery: { enabled: true, asLocalhost: true }
     });
 
-    console.log('Gateway connection established');
+    console.log('Gateway connection for PBF established');
     return gateway;
+
   } catch (error) {
-    console.error('Error initializing gateway:', error);
-    throw new Error('Gagal menginisialisasi koneksi ke blockchain.');
+    console.error('Error initializing PBF gateway:', error);
+    throw new Error(`Gagal menginisialisasi koneksi ke blockchain: ${error.message}`);
   }
 }
 
@@ -153,13 +140,17 @@ const pesananController = {
   getAll: async (req, res) => {
     try {
       const sql = `
-        SELECT 
-          p.id, p.nomor_po, p.tanggal_pesanan, p.status AS status, 
-          p.nama_pbf, p.alamat_pbf, COALESCE(p.total_harga, 0) AS total_harga
-        FROM pesanan p
-        WHERE p.id_pbf = ? 
-        ORDER BY p.tanggal_pesanan DESC
-      `;
+  SELECT 
+    p.id, p.nomor_po, p.tanggal_pesanan, p.status AS status, 
+    p.nama_pbf, p.alamat_pbf, COALESCE(p.total_harga, 0) AS total_harga,
+    (SELECT dp.id_aset_blockchain 
+     FROM detail_pesanan dp 
+     WHERE dp.id_pesanan = p.id AND dp.id_aset_blockchain IS NOT NULL
+     LIMIT 1) AS id_aset_blockchain
+  FROM pesanan p
+  WHERE p.id_pbf = ? 
+  ORDER BY p.tanggal_pesanan DESC
+`;
       const [rows] = await db.query(sql, [req.user.id]);
       res.json({ success: true, data: rows });
     } catch (error) {
@@ -223,6 +214,58 @@ const pesananController = {
     } catch (error) {
       console.error('Error in getStokFromBlockchain:', error);
       res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+    }
+  },
+
+  getRiwayatByAssetId: async (req, res) => {
+    const { assetId } = req.params;
+    const idPbf = req.user.id; // Ambil ID PBF yang sedang login
+    let gateway;
+
+    try {
+      gateway = await getGateway(); // Fungsi getGateway PBF
+      const network = await gateway.getNetwork('medisyncchannel');
+      const contract = network.getContract('medisync');
+
+      // Gunakan readObat dari ProdusenContract karena PBF juga perlu membaca aset yang sama
+      const resultBuffer = await contract.evaluateTransaction('ProdusenContract:readObat', assetId);
+      const onChainData = JSON.parse(resultBuffer.toString());
+      
+      // Ambil ID pesanan dari ID aset (misal: "BATCH-001-106" -> "106")
+      const idPesanan = onChainData.id.substring(onChainData.id.lastIndexOf('-') + 1);
+
+      const sql = `
+        SELECT 
+          p.id, p.nomor_po, p.status, p.tanggal_pesanan,
+          sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman, sjp.opsi_pengiriman,
+          pbf.nama_resmi AS nama_pbf,
+          produsen.nama_resmi AS nama_produsen,
+          p.bukti_foto AS buktiPenerimaUrl
+        FROM pesanan p
+        LEFT JOIN surat_jalan_produsen sjp ON p.id = sjp.id_pesanan
+        JOIN users pbf ON p.id_pbf = pbf.id
+        JOIN users produsen ON p.id_produsen = produsen.id
+        WHERE p.id = ? AND p.id_pbf = ?
+      `;
+      const [offChainRows] = await db.query(sql, [idPesanan, idPbf]);
+
+      if (offChainRows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Data pesanan off-chain tidak ditemukan atau Anda tidak berwenang.' });
+      }
+
+      return res.json({
+        success: true,
+        data: { onChain: onChainData, offChain: offChainRows[0] }
+      });
+
+    } catch (error) {
+      console.error(`Error fetching riwayat PBF for asset ${assetId}:`, error);
+      return res.status(500).json({
+        success: false,
+        message: `Gagal mengambil data riwayat: ${error.message}`
+      });
+    } finally {
+      if (gateway) gateway.disconnect();
     }
   },
 

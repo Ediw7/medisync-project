@@ -47,7 +47,7 @@ import DetailPesanan from './pages/pbf/pesanobat/DetailPesanan';
 import BatalPesanan from './pages/pbf/pesanobat/BatalPesanan';
 import AjukanPengembalian from './pages/pbf/pesanobat/AjukanPengembalian';
 import KonfirmasiPenerimaan from './pages/pbf/pesanobat/KonfirmasiPenerimaan';
-
+import LihatRiwayatPesanan from './pages/pbf/pesanobat/LIhatRiwayatPesanan';
 
 import MonitoringStokPbf from './pages/pbf/monitoringstok/MonitoringStokPbf';
 
@@ -60,7 +60,9 @@ import LaporanAnalitikPbf from './pages/pbf/laporananalitikpbf/LaporanAnalitikPb
 import ApotekDashboard from './pages/apotek/ApotekDashboard';
 import StokObat from './pages/apotek/stokobat/StokObat';
 import PesanObatApotek from './pages/apotek/pesanobat/PesanObatApotek';
-
+import RiwayatPembelian from './pages/apotek/riwayatpembelian/RiwayatPembelian';
+import Penjualan from './pages/apotek/penjualan/Penjualan';
+import LaporanAnalitikApotek from './pages/apotek/laporananalitikapotek/LaporanAnalitikApotek';
 
 function App() {
   return (
@@ -115,6 +117,7 @@ function App() {
       <Route path="/pbf/pesanan/:id/batalkan" element={<BatalPesanan />} />
       <Route path="/pbf/pesanan/:id/detail" element={<DetailPesanan />} />
       <Route path="/pbf/monitoring-stok" element={<MonitoringStokPbf />} />
+       <Route path="/pbf/pesanan/riwayat/:assetId" element={<LihatRiwayatPesanan />} />
 
       <Route path="/pbf/pengelolaan-pesanan" element={<PengelolaanPesanan />} />
 
@@ -125,6 +128,9 @@ function App() {
       <Route path="/apotek/dashboard" element={<ApotekDashboard />} />
        <Route path="/apotek/stok-obat" element={<StokObat />} />
         <Route path="/apotek/pesan-obat" element={<PesanObatApotek />} />
+        <Route path="/apotek/riwayat-pembelian" element={<RiwayatPembelian />} />
+        <Route path="/apotek/penjualan" element={<Penjualan />} />
+        <Route path="/apotek/laporan-analitik" element={<LaporanAnalitikApotek />} />
     </Routes>
   );
 }

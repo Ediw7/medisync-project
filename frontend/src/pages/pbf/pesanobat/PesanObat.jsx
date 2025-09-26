@@ -351,19 +351,21 @@ const PesanObat = () => {
                                   );
                                 }
                                 if (item.status === 'Selesai') {
-                                  return (
-                                    <>
-                                      <Link
-                                        to={`/pbf/pesanan/${item.id}/xxx`}
-                                        className="text-red-600 hover:text-red-800 font-medium"
-                                      >
-                                       Lihat Riwayat
-                                      </Link>
-                                      
-                                    </>
-                                  );
-                                }
-                                // Default untuk status lain (Ditolak, Dibatalkan, Pengembalian Diajukan, dll)
+  return (
+    <>
+      {item.id_aset_blockchain ? (
+        <Link
+          to={`/pbf/pesanan/riwayat/${item.id_aset_blockchain}`}
+          className="text-emerald-600 hover:text-emerald-800 font-medium"
+        >
+          Lihat Riwayat
+        </Link>
+      ) : (
+        <span className="text-gray-400">Riwayat T/A</span>
+      )}
+    </>
+  );
+}                             // Default untuk status lain (Ditolak, Dibatalkan, Pengembalian Diajukan, dll)
                                 return (
                                   <>
                                     <Link to={`/pbf/pesanan/${item.id}/detail`} className="text-blue-600 hover:text-blue-800">

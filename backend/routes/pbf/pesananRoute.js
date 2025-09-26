@@ -11,6 +11,8 @@ router.post('/', pesananController.create);
 router.get('/stok/:idProdusen', pesananController.getStokFromBlockchain);
 router.put('/:id/request-batalkan', pesananController.requestPembatalan);
 router.put('/:id/konfirmasi-pembatalan', pesananController.konfirmasiPembatalan);
+router.get('/riwayat/:assetId', pesananController.getRiwayatByAssetId);
+
 
 const { uploadMiddleware } = pesananController;
 router.put('/:id/konfirmasi', uploadMiddleware.single('buktiFoto'), pesananController.konfirmasiPenerimaan);

@@ -63,7 +63,7 @@ const multer = require('multer');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const dir = 'Uploads/bukti_pengembalian';
+    const dir = 'uploads/bukti_pengembalian'; 
     fs.mkdirSync(dir, { recursive: true });
     cb(null, dir);
   },
@@ -316,7 +316,7 @@ const pesananController = {
       
       const base64Data = tanda_tangan_data_url.replace(/^data:image\/png;base64,/, "");
       const fileName = `ttd-pesanan-${Date.now()}.png`;
-      const filePath = path.join('Uploads', 'tanda_tangan', fileName);
+      const filePath = path.join('uploads', 'tanda_tangan', fileName);
       await fs.mkdir(path.dirname(filePath), { recursive: true });
       await fs.writeFile(filePath, base64Data, 'base64');
       

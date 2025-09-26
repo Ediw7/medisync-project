@@ -58,31 +58,43 @@ async function getGateway() {
   }
 }
 
-// --- KONFIGURASI MULTER UNTUK FILE UPLOAD ---
+// --- KONFIGURASI MULTER YANG BENAR ---
 const multer = require('multer');
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = 'uploads/bukti_pengembalian'; 
-    fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, `order-${req.params.id}-${uniqueSuffix}${ext}`);
-  }
-});
-
-const fileFilter = (req, file, cb) => {
-  if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png' || file.mimetype === 'image/jpg') {
+const imageFileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image/')) {
     cb(null, true);
   } else {
     cb(new Error('Hanya file gambar (JPG, PNG, JPEG) yang diizinkan!'), false);
   }
 };
 
-const upload = multer({ storage: storage, fileFilter: fileFilter, limits: { fileSize: 1024 * 1024 * 5 } });
+const penerimaanStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = 'uploads/bukti_penerimaan';
+    fs.mkdir(dir, { recursive: true }).then(() => cb(null, dir));
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `penerimaan-${req.params.id}-${uniqueSuffix}${ext}`);
+  }
+});
+const uploadPenerimaan = multer({ storage: penerimaanStorage, fileFilter: imageFileFilter, limits: { fileSize: 1024 * 1024 * 5 } });
+
+const pengembalianStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = 'uploads/bukti_pengembalian';
+    fs.mkdir(dir, { recursive: true }).then(() => cb(null, dir));
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `pengembalian-${req.params.id}-${uniqueSuffix}${ext}`);
+  }
+});
+const uploadPengembalian = multer({ storage: pengembalianStorage, fileFilter: imageFileFilter, limits: { fileSize: 1024 * 1024 * 5 } });
+// --- AKHIR KONFIGURASI MULTER ---
 
 async function fetchFromCouchDB(idProdusen) {
   try {
@@ -158,6 +170,8 @@ const pesananController = {
       res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
     }
   },
+
+  
 
   getById: async (req, res) => {
     try {
@@ -416,32 +430,46 @@ const pesananController = {
   },
 
   ajukanPengembalian: async (req, res) => {
-    try {
-      const { id } = req.params;
-      const idPbf = req.user.id;
-      const { alasan } = req.body;
-      
-      if (!req.file) return res.status(400).json({ success: false, message: 'Foto bukti wajib diunggah.' });
-      if (!alasan) return res.status(400).json({ success: false, message: 'Alasan wajib diisi.' });
-
-      const buktiFotoPath = req.file.path;
-      const catatan = `Pengembalian Diajukan PBF. Alasan: ${alasan}. Bukti: ${buktiFotoPath}`;
-
-      const [result] = await db.query(
-        "UPDATE pesanan SET status = 'Pengembalian Diajukan', catatan_khusus = ? WHERE id = ? AND id_pbf = ? AND status = 'Selesai'",
-        [catatan, id, idPbf]
-      );
-
-      if (result.affectedRows === 0) {
-        await fs.unlink(buktiFotoPath);
-        return res.status(404).json({ success: false, message: 'Gagal mengajukan pengembalian. Pesanan tidak ditemukan atau statusnya bukan "Selesai".' });
-      }
-      res.json({ success: true, message: 'Pengajuan pengembalian berhasil dikirim.' });
-    } catch (error) {
-      if (req.file) await fs.unlink(req.file.path);
-      res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+    const { id } = req.params;
+    const { alasan } = req.body;
+    const idPbf = req.user.id;
+    
+    if (!req.file) {
+        return res.status(400).json({ success: false, message: 'Foto bukti wajib diunggah.' });
     }
-  },
+    if (!alasan) {
+        return res.status(400).json({ success: false, message: 'Alasan wajib diisi.' });
+    }
+
+    const buktiFotoPath = req.file.path.replace(/\\/g, '/'); // Normalisasi path
+    const catatan = `Pengembalian Diajukan PBF. Alasan: ${alasan}`;
+
+    let dbConnection;
+    try {
+        dbConnection = await db.getConnection();
+        await dbConnection.beginTransaction();
+        
+        const [result] = await dbConnection.query(
+           "UPDATE pesanan SET status = 'Pengembalian Diajukan', catatan_khusus = ?, bukti_foto = ? WHERE id = ? AND id_pbf = ? AND status = 'Dikirim'",
+          [catatan, buktiFotoPath, id, idPbf]
+        );
+
+        if (result.affectedRows === 0) {
+          throw new Error('Gagal mengajukan pengembalian. Pesanan tidak ditemukan atau statusnya bukan "Selesai".');
+        }
+        
+        await dbConnection.commit();
+        res.json({ success: true, message: 'Pengajuan pengembalian berhasil dikirim.' });
+
+    } catch (error) {
+        if (dbConnection) await dbConnection.rollback();
+        // Hapus file jika proses DB gagal
+        try { await fs.unlink(req.file.path); } catch(e) {}
+        res.status(500).json({ success: false, message: error.message || 'Kesalahan Server Internal' });
+    } finally {
+        if (dbConnection) dbConnection.release();
+    }
+},
 
    konfirmasiPenerimaan: async (req, res) => {
         const { id } = req.params; // ID Pesanan
@@ -491,7 +519,10 @@ const pesananController = {
         }
     },
   
-  uploadMiddleware: upload
+
+  
+  uploadPenerimaanMiddleware: uploadPenerimaan,
+  uploadPengembalianMiddleware: uploadPengembalian
 };
 
 module.exports = pesananController;

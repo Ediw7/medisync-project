@@ -41,14 +41,13 @@ const AjukanPengembalian = () => {
     setIsLoading(true);
     setError(null);
 
-    // Kita gunakan FormData karena ada file upload
     const formData = new FormData();
     formData.append('alasan', alasan);
-    formData.append('buktiFoto', foto); // 'buktiFoto' harus sama dengan di backend multer
+    formData.append('buktiFoto', foto);
 
     try {
       const token = localStorage.getItem('token');
-      // Pastikan backend Anda memiliki endpoint ini
+      // Gunakan POST sesuai route yang sudah diperbaiki
       const response = await axios.post(
         `http://localhost:5000/api/pbf/pesanan/${id}/ajukan-pengembalian`,
         formData,
@@ -61,8 +60,14 @@ const AjukanPengembalian = () => {
       );
 
       if (response.data.success) {
-        alert('Pengajuan pengembalian berhasil dikirim.');
-        navigate('/pbf/pesan-obat'); // Kembali ke daftar pesanan
+        // Navigasi ke halaman riwayat dengan membawa data
+        navigate(`/pbf/pesanan/${id}/riwayat-pengembalian`, { 
+            state: { 
+                idPesanan: id, 
+                alasan: alasan, 
+                foto: previewFoto // Kirim URL preview untuk ditampilkan
+            } 
+        });
       } else {
         throw new Error(response.data.message || 'Gagal mengajukan pengembalian');
       }
@@ -71,7 +76,7 @@ const AjukanPengembalian = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+};
 
   return (
     <div className="flex min-h-screen bg-gray-100">

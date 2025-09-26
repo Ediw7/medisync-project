@@ -5,6 +5,13 @@ const { authenticateToken, authorizeRole } = require('../../middleware/auth');
 
 router.use(authenticateToken, authorizeRole('pbf'));
 
+// Ambil kedua middleware yang sudah diekspor dari controller
+const { 
+  uploadPenerimaanMiddleware, 
+  uploadPengembalianMiddleware 
+} = pesananController;
+
+// Rute standar
 router.get('/', pesananController.getAll);
 router.get('/:id', pesananController.getById);
 router.post('/', pesananController.create);
@@ -13,9 +20,9 @@ router.put('/:id/request-batalkan', pesananController.requestPembatalan);
 router.put('/:id/konfirmasi-pembatalan', pesananController.konfirmasiPembatalan);
 router.get('/riwayat/:assetId', pesananController.getRiwayatByAssetId);
 
-
-const { uploadMiddleware } = pesananController;
-router.put('/:id/konfirmasi', uploadMiddleware.single('buktiFoto'), pesananController.konfirmasiPenerimaan);
-router.put('/:id/ajukan-pengembalian', pesananController.uploadMiddleware.single('buktiFoto'), pesananController.ajukanPengembalian);
+// Gunakan middleware yang sesuai untuk setiap rute unggah file
+router.put('/:id/konfirmasi', uploadPenerimaanMiddleware.single('buktiFoto'), pesananController.konfirmasiPenerimaan);
+router.post('/:id/ajukan-pengembalian', uploadPengembalianMiddleware.single('buktiFoto'), pesananController.ajukanPengembalian);
 
 module.exports = router;
+

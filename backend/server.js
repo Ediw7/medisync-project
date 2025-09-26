@@ -16,7 +16,7 @@ const dashboardPbfRoutes = require('./routes/pbf/dashboardRoute');
 const blockchainRoutes = require('./routes/blockchain');
 const publicRoutes = require('./routes/publicRoute');
 const produksiController = require('./controllers/produsen/produksiController');
-
+const stokPbfRoutes = require('./routes/pbf/stokRoute');
 
 const app = express();
 
@@ -34,6 +34,7 @@ app.use('/api/produsen/pembatalan', pembatalanRoutes);
 app.use('/api/produsen/riwayat-distribusi', riwayatRoute);
 app.use('/api/produsen', laporananalitikRoutes);
 app.use('/api/pbf/pesanan', pesananPbfRoutes);
+app.use('/api/pbf/stok', stokPbfRoutes);
 
 app.use('/api/pbf', pbfRoutes);
 app.use('/api/pbf/penerimaan', penerimaanRoutes); 

@@ -13,10 +13,9 @@ const MonitoringStokPbf = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Semua');
 
-  // State untuk statistik yang dihitung
   const [stats, setStats] = useState({
     totalStok: 0,
-    distribusiBulanIni: 0, // Ini akan memerlukan endpoint API khusus nanti
+    distribusiBulanIni: 0,
     stokMenipis: 0,
   });
 
@@ -28,39 +27,32 @@ const MonitoringStokPbf = () => {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('Silakan login terlebih dahulu');
   
-        // Ganti endpoint ini dengan endpoint API Anda untuk mengambil data stok PBF
+        // Endpoint ini sekarang sudah ada dan fungsional
         const response = await fetch('http://localhost:5000/api/pbf/stok', {
           headers: { 'Authorization': `Bearer ${token}` },
         });
   
-        if (!response.ok) throw new Error('Gagal mengambil data');
+        if (!response.ok) throw new Error('Gagal mengambil data stok');
   
         const result = await response.json();
         if (!result.success) throw new Error(result.message);
         
-        const data = result.data || [];
+        const data = result.data.stokList || [];
         
-        // Menambahkan status stok dan menghitung statistik
-        let total = 0;
-        let menipis = 0;
+        // Menambahkan status stok di sisi frontend (tetap di sini agar fleksibel)
         const dataWithStockStatus = data.map(item => {
-            total += item.jumlah;
             let status_stok = 'Tersedia';
-            if (item.jumlah === 0) {
+            if (item.stok === 0) {
                 status_stok = 'Habis';
-            } else if (item.jumlah < 1000) { // Anggap batas menipis adalah 1000
+            } else if (item.stok < 2000) { 
                 status_stok = 'Menipis';
-                menipis += item.jumlah;
             }
             return {...item, status_stok};
         });
 
         setStokData(dataWithStockStatus);
-        setStats({
-            totalStok: total,
-            distribusiBulanIni: 2500, // Ganti dengan data asli dari API nanti
-            stokMenipis: menipis,
-        });
+        // Mengambil statistik langsung dari backend
+        setStats(result.data.stats);
 
       } catch (error) {
         setError(error.message);
@@ -77,7 +69,6 @@ const MonitoringStokPbf = () => {
     navigate('/');
   };
 
-  // Logika untuk filter dan pencarian
   const filteredData = useMemo(() => {
     return stokData
       .filter(item => {
@@ -110,7 +101,6 @@ const MonitoringStokPbf = () => {
         <main className="pt-16 p-6">
           <h1 className="text-2xl font-bold mb-6">Monitoring Stok</h1>
 
-          {/* Kartu Statistik */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <StatCard icon={<Package size={32} className="text-emerald-600"/>} value={stats.totalStok} label="Total Stok" unit="box" />
             <StatCard icon={<Truck size={32} className="text-emerald-600"/>} value={stats.distribusiBulanIni} label="Distribusi Bulan Ini" unit="unit" />
@@ -121,22 +111,20 @@ const MonitoringStokPbf = () => {
 
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="flex justify-between items-center p-4 border-b">
-              {/* Tabs */}
               <div className="flex">
                 <button className="py-2 px-4 text-center border-b-2 border-emerald-600 text-emerald-600 font-medium">Stok Gudang</button>
                 <Link to="/pbf/riwayat-distribusi" className="py-2 px-4 text-center text-gray-500 hover:text-emerald-600">Riwayat Distribusi</Link>
               </div>
-              {/* Search & Filter */}
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <input type="text" className="w-full pl-10 pr-4 py-2 border rounded-lg" placeholder="Cari stok..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                 </div>
                 <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="p-2 border rounded-lg">
-                    <option>Semua status</option>
-                    <option>Tersedia</option>
-                    <option>Menipis</option>
-                    <option>Habis</option>
+                    <option value="Semua">Semua status</option>
+                    <option value="Tersedia">Tersedia</option>
+                    <option value="Menipis">Menipis</option>
+                    <option value="Habis">Habis</option>
                 </select>
               </div>
             </div>
@@ -157,10 +145,10 @@ const MonitoringStokPbf = () => {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredData.map((item) => (
-                      <tr key={item.id} className="hover:bg-gray-50">
+                      <tr key={item.detail_pesanan_id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.batch_id}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.nama_obat}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.jumlah.toLocaleString('id-ID')} box</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.stok.toLocaleString('id-ID')} box</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(item.tanggal_kadaluarsa).toLocaleDateString('id-ID')}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
@@ -169,9 +157,9 @@ const MonitoringStokPbf = () => {
                             {item.status_stok}
                            </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">PT. Pharma Indo</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.nama_produsen}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <button onClick={() => navigate(`/pbf/stok/detail/${item.id}`)} className="text-emerald-600 hover:text-emerald-900">
+                          <button onClick={() => navigate(`/pbf/stok/detail/${item.detail_pesanan_id}`)} className="text-emerald-600 hover:text-emerald-900">
                             <Eye size={20} />
                           </button>
                         </td>
@@ -188,4 +176,3 @@ const MonitoringStokPbf = () => {
   );
 };
 export default MonitoringStokPbf;
-

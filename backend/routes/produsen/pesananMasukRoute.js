@@ -21,7 +21,7 @@ router.get('/:id/surat-jalan', pesananMasukController.getSuratJalanById);
 // Mengubah status pesanan dengan detail tambahan (misalnya untuk atur pengiriman)
 router.put('/:id/status', pesananMasukController.updateStatusWithDetails);
 
-
+router.get('/pengembalian/:id', pesananMasukController.getDetailPengembalian);
 
 
 

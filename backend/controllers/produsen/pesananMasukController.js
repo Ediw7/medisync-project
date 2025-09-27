@@ -170,6 +170,54 @@ getAll: async (req, res) => {
     }
   },
 
+  getDetailPengembalian: async (req, res) => {
+    const { id } = req.params; // ID Pesanan
+    const idProdusen = req.user.id;
+
+    try {
+      const sql = `
+        SELECT 
+          p.id,
+          p.nomor_po,
+          p.catatan_khusus,
+          p.bukti_foto,
+          p.status,
+          p.tanggal_pesanan,
+          p.total_harga,
+          pbf.nama_resmi AS nama_pbf,
+         
+          sjp.nomor_surat_jalan 
+        FROM pesanan p
+        JOIN users pbf ON p.id_pbf = pbf.id
+        LEFT JOIN surat_jalan_produsen sjp ON p.id = sjp.id_pesanan
+        WHERE p.id = ? AND p.id_produsen = ? 
+        AND (p.status = 'Pengembalian Diajukan' OR p.status = 'Dikembalikan')
+      `;
+      const [pesanan] = await db.query(sql, [id, idProdusen]);
+
+      if (pesanan.length === 0) {
+        return res.status(404).json({ success: false, message: 'Data pengajuan pengembalian tidak ditemukan atau Anda tidak berwenang.' });
+      }
+
+      // Ekstrak alasan dari catatan_khusus
+      let alasan_pengembalian = '-';
+      if (pesanan[0].catatan_khusus && pesanan[0].catatan_khusus.includes('Alasan:')) {
+        alasan_pengembalian = pesanan[0].catatan_khusus.split('Alasan:')[1].trim();
+      }
+      
+      const responseData = {
+        ...pesanan[0],
+        alasan_pengembalian: alasan_pengembalian
+      };
+
+      res.json({ success: true, data: responseData });
+
+    } catch (error) {
+      console.error('Error in getDetailPengembalian:', error);
+      res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+    }
+  },
+
   // Di dalam file: backend/controllers/produsen/pesananMasukController.js
 
 updateStatusWithDetails: async (req, res) => {

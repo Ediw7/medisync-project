@@ -4,7 +4,7 @@ import React from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
-import { ArrowLeft, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
 import axios from 'axios';
 
 const KonfirmasiPengembalian = () => {
@@ -14,6 +14,10 @@ const KonfirmasiPengembalian = () => {
   const [data, setData] = React.useState(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
+  
+  // State baru untuk modal dan aksi
+  const [showModal, setShowModal] = React.useState(false);
+  const [isActionLoading, setIsActionLoading] = React.useState(false);
 
   React.useEffect(() => {
     const fetchData = async () => {
@@ -33,12 +37,26 @@ const KonfirmasiPengembalian = () => {
     fetchData();
   }, [id]);
 
-  const handleAction = async (status) => {
-     alert(`Fungsi untuk "${status}" belum diimplementasikan di backend.`);
+  const handleAction = async () => {
+    setIsActionLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`http://localhost:5000/api/produsen/pesanan-masuk/pengembalian/${id}/approve`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      alert('Pengajuan pengembalian telah disetujui. Anda akan diarahkan ke halaman pelacakan.');
+      navigate(`/produsen/pengelolaan-pengiriman/lacak-pengembalian/${id}`);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Gagal menyetujui pengembalian');
+      setShowModal(false); // Sembunyikan modal jika error
+    } finally {
+      setIsActionLoading(false);
+    }
   };
 
-  const DetailItem = ({ label, value, isFullWidth = false }) => (
-    <div className={isFullWidth ? 'sm:col-span-2' : ''}>
+  const DetailItem = ({ label, value }) => (
+    <div>
       <dt className="text-sm font-medium text-gray-500">{label}</dt>
       <dd className="mt-1 text-sm text-gray-900">{value}</dd>
     </div>
@@ -58,8 +76,13 @@ const KonfirmasiPengembalian = () => {
               </Link>
             </div>
 
-            {isLoading && <div className="text-center p-8">Memuat data...</div>}
-            {error && (
+            {isLoading && (
+              <div className="text-center p-8">
+                <Loader2 className="animate-spin mx-auto h-8 w-8 text-emerald-600" />
+                <p className="mt-2 text-gray-500">Memuat data...</p>
+              </div>
+            )}
+            {error && !isLoading &&(
                <div className="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 flex items-center gap-2" role="alert">
                  <AlertCircle size={20} />
                  <span className="font-medium">Error!</span> {error}
@@ -81,7 +104,6 @@ const KonfirmasiPengembalian = () => {
                         }`}>{data.status}</span>
                   </div>
                   
-                  {/* --- AWAL PERUBAHAN --- */}
                   <div className="border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6 pt-6">
                     <div>
                       <p className="text-sm text-gray-500">Dana Pengembalian</p>
@@ -97,17 +119,14 @@ const KonfirmasiPengembalian = () => {
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Diajukan pada</p>
-                      {/* Menggunakan tanggal pesanan sebagai referensi tanggal pengajuan */}
                       <p className="text-lg font-semibold text-gray-900">
                         {new Date(data.tanggal_pesanan).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}
                       </p>
                     </div>
                   </div>
-                  {/* --- AKHIR PERUBAHAN --- */}
 
                   <div className="border-t border-gray-200 pt-6 mt-6">
                     <dl className="space-y-6">
-                      
                       <div>
                          <dt className="text-sm font-medium text-gray-500">Alasan Pengembalian</dt>
                          <dd className="mt-1 text-sm text-gray-900 bg-gray-50 p-3 rounded-md border">{data.alasan_pengembalian}</dd>
@@ -153,14 +172,14 @@ const KonfirmasiPengembalian = () => {
                 {data.status === 'Pengembalian Diajukan' && (
                     <div className="mt-6 flex justify-end gap-4">
                         <button
-                          onClick={() => handleAction('Tolak')}
-                          className="flex items-center gap-2 py-2 px-4 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition"
+                          // onClick={() => handleAction('Tolak')}
+                          className="flex items-center gap-2 py-2 px-4 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition"
                         >
                           <XCircle size={18} />
                           Tolak Pengembalian
                         </button>
                         <button
-                          onClick={() => handleAction('Setujui')}
+                          onClick={() => setShowModal(true)} // Tampilkan modal
                           className="flex items-center gap-2 py-2 px-4 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition"
                         >
                           <CheckCircle size={18} />
@@ -173,6 +192,37 @@ const KonfirmasiPengembalian = () => {
           </div>
         </main>
       </div>
+
+      {/* Modal Konfirmasi */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+              <AlertCircle className="h-10 w-10 text-red-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900">Apakah kamu yakin menerima pengajuan pengembalian pesanan?</h3>
+            <p className="text-gray-500 mt-2 text-sm">
+              Pengiriman akan dijadwalkan jika kamu menyetujui pengajuan pengembalian produk ini. Dana akan dikembalikan otomatis setelah kamu menerima produk.
+            </p>
+            <div className="mt-8 flex justify-center gap-4">
+              <button
+                onClick={() => setShowModal(false)}
+                disabled={isActionLoading}
+                className="py-2 px-6 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200"
+              >
+                Tolak Pengajuan
+              </button>
+              <button
+                onClick={handleAction}
+                disabled={isActionLoading}
+                className="py-2 px-6 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 flex items-center justify-center"
+              >
+                {isActionLoading ? <Loader2 className="animate-spin" /> : 'Terima Pengajuan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

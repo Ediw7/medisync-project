@@ -245,16 +245,26 @@ const PengelolaanPengiriman = () => {
                           {/* --- INI YANG ANDA MINTA --- */}
                           {/* Link untuk status 'Dibatalkan' */}
                           {item.status === 'Dibatalkan' && (
-                            <Link to={`/produsen/pengelolaan-pengiriman/konfirmasi-pembatalan/${item.id}`} className="text-blue-600 hover:text-blue-800">
-                              Lihat Detail Pembatalan
+                            <Link to={`/produsen/pengelolaan-pengiriman/riwayat-pembatalan/${item.id}`} className="text-blue-600 hover:text-blue-800">
+                              Lihat Riwayat
                             </Link>
                           )}
-                          {/* --- AKHIR TAMBAHAN --- */}
-
+                                 
                           {/* (Opsional) Tambahan logis untuk 'Pengembalian Diajukan' */}
-                          {item.status === 'Pengembalian Diajukan' && (
+                           {item.status === 'Pengembalian Diajukan' && (
                             <Link to={`/produsen/pengelolaan-pengiriman/konfirmasi-pengembalian/${item.id}`} className="text-indigo-600 hover:text-indigo-800">
                               Konfirmasi Pengembalian
+                            </Link>
+                          )}
+                          {item.status === 'Dikembalikan' && (
+                            <Link to={`/produsen/pengelolaan-pengiriman/lacak-pengembalian/${item.id}`} className="text-purple-600 hover:text-purple-800">
+                              Lacak Pengembalian
+                            </Link>
+                          )}
+
+                          {item.status === 'Pengembalian Selesai' && item.id_aset_blockchain && (
+                            <Link to={`/produsen/pengelolaan-pengiriman/lihat-riwayat/${item.id_aset_blockchain}`} className="text-emerald-600 hover:text-emerald-800">
+                              Lihat Riwayat
                             </Link>
                           )}
                           {/* --- AKHIR BARU DITAMBAHKAN --- */}

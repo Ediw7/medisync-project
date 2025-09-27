@@ -2,11 +2,24 @@ const express = require('express');
 const router = express.Router();
 const pesananMasukController = require('../../controllers/produsen/pesananMasukController');
 const { authenticateToken, authorizeRole } = require('../../middleware/auth');
+const multer = require('multer');
+const path = require('path');
 
 // Semua rute di sini dilindungi dan hanya untuk Produsen
 router.use(authenticateToken, authorizeRole('produsen'));
 
-
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = 'uploads/bukti_pengembalian_diterima';
+    require('fs').mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, `produsen-receipt-${req.params.id}-${uniqueSuffix}${path.extname(file.originalname)}`);
+  }
+});
+const upload = multer({ storage: storage });
 
 
 // Mengambil semua pesanan masuk untuk produsen yang sedang login
@@ -22,8 +35,14 @@ router.get('/:id/surat-jalan', pesananMasukController.getSuratJalanById);
 router.put('/:id/status', pesananMasukController.updateStatusWithDetails);
 
 router.get('/pengembalian/:id', pesananMasukController.getDetailPengembalian);
+router.put('/pengembalian/:id/approve', pesananMasukController.approvePengembalian);
+router.get('/lacak-pengembalian/:id', pesananMasukController.getLacakPengembalian);
 
-
+router.put(
+  '/lacak-pengembalian/:id/konfirmasi', 
+  upload.single('buktiFoto'), // Middleware multer
+  pesananMasukController.confirmReturnReceipt
+);
 
 
 // Mencatat pengiriman ke blockchain

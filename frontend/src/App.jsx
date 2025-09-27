@@ -37,6 +37,8 @@ import AturPickupMassal from './pages/produsen/pengelolaanpengiriman/AturPickupM
 import KonfirmasiPengirimanMassal from './pages/produsen/pengelolaanpengiriman/KonfirmasiPengirimanMassal';
 import CetakSuratJalanMassal from './pages/produsen/pengelolaanpengiriman/CetakSuratJalanMassal';
 import KonfirmasiPengembalian from './pages/produsen/pengelolaanpengiriman/KonfirmasiPengembalian';
+import LacakPengembalian from './pages/produsen/pengelolaanpengiriman/LacakPengembalian';
+import LihatRiwayatPembatalan from './pages/produsen/pengelolaanpengiriman/LihatRiwayatPembatalan';
 
 import LaporanAnalitik from './pages/produsen/laporananalitik/LaporanAnalitik';
 
@@ -110,6 +112,8 @@ function App() {
       <Route path="/produsen/pengelolaan-pengiriman/konfirmasi-pengiriman-massal" element={<KonfirmasiPengirimanMassal />} />
        <Route path="/produsen/pengelolaan-pengiriman/cetak-surat-jalan-massal" element={<CetakSuratJalanMassal />} />
         <Route path="/produsen/pengelolaan-pengiriman/konfirmasi-pengembalian/:id" element={<KonfirmasiPengembalian />} />
+       <Route path="/produsen/pengelolaan-pengiriman/lacak-pengembalian/:id" element={<LacakPengembalian />} />
+         <Route path="/produsen/pengelolaan-pengiriman/riwayat-pembatalan/:id" element={<LihatRiwayatPembatalan />} />
 
         <Route path="/produsen/laporan-analitik" element={<LaporanAnalitik />} />
       

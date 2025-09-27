@@ -76,17 +76,19 @@ getAll: async (req, res) => {
     const { id } = req.params;
     const idProdusen = req.user.id;
     const sqlPesanan = `
-  SELECT 
-    p.*, 
-    pbf.nama_resmi AS nama_pbf,
-    pbf.alamat AS alamat_pbf,
-    produsen.nama_resmi AS nama_produsen,
-    produsen.alamat AS alamat_produsen
-  FROM pesanan p
-  JOIN users pbf ON p.id_pbf = pbf.id
-  JOIN users produsen ON p.id_produsen = produsen.id
-  WHERE p.id = ? AND p.id_produsen = ?
-`;
+        SELECT 
+          p.*, 
+          pbf.nama_resmi AS nama_pbf,
+          pbf.alamat AS alamat_pbf,
+          produsen.nama_resmi AS nama_produsen,
+          produsen.alamat AS alamat_produsen,
+          sjp.nomor_surat_jalan
+        FROM pesanan p
+        JOIN users pbf ON p.id_pbf = pbf.id
+        JOIN users produsen ON p.id_produsen = produsen.id
+        LEFT JOIN surat_jalan_produsen sjp ON p.id = sjp.id_pesanan
+        WHERE p.id = ? AND p.id_produsen = ?
+      `;
     const [pesanan] = await db.query(sqlPesanan, [id, idProdusen]);
 
     if (pesanan.length === 0) {
@@ -217,6 +219,133 @@ getAll: async (req, res) => {
       res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
     }
   },
+
+  // --- FUNGSI BARU 1: Menyetujui Pengembalian ---
+  approvePengembalian: async (req, res) => {
+    const { id } = req.params; // ID Pesanan
+    const idProdusen = req.user.id;
+    let dbConnection;
+
+    try {
+      dbConnection = await db.getConnection();
+      await dbConnection.beginTransaction();
+
+      // Pastikan pesanan ada dan statusnya benar
+      const [pesanan] = await dbConnection.query(
+        "SELECT id FROM pesanan WHERE id = ? AND id_produsen = ? AND status = 'Pengembalian Diajukan'",
+        [id, idProdusen]
+      );
+
+      if (pesanan.length === 0) {
+        throw new Error('Pesanan tidak ditemukan atau tidak dalam status pengajuan pengembalian.');
+      }
+
+      // Update status pesanan menjadi 'Dikembalikan'
+      await dbConnection.query(
+        "UPDATE pesanan SET status = 'Dikembalikan' WHERE id = ?",
+        [id]
+      );
+      
+      // Di dunia nyata, Anda akan membuat surat jalan pulang dan mencatatnya.
+      // Di sini kita simulasikan dengan mencatat di catatan khusus.
+      const nomorSuratJalanPulang = `SJPULANG-${Date.now()}`;
+      await dbConnection.query(
+        "UPDATE pesanan SET catatan_khusus = CONCAT(IFNULL(catatan_khusus, ''), ?) WHERE id = ?",
+        [`\nPengembalian disetujui. No SJ Pulang: ${nomorSuratJalanPulang}`, id]
+      );
+
+      await dbConnection.commit();
+      res.json({ success: true, message: 'Pengajuan pengembalian telah disetujui.' });
+
+    } catch (error) {
+      if (dbConnection) await dbConnection.rollback();
+      console.error('Error in approvePengembalian:', error);
+      res.status(500).json({ success: false, message: error.message || 'Kesalahan Server Internal' });
+    } finally {
+      if (dbConnection) dbConnection.release();
+    }
+  },
+
+  // --- FUNGSI BARU 2: Mendapatkan Data Lacak Pengembalian ---
+  getLacakPengembalian: async (req, res) => {
+    const { id } = req.params;
+    const idProdusen = req.user.id;
+
+    try {
+      const sql = `
+        SELECT 
+          p.id, p.status, p.tanggal_pesanan,
+          p.bukti_foto_pengembalian,
+          sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman,
+          pbf.nama_resmi AS nama_pbf,
+          produsen.nama_resmi AS nama_produsen
+        FROM pesanan p
+        JOIN users pbf ON p.id_pbf = pbf.id
+        JOIN users produsen ON p.id_produsen = produsen.id
+        LEFT JOIN surat_jalan_produsen sjp ON p.id = sjp.id_pesanan
+        WHERE p.id = ? AND p.id_produsen = ?
+      `;
+      const [rows] = await db.query(sql, [id, idProdusen]);
+
+      if (rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Data pelacakan tidak ditemukan.' });
+      }
+
+      res.json({ success: true, data: rows[0] });
+    } catch (error) {
+      console.error('Error in getLacakPengembalian:', error);
+      res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+    }
+  },
+
+  confirmReturnReceipt: async (req, res) => {
+    const { id } = req.params; // ID Pesanan
+    const idProdusen = req.user.id;
+    const buktiFoto = req.file;
+    let dbConnection;
+
+    try {
+      if (!buktiFoto) {
+        return res.status(400).json({ success: false, message: 'Bukti foto penerimaan wajib diunggah.' });
+      }
+
+      dbConnection = await db.getConnection();
+      await dbConnection.beginTransaction();
+
+      // Ambil juga id_aset_blockchain
+      const [pesanan] = await dbConnection.query(
+        "SELECT id, (SELECT id_aset_blockchain FROM detail_pesanan WHERE id_pesanan = p.id LIMIT 1) as id_aset_blockchain FROM pesanan p WHERE id = ? AND id_produsen = ? AND status = 'Dikembalikan'",
+        [id, idProdusen]
+      );
+
+      if (pesanan.length === 0) {
+        throw new Error('Pesanan tidak ditemukan atau statusnya bukan "Dikembalikan".');
+      }
+
+      await dbConnection.query(
+        "UPDATE pesanan SET status = 'Pengembalian Selesai', bukti_foto_pengembalian = ? WHERE id = ?",
+        [buktiFoto.path, id]
+      );
+
+      await dbConnection.commit();
+      
+      // Kembalikan id_aset_blockchain dalam respons
+      res.json({ 
+        success: true, 
+        message: 'Penerimaan barang yang dikembalikan berhasil dikonfirmasi.',
+        assetId: pesanan[0].id_aset_blockchain
+      });
+
+    } catch (error) {
+      if (dbConnection) await dbConnection.rollback();
+      console.error('Error in confirmReturnReceipt:', error);
+      res.status(500).json({ success: false, message: error.message || 'Kesalahan Server Internal' });
+    } finally {
+      if (dbConnection) dbConnection.release();
+    }
+  },
+
+
 
   // Di dalam file: backend/controllers/produsen/pesananMasukController.js
 

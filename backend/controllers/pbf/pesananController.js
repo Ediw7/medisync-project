@@ -231,6 +231,37 @@ const pesananController = {
     }
   },
 
+  getLacakPengembalianPbf: async (req, res) => {
+    const { id } = req.params; // id pesanan
+    const idPbf = req.user.id;
+
+    try {
+      const sql = `
+        SELECT 
+          p.id, p.status, p.tanggal_pesanan,
+          p.bukti_foto_pengembalian,
+          sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman,
+          pbf.nama_resmi AS nama_pbf,
+          produsen.nama_resmi AS nama_produsen
+        FROM pesanan p
+        JOIN users pbf ON p.id_pbf = pbf.id
+        JOIN users produsen ON p.id_produsen = produsen.id
+        LEFT JOIN surat_jalan_produsen sjp ON p.id = sjp.id_pesanan
+        WHERE p.id = ? AND p.id_pbf = ?
+      `;
+      const [rows] = await db.query(sql, [id, idPbf]);
+
+      if (rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Data pelacakan pengembalian tidak ditemukan atau Anda tidak berwenang.' });
+      }
+
+      res.json({ success: true, data: rows[0] });
+    } catch (error) {
+      console.error('Error in getLacakPengembalianPbf:', error);
+      res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+    }
+  },
+
   getRiwayatByAssetId: async (req, res) => {
     const { assetId } = req.params;
     const idPbf = req.user.id; // Ambil ID PBF yang sedang login

@@ -19,7 +19,7 @@ router.get('/stok/:idProdusen', pesananController.getStokFromBlockchain);
 router.put('/:id/request-batalkan', pesananController.requestPembatalan);
 router.put('/:id/konfirmasi-pembatalan', pesananController.konfirmasiPembatalan);
 router.get('/riwayat/:assetId', pesananController.getRiwayatByAssetId);
-
+router.get('/:id/lacak-pengembalian', pesananController.getLacakPengembalianPbf);
 // Gunakan middleware yang sesuai untuk setiap rute unggah file
 router.put('/:id/konfirmasi', uploadPenerimaanMiddleware.single('buktiFoto'), pesananController.konfirmasiPenerimaan);
 router.post('/:id/ajukan-pengembalian', uploadPengembalianMiddleware.single('buktiFoto'), pesananController.ajukanPengembalian);

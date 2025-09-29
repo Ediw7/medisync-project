@@ -330,53 +330,48 @@ const PesanObat = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex gap-4 items-center">
                               {(() => {
-                                if (item.status === 'Perlu Dikirim') {
-                                  return (
-                                    <Link
-                                      to={`/pbf/pesanan/${item.id}/batalkan`}
-                                      className="text-blue-600 hover:text-blue-800 font-medium"
-                                    >
-                                      Batalkan Pesanan
-                                    </Link>
-                                  );
-                                }
-                                if (item.status === 'Dikirim') {
-                                  return (
-                                    <button
-                                      onClick={() => navigate(`/pbf/pesanan/${item.id}/konfirmasi-penerimaan`)}
-                                      className="text-emerald-600 hover:text-emerald-800 font-medium"
-                                    >
-                                      Konfirmasi Penerimaan
-                                    </button>
-                                  );
-                                }
-                                if (item.status === 'Selesai') {
-  return (
-    <>
-      {item.id_aset_blockchain ? (
-        <Link
-          to={`/pbf/pesanan/riwayat/${item.id_aset_blockchain}`}
-          className="text-emerald-600 hover:text-emerald-800 font-medium"
-        >
-          Lihat Riwayat
-        </Link>
-      ) : (
-        <span className="text-gray-400">Riwayat T/A</span>
-      )}
-    </>
-  );
-}                             // Default untuk status lain (Ditolak, Dibatalkan, Pengembalian Diajukan, dll)
-                                return (
-                                  <>
-                                    <Link to={`/pbf/pesanan/${item.id}/detail`} className="text-blue-600 hover:text-blue-800">
-                                      Detail
-                                    </Link>
-                                    <Link to={`/pbf/pesanan/${item.id}/lacak`} className="text-blue-600 hover:text-blue-800">
-                                      Lacak
-                                    </Link>
-                                  </>
-                                );
-                              })()}
+                                switch (item.status) {
+        case 'Perlu Dikirim':
+          return (
+            <Link to={`/pbf/pesanan/${item.id}/batalkan`} className="text-red-600 hover:text-red-800 font-medium">
+              Batalkan Pesanan
+            </Link>
+          );
+        case 'Dikirim':
+          return (
+            <button onClick={() => navigate(`/pbf/pesanan/${item.id}/konfirmasi-penerimaan`)} className="text-emerald-600 hover:text-emerald-800 font-medium">
+              Konfirmasi Penerimaan
+            </button>
+          );
+        case 'Selesai':
+        case 'Pengembalian Selesai': // Aksi sama untuk 'Selesai' dan 'Pengembalian Selesai'
+          return item.id_aset_blockchain ? (
+            <Link to={`/pbf/pesanan/riwayat/${item.id_aset_blockchain}`} className="text-emerald-600 hover:text-emerald-800 font-medium">
+              Lihat Riwayat
+            </Link>
+          ) : (
+            <span className="text-gray-400">Riwayat T/A</span>
+          );
+        case 'Pengembalian Diajukan':
+        case 'Dikembalikan':
+          return (
+            <>
+              <Link to={`/pbf/pesanan/${item.id}/detail`} className="text-blue-600 hover:text-blue-800">
+                Detail
+              </Link>
+              <Link to={`/pbf/pesanan/${item.id}/lacak-pengembalian-pbf`} className="text-purple-600 hover:text-purple-800">
+                Lacak
+              </Link>
+            </>
+          );
+        default: // Dibatalkan, Ditolak, dll.
+          return (
+            <Link to={`/pbf/pesanan/${item.id}/detail`} className="text-gray-600 hover:text-gray-800">
+              Lihat Detail
+            </Link>
+          );
+      }
+          })()}
                             </div>
                           </td>
                         </tr>

@@ -5,6 +5,9 @@ const { authenticateToken, authorizeRole } = require('../../middleware/auth');
 
 // Untuk PBF yang login
 router.get('/', authenticateToken, authorizeRole('pbf'), pesananApotekController.getAllPesananMasuk);
+router.get('/:id', authenticateToken, authorizeRole('pbf'), pesananApotekController.getPesananById);
+router.put('/:id/proses', authenticateToken, authorizeRole('pbf'), pesananApotekController.prosesPesanan);
+
 
 // Untuk Apotek yang login
 router.post('/', authenticateToken, authorizeRole('apotek'), pesananApotekController.createPesanan);

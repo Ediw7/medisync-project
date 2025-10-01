@@ -67,6 +67,71 @@ const pesananApotekController = {
             res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
         }
     },
+
+    getPesananById: async (req, res) => {
+        const { id } = req.params;
+        const idPbf = req.user.id; // Pastikan pesanan ini milik PBF yang login
+
+        try {
+            // Ambil data pesanan utama
+            const [pesananRows] = await db.query(
+                `SELECT pa.*, pbf.nama_resmi as nama_pbf 
+                 FROM pesanan_apotek pa
+                 JOIN users pbf ON pa.id_pbf = pbf.id
+                 WHERE pa.id = ? AND pa.id_pbf = ?`,
+                [id, idPbf]
+            );
+
+            if (pesananRows.length === 0) {
+                return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan atau Anda tidak memiliki akses.' });
+            }
+
+            // Ambil detail item pesanan
+            const [detailRows] = await db.query(
+                'SELECT * FROM detail_pesanan_apotek WHERE id_pesanan_apotek = ?',
+                [id]
+            );
+
+            res.json({
+                success: true,
+                data: {
+                    pesanan: pesananRows[0],
+                    detail_pesanan: detailRows,
+                },
+            });
+        } catch (error) {
+            console.error(`Error getting pesanan apotek by ID ${id}:`, error);
+            res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+        }
+    },
+
+    prosesPesanan: async (req, res) => {
+        const { id } = req.params;
+        const idPbf = req.user.id;
+
+        try {
+            // Cek dulu apakah pesanan ada dan statusnya 'Menunggu Konfirmasi'
+            const [pesanan] = await db.query(
+                'SELECT * FROM pesanan_apotek WHERE id = ? AND id_pbf = ? AND status = "Menunggu Konfirmasi"',
+                [id, idPbf]
+            );
+
+            if (pesanan.length === 0) {
+                return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan atau sudah diproses.' });
+            }
+
+            // Update status menjadi 'Perlu Dikirim'
+            await db.query(
+                "UPDATE pesanan_apotek SET status = 'Perlu Dikirim' WHERE id = ?",
+                [id]
+            );
+
+            res.json({ success: true, message: 'Pesanan berhasil diproses dan siap untuk diatur pengirimannya.' });
+        } catch (error) {
+            console.error('Error processing pesanan apotek:', error);
+            res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+        }
+    },
 };
 
 module.exports = pesananApotekController;

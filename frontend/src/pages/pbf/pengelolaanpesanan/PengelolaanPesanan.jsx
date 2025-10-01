@@ -1,183 +1,261 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import SidebarPbf from '../../../components/SidebarPbf';
 import NavbarPbf from '../../../components/NavbarPbf';
-import { Search, ChevronDown, Calendar, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search } from 'lucide-react';
+import axios from 'axios';
+
+// Komponen untuk navigasi tab status
+const NavItem = ({ label, filter, currentFilter, setFilter }) => {
+  const isActive = filter === currentFilter;
+  const baseClass = "py-3 px-1 text-center font-medium transition whitespace-nowrap";
+  const activeClass = "text-emerald-600 border-b-2 border-emerald-600";
+  const inactiveClass = "text-gray-600 hover:text-emerald-600";
+
+  return (
+    <button
+      onClick={() => setFilter(filter)}
+      className={`${baseClass} ${isActive ? activeClass : inactiveClass}`}
+    >
+      {label}
+    </button>
+  );
+};
 
 const PengelolaanPesanan = () => {
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [pesananList, setPesananList] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('Semua');
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
 
-  // --- TAMBAHKAN FUNGSI INI ---
-  const handleLogout = () => {
-    localStorage.clear(); // Hapus token atau data sesi
-    navigate('/'); // Arahkan ke halaman utama/login
+  // Fungsi untuk mengambil data pesanan dari server
+  const fetchPesananMasuk = async () => {
+      setIsLoading(true);
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          navigate('/login/pbf');
+          return;
+        }
+        const response = await axios.get('http://localhost:5000/api/pbf/pesanan-apotek', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.data.success) {
+          setPesananList(response.data.data);
+        } else {
+          throw new Error(response.data.message || 'Gagal memuat daftar pesanan.');
+        }
+      } catch (err) {
+        setError(err.response?.data?.message || err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+  useEffect(() => {
+    fetchPesananMasuk();
+  }, [navigate]);
+    
+  // Fungsi untuk menangani aksi "Proses Pesanan"
+  const handleProsesPesanan = async (pesananId) => {
+    if (!window.confirm('Apakah Anda yakin ingin memproses pesanan ini? Status akan diubah menjadi "Perlu Dikirim".')) {
+      return;
+    }
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.put(`http://localhost:5000/api/pbf/pesanan-apotek/${pesananId}/proses`, {}, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.data.success) {
+        alert('Pesanan berhasil diproses!');
+        fetchPesananMasuk(); // Muat ulang data untuk melihat status terbaru
+      }
+    } catch (err) {
+      alert('Gagal memproses pesanan: ' + (err.response?.data?.message || err.message));
+    }
   };
-  // -----------------------------
 
-  // Mock data representing the orders, based on the provided image
-  const mockPesanan = [
-    {
-      id_pesanan: '000456',
-      nama_apotek: 'Apotek Maju',
-      harga_total: 7000000,
-      metode_pembayaran: 'COD',
-      alamat_pengiriman: 'Jl. Mawar Merah, Kel. Tandang, Kec Tembalang, Kota Semarang 50274',
-      tanggal_pesanan: '2025-02-01',
-      status: 'Menunggu',
-    },
-    {
-      id_pesanan: '000456', // Assuming ID is unique, but using image data
-      nama_apotek: 'Apotek Ada',
-      harga_total: 7000000,
-      metode_pembayaran: 'COD',
-      alamat_pengiriman: 'Jl. Mawar Merah',
-      tanggal_pesanan: '2025-02-01',
-      status: 'Dibatalkan',
-    },
-  ];
+  // Fungsi untuk sorting data di tabel
+  const sortData = (key) => {
+    let direction = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
 
-  // Function to get status color
+  // Memoized value untuk data yang sudah difilter dan di-sort
+  const filteredAndSortedData = useMemo(() => {
+    let filtered = [...pesananList]
+      .filter(item => {
+        if (statusFilter === 'Semua') return true;
+        return item.status === statusFilter;
+      })
+      .filter(item =>
+        (item.nama_apotek?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (item.nomor_pesanan?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+      );
+
+    if (sortConfig.key) {
+      filtered.sort((a, b) => {
+        if (a[sortConfig.key] < b[sortConfig.key]) {
+          return sortConfig.direction === 'ascending' ? -1 : 1;
+        }
+        if (a[sortConfig.key] > b[sortConfig.key]) {
+          return sortConfig.direction === 'ascending' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return filtered;
+  }, [pesananList, searchTerm, statusFilter, sortConfig]);
+
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate('/');
+  };
+    
   const getStatusClass = (status) => {
     switch (status) {
-      case 'Menunggu':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'Dibatalkan':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'Menunggu Konfirmasi': return 'bg-yellow-100 text-yellow-800';
+      case 'Perlu Dikirim': return 'bg-orange-100 text-orange-800';
+      case 'Diproses': return 'bg-blue-100 text-blue-800'; // Tetap ada jika masih digunakan
+      case 'Dikirim': return 'bg-cyan-100 text-cyan-800';
+      case 'Selesai': return 'bg-emerald-100 text-emerald-800';
+      case 'Dibatalkan': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('id-ID', {
+      day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC'
+    });
+  };
+
+  const getSortIndicator = (key) => {
+    if (sortConfig.key !== key) return null;
+    return sortConfig.direction === 'ascending' ? '↑' : '↓';
   };
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-    <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+      <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
-        {/* Sekarang `handleLogout` sudah terdefinisi */}
         <NavbarPbf onLogout={handleLogout} />
         <main className="flex-1 pt-16 p-6">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-800">Pengelolaan Pesanan ke Apotek</h1>
-                <p className="text-gray-500 mt-1">Kelola pesanan Obat</p>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <div>
+              <h1 className="text-2xl font-bold">Pengelolaan Pesanan Apotek</h1>
+              <p className="text-gray-500">Kelola pesanan masuk dari apotek</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="p-4 border-b flex flex-wrap items-center gap-x-4 gap-y-3">
+              <div className="flex items-center gap-x-2 overflow-x-auto">
+                <NavItem label="Semua" filter="Semua" currentFilter={statusFilter} setFilter={setStatusFilter} />
+                <NavItem label="Menunggu Konfirmasi" filter="Menunggu Konfirmasi" currentFilter={statusFilter} setFilter={setStatusFilter} />
+                <NavItem label="Perlu Dikirim" filter="Perlu Dikirim" currentFilter={statusFilter} setFilter={setStatusFilter} />
+                <NavItem label="Dikirim" filter="Dikirim" currentFilter={statusFilter} setFilter={setStatusFilter} />
+                <NavItem label="Selesai" filter="Selesai" currentFilter={statusFilter} setFilter={setStatusFilter} />
+                <NavItem label="Dibatalkan" filter="Dibatalkan" currentFilter={statusFilter} setFilter={setStatusFilter} />
               </div>
-              <div className="flex items-center gap-4">
-                <button className="px-4 py-2 bg-white border border-gray-300 text-gray-800 rounded-lg hover:bg-gray-100 transition">
-                  Atur Pengiriman Massal
-                </button>
-                <button className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition flex items-center gap-2">
-                  <Plus size={18} />
-                  Pengiriman Massal
-                </button>
+               <div className="relative w-full sm:w-auto sm:ml-auto">
+                <input
+                  type="text"
+                  placeholder="Cari Apotek atau No. Pesanan..."
+                  className="pl-10 pr-4 py-2 border rounded-lg w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               </div>
             </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">Daftar Pesanan Masuk</h2>
-
-              {/* Filter Section */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                  <input
-                    type="text"
-                    placeholder="Cari ID Pesanan atau nama apotek..."
-                    className="w-full p-2 pl-10 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                  />
-                </div>
-                <div className="relative">
-                  <select
-                    className="w-full p-2 border border-gray-300 rounded-lg appearance-none focus:ring-emerald-500 focus:border-emerald-500"
-                    defaultValue=""
-                  >
-                    <option value="" disabled>Semua Status</option>
-                    <option value="Menunggu">Menunggu</option>
-                    <option value="Dibatalkan">Dibatalkan</option>
-                    <option value="Diproses">Diproses</option>
-                    <option value="Dikirim">Dikirim</option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                </div>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                  <input
-                    type="text"
-                    placeholder="Waktu Pesanan Masuk"
-                    defaultValue="01/02/2025 - 02/03/2025"
-                    className="w-full p-2 pl-10 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    onFocus={(e) => (e.target.type = 'date')}
-                    onBlur={(e) => (e.target.type = 'text')}
-                  />
-                </div>
-              </div>
-
-              {/* Table Section */}
-              <div className="overflow-x-auto">
+            <div className="overflow-x-auto">
+              {isLoading ? ( <p className="text-center py-10 text-gray-500">Memuat data pesanan...</p>
+              ) : error ? ( <p className="text-center py-10 text-red-500">{error}</p>
+              ) : (
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Pesanan</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pesanan</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alamat Pengiriman</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Pesanan</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                     <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => sortData('nama_apotek')}>
+                        Apotek Pemesan {getSortIndicator('nama_apotek')}
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => sortData('nomor_pesanan')}>
+                        Nomor Pesanan {getSortIndicator('nomor_pesanan')}
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pesanan (Surat Pesanan)</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => sortData('total_harga')}>
+                        Total Harga {getSortIndicator('total_harga')}
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => sortData('status')}>
+                        Status {getSortIndicator('status')}
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {mockPesanan.map((order, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-semibold text-gray-900">{order.nama_apotek}</div>
-                          <div className="text-sm text-gray-500">ID Pesanan : {order.id_pesanan}</div>
+                    {filteredAndSortedData.length > 0 ? filteredAndSortedData.map((order) => (
+                      <tr key={order.id} className="hover:bg-gray-50">
+                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.nama_apotek}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.nomor_pesanan}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 hover:underline">
+                          <Link to={`/pbf/pengelolaan-pesanan/surat/${order.id}`}>Lihat Surat</Link>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(order.total_harga)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <a href="#" className="text-sm text-emerald-600 hover:underline font-medium">
-                            Lihat Surat Pesanan
-                          </a>
-                           <div className="text-sm font-bold text-gray-900 mt-1">
-                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(order.harga_total)}
-                          </div>
-                          <div className="text-xs text-gray-500">Via {order.metode_pembayaran}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 max-w-xs truncate">{order.alamat_pengiriman}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                          {new Date(order.tanggal_pesanan).toLocaleDateString('id-ID', { timeZone: 'UTC' })}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(order.status)}`}>
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(order.status)}`}>
                             {order.status}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          {order.status === 'Menunggu' && (
-                            <button className="text-emerald-600 hover:text-emerald-800">Proses Pesanan</button>
+                          {order.status === 'Menunggu Konfirmasi' && (
+                            <button 
+                              onClick={() => handleProsesPesanan(order.id)}
+                              className="text-emerald-600 hover:text-emerald-800"
+                            >
+                              Proses Pesanan
+                            </button>
+                          )}
+                          {order.status === 'Perlu Dikirim' && (
+                            <Link to={`/pbf/pengelolaan-pesanan/atur-pengiriman/${order.id}`} className="text-orange-600 hover:text-orange-800">
+                              Atur Pengiriman
+                            </Link>
+                          )}
+                          {order.status === 'Dikirim' && (
+                            <Link to={`/pbf/pengelolaan-pesanan/lacak/${order.id}`} className="text-blue-600 hover:text-blue-800">
+                              Lihat Status
+                            </Link>
+                          )}
+                           {order.status === 'Selesai' && (
+                             <Link to={`/pbf/pengelolaan-pesanan/riwayat/${order.id}`} className="text-purple-600 hover:text-purple-800">
+                              Lihat Riwayat
+                            </Link>
                           )}
                            {order.status === 'Dibatalkan' && (
-                            <button className="text-blue-600 hover:text-blue-800">Lihat Riwayat</button>
+                            <Link to={`/pbf/pengelolaan-pesanan/riwayat-pembatalan/${order.id}`} className="text-gray-600 hover:text-gray-800">
+                              Detail Pembatalan
+                            </Link>
                           )}
                         </td>
                       </tr>
-                    ))}
+                    )) : (
+                      <tr>
+                        <td colSpan="6" className="text-center py-10 text-gray-500">
+                          Tidak ada pesanan yang sesuai dengan filter.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
-              </div>
-               {/* Pagination */}
-              <div className="flex justify-between items-center mt-4">
-                 <div className="text-sm text-gray-700">
-                    Menampilkan <span className="font-semibold">1</span> - <span className="font-semibold">{mockPesanan.length}</span> dari <span className="font-semibold">{mockPesanan.length}</span> entri
-                </div>
-                <div className="flex items-center gap-2">
-                    <button className="p-2 border rounded-md hover:bg-gray-100 disabled:opacity-50">
-                        <ChevronLeft size={16} />
-                    </button>
-                     <span className="px-4 py-2 bg-emerald-600 text-white rounded-md text-sm">1</span>
-                    <button className="p-2 border rounded-md hover:bg-gray-100 disabled:opacity-50">
-                        <ChevronRight size={16} />
-                    </button>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </main>
@@ -187,4 +265,3 @@ const PengelolaanPesanan = () => {
 };
 
 export default PengelolaanPesanan;
-

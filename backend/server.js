@@ -18,6 +18,9 @@ const publicRoutes = require('./routes/publicRoute');
 const produksiController = require('./controllers/produsen/produksiController');
 const stokPbfRoutes = require('./routes/pbf/stokRoute');
 
+const apotekRoutes = require('./routes/apotek/apotekRoute'); 
+const pesananApotekPbfRoutes = require('./routes/pbf/pesananApotekRoute'); 
+
 const app = express();
 
 app.use(cors());
@@ -36,12 +39,14 @@ app.use('/api/produsen', laporananalitikRoutes);
 app.use('/api/pbf/pesanan', pesananPbfRoutes);
 app.use('/api/pbf/stok', stokPbfRoutes);
 
+app.use('/api/pbf/pesanan-apotek', pesananApotekPbfRoutes); 
+
 app.use('/api/pbf', pbfRoutes);
 app.use('/api/pbf/penerimaan', penerimaanRoutes); 
 app.use('/api/pbf/dashboard', dashboardPbfRoutes);
 app.use('/api/blockchain', blockchainRoutes);
 app.use('/api/public', publicRoutes);
-
+app.use('/api/apotek', apotekRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

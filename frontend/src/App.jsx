@@ -60,6 +60,9 @@ import DetailStokPbf from './pages/pbf/monitoringstok/DetailStokPbf';
 import PengelolaanPesanan from './pages/pbf/pengelolaanpesanan/PengelolaanPesanan';
 import SuratPesananApotek from './pages/pbf/pengelolaanpesanan/SuratPesananApotek';
 import AturPengirimanApotek from './pages/pbf/pengelolaanpesanan/AturPengirimanApotek';
+import RincianPengirimanApotek from './pages/pbf/pengelolaanpesanan/RincianPengirimanApotek';
+
+
 
 import TrackingPengiriman from './pages/pbf/trackingpengiriman/TrackingPengiriman';
 
@@ -138,8 +141,8 @@ function App() {
       <Route path="/pbf/pengelolaan-pesanan" element={<PengelolaanPesanan />} />
       <Route path="/pbf/pengelolaan-pesanan/surat/:id" element={<SuratPesananApotek />} />
       <Route path="/pbf/pengelolaan-pesanan/atur-pengiriman/:id" element={<AturPengirimanApotek />} />
-
-
+      <Route path="/pbf/pengelolaan-pesanan/rincian-pengiriman/:id" element={<RincianPengirimanApotek />} />
+       
 
       <Route path="/pbf/tracking-pengiriman" element={<TrackingPengiriman />} />
 

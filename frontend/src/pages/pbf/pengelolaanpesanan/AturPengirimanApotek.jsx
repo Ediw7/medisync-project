@@ -68,7 +68,7 @@ const AturPengirimanApotek = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     // Logika submit untuk PBF (bisa diarahkan ke halaman rincian pengiriman PBF)
-    navigate(`/pbf/pengelolaan-pesanan/rincian-pengiriman/${id}`, {
+     navigate(`/pbf/pengelolaan-pesanan/rincian-pengiriman/${id}`, {
       state: { 
         pesanan, 
         tanggalPengiriman: selectedDate, 

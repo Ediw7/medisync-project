@@ -143,12 +143,13 @@ const apotekController = {
             const idPesanan = result.insertId;
 
             for (const item of items) {
-                // Perhatikan: nama kolom di backend 'jumlah' dan 'harga_satuan'
-                await connection.query(
-                    `INSERT INTO detail_pesanan_apotek (id_pesanan_apotek, nama_obat, keterangan, jumlah, satuan, harga_satuan)
-                     VALUES (?, ?, ?, ?, ?, ?)`,
-                    [idPesanan, item.nama_obat, item.keterangan, item.qty, item.satuan, item.harga_satuan]
-                );
+                 // 1. Tambahkan kolom 'id_aset_blockchain' ke dalam query INSERT
+            await connection.query(
+                `INSERT INTO detail_pesanan_apotek (id_pesanan_apotek, id_aset_blockchain, nama_obat, keterangan, jumlah, satuan, harga_satuan)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                // 2. Tambahkan 'item.id_aset_blockchain' ke dalam array values
+                [idPesanan, item.id_aset_blockchain, item.nama_obat, item.keterangan, item.qty, item.satuan, item.harga_satuan]
+            );
             }
 
             await connection.commit();

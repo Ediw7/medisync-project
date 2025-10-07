@@ -12,7 +12,7 @@ async function getPbfGateway() {
   const ccp = JSON.parse(fs.readFileSync(ccpPath, 'utf8'));
   const gateway = new Gateway();
   // Gunakan identitas PBF, pastikan 'pbfUser' ada di wallet Anda
-  await gateway.connect(ccp, { wallet, identity: 'pbfUser', discovery: { enabled: true, asLocalhost: true } });
+  await gateway.connect(ccp, { wallet, identity: 'pbfAdmin', discovery: { enabled: true, asLocalhost: true } }); 
   return gateway;
 }
 
@@ -124,6 +124,80 @@ const pesananApotekController = {
         }
     },
 
+     // --- FUNGSI BARU: Untuk halaman SuratJalanPbf.jsx ---
+    getSuratJalanById: async (req, res) => {
+        const { id } = req.params;
+        const idPbf = req.user.id;
+        try {
+            const sqlPesanan = `
+                SELECT 
+                    pa.id AS pesanan_id, pa.nomor_pesanan, pa.tanggal_pesanan, pa.status, pa.total_harga,
+                    pa.nama_apotek, pa.alamat_apotek, pa.telepon AS kontak_telepon,
+                    pbf.nama_resmi AS nama_pbf, pbf.alamat AS alamat_pbf,
+                    sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman, 
+                    sjp.waktu_pengiriman, sjp.opsi_pengiriman, sjp.status_blockchain
+                FROM pesanan_apotek pa
+                JOIN users pbf ON pa.id_pbf = pbf.id
+                LEFT JOIN surat_jalan_pbf sjp ON pa.id = sjp.id_pesanan_apotek
+                WHERE pa.id = ? AND pa.id_pbf = ?
+            `;
+            const [pesananRows] = await db.query(sqlPesanan, [id, idPbf]);
+
+            if (pesananRows.length === 0) {
+                return res.status(404).json({ success: false, message: 'Data pesanan atau surat jalan tidak ditemukan.' });
+            }
+
+            const sqlDetail = `
+                SELECT * FROM detail_pesanan_apotek WHERE id_pesanan_apotek = ?
+            `;
+            const [detailRows] = await db.query(sqlDetail, [id]);
+
+            res.json({ 
+                success: true, 
+                data: {
+                    pesanan: pesananRows[0],
+                    detail_pesanan: detailRows
+                } 
+            });
+        } catch (error) {
+            console.error('Error in getSuratJalanById (PBF):', error);
+            res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+        }
+    },
+
+    // --- FUNGSI BARU: Untuk halaman LihatStatusApotek.jsx ---
+    getLacakPengirimanApotek: async (req, res) => {
+        // Mirip dengan getSuratJalanById tapi bisa disesuaikan jika ada info tracking tambahan
+        const { id } = req.params;
+        const idPbf = req.user.id;
+        try {
+            const sql = `
+                SELECT 
+                    pa.id, pa.status, pa.tanggal_pesanan,
+                    sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman, sjp.waktu_pengiriman, sjp.opsi_pengiriman,
+                    apotek.nama_resmi AS nama_apotek_penerima,
+                    pbf.nama_resmi AS nama_pbf_pengirim
+                FROM pesanan_apotek pa
+                JOIN users apotek ON pa.id_apotek = apotek.id
+                JOIN users pbf ON pa.id_pbf = pbf.id
+                LEFT JOIN surat_jalan_pbf sjp ON pa.id = sjp.id_pesanan_apotek
+                WHERE pa.id = ? AND pa.id_pbf = ?
+            `;
+            const [rows] = await db.query(sql, [id, idPbf]);
+
+            if (rows.length === 0) {
+                return res.status(404).json({ success: false, message: 'Data pelacakan tidak ditemukan.' });
+            }
+
+            res.json({ success: true, data: rows[0] });
+        } catch (error) {
+            console.error('Error in getLacakPengirimanApotek:', error);
+            res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+        }
+    },
+
+    
+// --- FUNGSI INI DIROMBAK TOTAL ---
     updateStatusAndCreateSuratJalan: async (req, res) => {
         const { id } = req.params; // id_pesanan_apotek
         const { status, nomorResi, nomorSuratJalan, tanggalPengiriman, alamatTujuan, waktuPengiriman, catatan, hashSuratJalan, opsiPengiriman } = req.body;
@@ -133,7 +207,7 @@ const pesananApotekController = {
         let dbConnection;
 
         try {
-            // --- Langkah 1: Validasi Input ---
+            // Langkah 1: Validasi Input
             if (status !== 'Dikirim') {
                 return res.status(400).json({ success: false, message: 'Status tidak valid. Gunakan: Dikirim' });
             }
@@ -144,10 +218,10 @@ const pesananApotekController = {
             dbConnection = await db.getConnection();
             await dbConnection.beginTransaction();
 
-            // --- Langkah 2: Proses Database Off-Chain (MySQL) ---
-            const [existing] = await dbConnection.query('SELECT id, id_apotek, nama_apotek FROM pesanan_apotek WHERE id = ? AND id_pbf = ?', [id, idPbf]);
+            // Langkah 2: Proses Database Off-Chain (MySQL)
+            const [existing] = await dbConnection.query('SELECT id, id_apotek, nama_apotek FROM pesanan_apotek WHERE id = ? AND id_pbf = ? AND status = "Perlu Dikirim"', [id, idPbf]);
             if (existing.length === 0) {
-                throw new Error('Pesanan tidak ditemukan atau Anda tidak memiliki akses.');
+                throw new Error('Pesanan tidak ditemukan atau statusnya bukan "Perlu Dikirim".');
             }
 
             const sqlSuratJalan = `
@@ -174,21 +248,21 @@ const pesananApotekController = {
             const jumlahPesanan = detailRows.map(row => ({ obatId: row.id_aset_blockchain, jumlah: row.jumlah }));
 
             if (obatIds.length === 0) {
-                throw new Error('Tidak ada ID aset blockchain yang valid untuk pesanan ini.');
+                throw new Error('Tidak ada ID aset blockchain yang valid untuk pesanan ini. Pastikan stok sudah dipilih dari blockchain.');
             }
             
-            // --- Langkah 3: Proses On-Chain (Hyperledger Fabric) ---
+            // Langkah 3: Proses On-Chain (Hyperledger Fabric)
             gateway = await getPbfGateway();
             const network = await gateway.getNetwork('medisyncchannel');
             const contract = network.getContract('medisync');
 
             const namaApotek = existing[0].nama_apotek;
 
-            console.log('Submitting ON-CHAIN transaction for shipment:', nomorSuratJalan);
+            console.log('Submitting ON-CHAIN transaction for shipment to Apotek:', nomorSuratJalan);
             const transaction = contract.createTransaction('PbfContract:transferToApotek');
             
             const resultBuffer = await transaction.submit(
-                id.toString().padStart(6, '0'), // Pastikan ID pesanan sesuai format
+                id.toString(),
                 hashSuratJalan || 'TIDAK_ADA_HASH',
                 namaApotek,
                 JSON.stringify(obatIds),
@@ -199,23 +273,24 @@ const pesananApotekController = {
             const createdAssetIds = resultJson.createdAssetIds;
             console.log('ON-CHAIN transaction successful! New asset IDs:', createdAssetIds);
 
-            // --- Langkah 4: Simpan ID Aset Blockchain ke MySQL ---
+            // Langkah 4: Simpan ID Aset Blockchain BARU ke MySQL
+            // Ini penting agar apotek bisa menerima barang dengan ID yang benar
             if (createdAssetIds && createdAssetIds.length > 0) {
                 for (const assetId of createdAssetIds) {
-                    // Ekstrak aset ID asli dari ID aset baru (asumsi format 'asetId-pesananId')
-                    const originalAsetId = assetId.substring(0, assetId.lastIndexOf('-')); 
+                    const originalAsetId = assetId.substring(0, assetId.lastIndexOf(`-${id}`));
                     const correspondingDetail = detailRows.find(d => d.id_aset_blockchain === originalAsetId);
                     if (correspondingDetail) {
                         await dbConnection.query(
+                            // Update id_aset_blockchain di detail pesanan apotek dengan ID baru hasil splitting
                             'UPDATE detail_pesanan_apotek SET id_aset_blockchain = ? WHERE id = ?',
                             [assetId, correspondingDetail.detail_pesanan_id]
                         );
-                        console.log(`Updated detail_pesanan_apotek ID ${correspondingDetail.detail_pesanan_id} with blockchain asset ID ${assetId}`);
+                        console.log(`Updated detail_pesanan_apotek ID ${correspondingDetail.detail_pesanan_id} with NEW blockchain asset ID ${assetId}`);
                     }
                 }
             }
             
-            // --- Langkah 5: Finalisasi Update di MySQL ---
+            // Langkah 5: Finalisasi Update di MySQL
             await dbConnection.query('UPDATE surat_jalan_pbf SET status_blockchain = ? WHERE id_pesanan_apotek = ?', ['Tercatat', id]);
             await dbConnection.query('UPDATE pesanan_apotek SET status = ? WHERE id = ?', [status, id]);
             
@@ -238,7 +313,6 @@ const pesananApotekController = {
         const idPbf = req.user.id;
 
         try {
-            // Cek dulu apakah pesanan ada dan statusnya 'Menunggu Konfirmasi'
             const [pesanan] = await db.query(
                 'SELECT * FROM pesanan_apotek WHERE id = ? AND id_pbf = ? AND status = "Menunggu Konfirmasi"',
                 [id, idPbf]
@@ -248,7 +322,6 @@ const pesananApotekController = {
                 return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan atau sudah diproses.' });
             }
 
-            // Update status menjadi 'Perlu Dikirim'
             await db.query(
                 "UPDATE pesanan_apotek SET status = 'Perlu Dikirim' WHERE id = ?",
                 [id]
@@ -258,79 +331,6 @@ const pesananApotekController = {
         } catch (error) {
             console.error('Error processing pesanan apotek:', error);
             res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
-        }
-    },
-updateStatusAndCreateSuratJalan: async (req, res) => {
-        const { id } = req.params; // id_pesanan_apotek
-        const {
-            status, nomorResi, nomorSuratJalan, tanggalPengiriman, alamatTujuan,
-            waktuPengiriman, catatan, hashSuratJalan, opsiPengiriman
-        } = req.body;
-        const idPbf = req.user.id;
-
-        let dbConnection;
-        let gateway;
-
-        try {
-            if (status !== 'Dikirim') {
-                return res.status(400).json({ success: false, message: 'Status tidak valid.' });
-            }
-
-            dbConnection = await db.getConnection();
-            await dbConnection.beginTransaction();
-
-            // 1. Verifikasi pesanan
-            const [pesanan] = await dbConnection.query(
-                'SELECT id FROM pesanan_apotek WHERE id = ? AND id_pbf = ? AND status = "Perlu Dikirim"',
-                [id, idPbf]
-            );
-            if (pesanan.length === 0) {
-                throw new Error('Pesanan tidak ditemukan atau tidak dalam status "Perlu Dikirim".');
-            }
-
-            // 2. Simpan/Update data surat jalan ke tabel surat_jalan_pbf
-            const sqlSuratJalan = `
-                INSERT INTO surat_jalan_pbf (id_pesanan_apotek, nomor_resi, nomor_surat_jalan, tanggal_pengiriman, alamat_tujuan, waktu_pengiriman, catatan, hash_surat_jalan, opsi_pengiriman)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON DUPLICATE KEY UPDATE 
-                    nomor_resi=VALUES(nomor_resi), nomor_surat_jalan=VALUES(nomor_surat_jalan), tanggal_pengiriman=VALUES(tanggal_pengiriman),
-                    alamat_tujuan=VALUES(alamat_tujuan), waktu_pengiriman=VALUES(waktu_pengiriman), catatan=VALUES(catatan), 
-                    hash_surat_jalan=VALUES(hash_surat_jalan), opsi_pengiriman=VALUES(opsi_pengiriman)
-            `;
-            await dbConnection.query(sqlSuratJalan, [id, nomorResi, nomorSuratJalan, tanggalPengiriman, alamatTujuan, waktuPengiriman, catatan, hashSuratJalan, opsiPengiriman]);
-
-            // 3. Panggil Chaincode untuk transfer ke Apotek
-            const [detailPesanan] = await dbConnection.query(
-                'SELECT id_aset_blockchain FROM detail_pesanan_apotek WHERE id_pesanan_apotek = ?', [id]
-            );
-            
-            if (detailPesanan.length === 0 || !detailPesanan[0].id_aset_blockchain) {
-                throw new Error('Aset blockchain untuk pesanan ini tidak ditemukan.');
-            }
-            const assetId = detailPesanan[0].id_aset_blockchain;
-
-            gateway = await getPbfGateway();
-            const network = await gateway.getNetwork('medisyncchannel');
-            const contract = network.getContract('medisync', 'PbfContract');
-
-            console.log(`Submitting transaction to transfer asset ${assetId} to Apotek...`);
-            await contract.submitTransaction('transferToApotek', assetId, hashSuratJalan);
-            console.log('Transaction has been submitted successfully.');
-
-            // 4. Update status pesanan dan surat jalan di database
-            await dbConnection.query("UPDATE surat_jalan_pbf SET status_blockchain = 'Tercatat' WHERE id_pesanan_apotek = ?", [id]);
-            await dbConnection.query("UPDATE pesanan_apotek SET status = 'Dikirim' WHERE id = ?", [id]);
-
-            await dbConnection.commit();
-            res.json({ success: true, message: 'Pengiriman berhasil diatur dan dicatat ke blockchain.' });
-
-        } catch (error) {
-            if (dbConnection) await dbConnection.rollback();
-            console.error('Error in updateStatusAndCreateSuratJalan:', error);
-            res.status(500).json({ success: false, message: error.message || 'Kesalahan Server Internal' });
-        } finally {
-            if (gateway) gateway.disconnect();
-            if (dbConnection) dbConnection.release();
         }
     },
 };

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import SidebarPbf from '../../../components/SidebarPbf';
 import NavbarPbf from '../../../components/NavbarPbf';
-import { Printer, Download } from 'lucide-react';
+import { Printer, Download, Loader2 } from 'lucide-react';
 import axios from 'axios';
 import html2pdf from 'html2pdf.js';
 
@@ -59,7 +59,7 @@ const SuratJalanPbf = () => {
     navigate('/');
   };
 
-  if (isLoading) return <div className="flex justify-center items-center h-screen"><p>Memuat data surat jalan...</p></div>;
+  if (isLoading) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin h-8 w-8 text-emerald-600" /></div>;
   if (error) return <div className="flex justify-center items-center h-screen"><p className="text-red-500">Error: {error}</p></div>;
   if (!data || !data.pesanan) return <div className="p-6 text-center">Data surat jalan tidak ditemukan.</div>;
 
@@ -83,7 +83,7 @@ const SuratJalanPbf = () => {
                   <Download className="w-4 h-4 mr-2" /> Unduh PDF
                 </button>
                 <Link to="/pbf/pengelolaan-pesanan" className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg">
-                  Kembali
+                  Selesai
                 </Link>
               </div>
             </div>
@@ -122,7 +122,7 @@ const SuratJalanPbf = () => {
                     <tr className="border">
                       <th className="p-2 text-left font-bold border">No.</th>
                       <th className="p-2 text-left font-bold border">Nama Obat</th>
-                      <th className="p-2 text-left font-bold border">Asset ID Blockchain</th>
+                      <th className="p-2 text-left font-bold border">Asset ID (Baru)</th>
                       <th className="p-2 text-left font-bold border">Jumlah</th>
                       <th className="p-2 text-right font-bold border">Total Harga</th>
                     </tr>
@@ -134,7 +134,7 @@ const SuratJalanPbf = () => {
                         <td className="p-2 border">{item.nama_obat}</td>
                         <td className="p-2 border font-mono text-xs">{item.id_aset_blockchain}</td>
                         <td className="p-2 border">{`${item.jumlah} ${item.satuan}`}</td>
-                        <td className="p-2 text-right border">Rp {item.total_harga.toLocaleString('id-ID')}</td>
+                        <td className="p-2 text-right border">Rp {item.harga_satuan ? (item.jumlah * item.harga_satuan).toLocaleString('id-ID') : 'N/A'}</td>
                       </tr>
                     ))}
                   </tbody>

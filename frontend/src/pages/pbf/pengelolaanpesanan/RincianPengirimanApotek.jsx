@@ -39,56 +39,65 @@ const RincianPengirimanApotek = () => {
   const currentDate = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 
   useEffect(() => {
-    // Jika data pesanan tidak dilewatkan dari state, fetch dari API
-    if (!pesanan) {
-      const fetchPesananData = async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-          const token = localStorage.getItem('token');
-          if (!token) throw new Error('Silakan login terlebih dahulu');
-          const response = await axios.get(`http://localhost:5000/api/pbf/pesanan-apotek/${id}`, {
-            headers: { 'Authorization': `Bearer ${token}` },
-          });
-          if (response.data.success) {
-            setPesanan(response.data.data.pesanan);
-            setDetailPesanan(response.data.data.detail_pesanan || []);
-            setAlamatTujuan(response.data.data.pesanan.alamat_apotek || '');
-          } else {
-            throw new Error(response.data.message || 'Data pesanan tidak ditemukan');
-          }
-        } catch (err) {
-          setError(err.response?.data?.message || err.message);
-          if (err.message.includes('login')) navigate('/login/pbf');
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      fetchPesananData();
-    } else {
-      setAlamatTujuan(pesanan.alamat_apotek || '');
-    }
-  }, [id, navigate, pesanan]);
+    // Fungsi ini akan selalu dijalankan untuk memastikan data terbaru dan lengkap
+    const fetchPesananData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) throw new Error('Silakan login terlebih dahulu');
+        
+        const response = await axios.get(`http://localhost:5000/api/pbf/pesanan-apotek/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
 
+        if (response.data.success) {
+          const { pesanan, detail_pesanan } = response.data.data;
+          setPesanan(pesanan);
+          setDetailPesanan(detail_pesanan || []); // Pastikan detail pesanan selalu di-set
+          setAlamatTujuan(pesanan.alamat_apotek || '');
+
+          // Validasi penting: Cek apakah detail pesanan punya asset ID
+          if (!detail_pesanan || detail_pesanan.length === 0 || detail_pesanan.some(item => !item.id_aset_blockchain)) {
+             setError("Data pesanan tidak lengkap. ID Aset Blockchain untuk satu atau lebih item tidak ditemukan. Pesanan ini tidak bisa dikirim.");
+          }
+
+        } else {
+          throw new Error(response.data.message || 'Data pesanan tidak ditemukan');
+        }
+      } catch (err) {
+        setError(err.response?.data?.message || err.message);
+        if (err.message.includes('login')) navigate('/login/pbf');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPesananData();
+  }, [id, navigate]);
+
+  // --- FUNGSI INI DIUBAH TOTAL ---
   const handleSubmitPengiriman = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
 
-    // Validasi tanggal
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const tanggalPengirimanDate = new Date(tanggalPengiriman);
-    if (!tanggalPengiriman || isNaN(tanggalPengirimanDate.getTime()) || tanggalPengirimanDate < new Date()) {
+
+    if (!tanggalPengiriman || isNaN(tanggalPengirimanDate.getTime()) || tanggalPengirimanDate < today) {
       setError('Tanggal pengiriman harus valid dan tidak boleh sebelum hari ini.');
       setIsSubmitting(false);
       return;
     }
     if (!alamatTujuan || alamatTujuan.trim() === '') {
-      setError('Alamat tujuan tidak tersedia. Hubungi admin.');
+      setError('Alamat tujuan tidak tersedia.');
       setIsSubmitting(false);
       return;
     }
-    if (detailPesanan.length === 0) {
-      setError('Tidak ada detail pesanan yang ditemukan.');
+     if (detailPesanan.length === 0 || detailPesanan.some(item => !item.id_aset_blockchain)) {
+      setError('ID Aset Blockchain untuk item pesanan tidak lengkap. Pengiriman gagal.');
       setIsSubmitting(false);
       return;
     }
@@ -96,7 +105,6 @@ const RincianPengirimanApotek = () => {
     try {
       const token = localStorage.getItem('token');
       const hashSuratJalan = `HASH_SJPBF_${Date.now()}_${id}`;
-      const formattedId = String(id).padStart(6, '0'); // Format ID seperti di controller
 
       const payload = {
         status: 'Dikirim',
@@ -110,30 +118,19 @@ const RincianPengirimanApotek = () => {
         opsiPengiriman
       };
 
-      const response = await axios.put(`http://localhost:5000/api/pbf/pesanan-apotek/${formattedId}/atur-pengiriman`, payload, {
+      const response = await axios.put(`http://localhost:5000/api/pbf/pesanan-apotek/${id}/atur-pengiriman`, payload, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
       if (response.data.success) {
         alert('Surat jalan berhasil dibuat dan data disimpan ke blockchain.');
-        // Arahkan ke halaman surat jalan PBF (perlu dibuat) atau kembali ke daftar
-        navigate('/pbf/pengelolaan-pesanan', { 
-          state: { 
-            nomorResi, 
-            nomorSuratJalan, 
-            pesanan, 
-            detailPesanan,
-            tanggalPengiriman, 
-            alamatTujuan, 
-            waktuPengiriman, 
-            catatan, 
-            hashSuratJalan 
-          } 
-        });
+        navigate(`/pbf/pengelolaan-pesanan/surat-jalan/${id}`);
       } else {
+        // Ini akan menangani error dari backend yang success: false
         throw new Error(response.data.message || 'Gagal mengatur pengiriman.');
       }
     } catch (err) {
+      // Menangkap error dari Axios (misal: 500, 404) dan error yang kita lempar di atas
       setError(err.response?.data?.message || err.message);
     } finally {
       setIsSubmitting(false);
@@ -206,9 +203,8 @@ const RincianPengirimanApotek = () => {
                         <thead className="bg-gray-50">
                           <tr>
                             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nama Obat</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Keterangan</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Asset ID</th>
                             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Jumlah</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Satuan</th>
                             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Harga Satuan (Rp)</th>
                           </tr>
                         </thead>
@@ -216,9 +212,8 @@ const RincianPengirimanApotek = () => {
                           {detailPesanan.map((item) => (
                             <tr key={item.id} className="hover:bg-gray-50">
                               <td className="px-4 py-2 text-sm text-gray-900">{item.nama_obat}</td>
-                              <td className="px-4 py-2 text-sm text-gray-600">{item.keterangan || '-'}</td>
-                              <td className="px-4 py-2 text-sm font-medium">{item.jumlah}</td>
-                              <td className="px-4 py-2 text-sm text-gray-600">{item.satuan}</td>
+                              <td className="px-4 py-2 text-sm text-gray-600 font-mono text-xs">{item.id_aset_blockchain || 'N/A'}</td>
+                              <td className="px-4 py-2 text-sm font-medium">{item.jumlah} {item.satuan}</td>
                               <td className="px-4 py-2 text-sm font-medium">Rp {item.harga_satuan?.toLocaleString('id-ID')}</td>
                             </tr>
                           ))}
@@ -309,16 +304,14 @@ const RincianPengirimanApotek = () => {
                         Menyimpan...
                       </>
                     ) : (
-                      'Konfirmasi & Cetak Surat Jalan'
+                      'Konfirmasi & Buat Surat Jalan'
                     )}
                   </button>
                 </div>
               </form>
               {error && (
                 <div className="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
+                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
                   {error}
                 </div>
               )}

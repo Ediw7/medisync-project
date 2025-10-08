@@ -61,7 +61,10 @@ const SuratJalanPbf = () => {
 
   if (isLoading) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin h-8 w-8 text-emerald-600" /></div>;
   if (error) return <div className="flex justify-center items-center h-screen"><p className="text-red-500">Error: {error}</p></div>;
-  if (!data || !data.pesanan) return <div className="p-6 text-center">Data surat jalan tidak ditemukan.</div>;
+  // --- PERBAIKAN: Pemeriksaan data yang lebih kuat ---
+  if (!data || !data.pesanan || !data.detail_pesanan) {
+    return <div className="p-6 text-center">Data surat jalan tidak lengkap atau tidak ditemukan.</div>;
+  }
 
   const { pesanan: info, detail_pesanan: detail } = data;
 
@@ -91,27 +94,33 @@ const SuratJalanPbf = () => {
             <div ref={contentRef} className="bg-white p-8 border border-gray-300 shadow-md print:border-0 print:shadow-none">
               <header className="flex justify-between items-start mb-8 pb-4 border-b-2 border-black">
                   <div className="flex flex-col">
-                      <h1 className="text-2xl font-bold text-gray-800">{info.nama_pbf}</h1>
-                      <p className="text-xs text-gray-600">{info.alamat_pbf}</p>
+                      {/* --- PERBAIKAN: Tambahkan fallback --- */}
+                      <h1 className="text-2xl font-bold text-gray-800">{info?.nama_pbf || 'Nama PBF tidak tersedia'}</h1>
+                      <p className="text-xs text-gray-600">{info?.alamat_pbf || 'Alamat tidak tersedia'}</p>
                   </div>
                   <div className="flex flex-col text-right">
                       <h2 className="text-3xl font-bold text-gray-900">SURAT JALAN</h2>
-                      <p className="text-lg font-semibold text-gray-700">No. {info.nomor_surat_jalan}</p>
-                      <p className="text-sm text-gray-500">Tanggal: {new Date(info.tanggal_pengiriman).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                      {/* --- PERBAIKAN: Tambahkan fallback --- */}
+                      <p className="text-lg font-semibold text-gray-700">No. {info?.nomor_surat_jalan || '...'}</p>
+                      <p className="text-sm text-gray-500">
+                        Tanggal: {info?.tanggal_pengiriman ? new Date(info.tanggal_pengiriman).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '...'}
+                      </p>
                   </div>
               </header>
 
               <section className="grid grid-cols-2 gap-8 mb-8 text-sm">
                   <div>
                       <h3 className="font-bold text-gray-800 mb-2">PENGIRIM</h3>
-                      <p>{info.nama_pbf}</p>
-                      <p>{info.alamat_pbf}</p>
+                      {/* --- PERBAIKAN: Tambahkan fallback --- */}
+                      <p>{info?.nama_pbf || '...'}</p>
+                      <p>{info?.alamat_pbf || '...'}</p>
                   </div>
                   <div>
                       <h3 className="font-bold text-gray-800 mb-2">PENERIMA</h3>
-                      <p className="font-semibold">{info.nama_apotek}</p>
-                      <p>{info.alamat_apotek}</p>
-                      <p>{info.kontak_telepon}</p>
+                      {/* --- PERBAIKAN: Tambahkan fallback --- */}
+                      <p className="font-semibold">{info?.nama_apotek || '...'}</p>
+                      <p>{info?.alamat_apotek || '...'}</p>
+                      <p>{info?.kontak_telepon || '...'}</p>
                   </div>
               </section>
 
@@ -128,33 +137,31 @@ const SuratJalanPbf = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {detail.map((item, index) => (
-                      <tr key={index} className="border-b">
+                    {/* --- PERBAIKAN: Gunakan optional chaining pada 'detail' --- */}
+                    {detail?.map((item, index) => (
+                      <tr key={item?.id || index} className="border-b">
                         <td className="p-2 border">{index + 1}</td>
-                        <td className="p-2 border">{item.nama_obat}</td>
-                        <td className="p-2 border font-mono text-xs">{item.id_aset_blockchain}</td>
-                        <td className="p-2 border">{`${item.jumlah} ${item.satuan}`}</td>
-                        <td className="p-2 text-right border">Rp {item.harga_satuan ? (item.jumlah * item.harga_satuan).toLocaleString('id-ID') : 'N/A'}</td>
+                        <td className="p-2 border">{item?.nama_obat || 'N/A'}</td>
+                        <td className="p-2 border font-mono text-xs">{item?.id_aset_blockchain || 'N/A'}</td>
+                        <td className="p-2 border">{`${item?.jumlah || 0} ${item?.satuan || ''}`}</td>
+                        <td className="p-2 text-right border">Rp {item?.harga_satuan ? (item.jumlah * item.harga_satuan).toLocaleString('id-ID') : '0'}</td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
                     <tr className="font-bold bg-gray-50">
                         <td colSpan="4" className="p-2 text-right border">TOTAL HARGA</td>
-                        <td className="p-2 text-right border">Rp {info.total_harga.toLocaleString('id-ID')}</td>
+                        {/* --- PERBAIKAN: Tambahkan fallback untuk total_harga --- */}
+                        <td className="p-2 text-right border">Rp {(info?.total_harga || 0).toLocaleString('id-ID')}</td>
                     </tr>
                   </tfoot>
                 </table>
               </section>
 
               <footer className="flex justify-between items-end mt-12 pt-8 border-t">
-                <p className="text-xs text-gray-600">No. Resi: <span className="font-bold text-gray-900">{info.nomor_resi}</span></p>
-                <div className="text-center text-sm">
-                  <p>Hormat Kami,</p>
-                  <br /><br /><br />
-                  <p>(______________________)</p>
-                  <p>{info.nama_pbf}</p>
-                </div>
+                 {/* --- PERBAIKAN: Tambahkan fallback --- */}
+                <p className="text-xs text-gray-600">No. Resi: <span className="font-bold text-gray-900">{info?.nomor_resi || '...'}</span></p>
+                
               </footer>
             </div>
           </div>

@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import SidebarPbf from '../../../components/SidebarPbf';
 import NavbarPbf from '../../../components/NavbarPbf';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react'; // Import AlertTriangle
 import axios from 'axios';
 
-// Fungsi helper untuk generate nomor
+// ... (fungsi generateProNumber tetap sama)
 const generateProNumber = (prefix, orderId) => {
   const date = new Date();
   const year = date.getFullYear().toString().slice(-2);
@@ -15,19 +15,19 @@ const generateProNumber = (prefix, orderId) => {
   return `${prefix}-${year}${month}${day}-${orderId}-${timestamp}`;
 };
 
+
 const RincianPengirimanApotek = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
 
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [pesanan, setPesanan] = useState(location.state?.pesanan || null);
-  const [detailPesanan, setDetailPesanan] = useState(location.state?.detail_pesanan || []);
-  const [isLoading, setIsLoading] = useState(!location.state?.pesanan);
+  const [pesanan, setPesanan] = useState(null);
+  const [detailPesanan, setDetailPesanan] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Data dari halaman sebelumnya (AturPengirimanApotek)
   const nomorResi = generateProNumber('RESPBF', id);
   const nomorSuratJalan = generateProNumber('SJPBF', id);
   const [opsiPengiriman, setOpsiPengiriman] = useState(location.state?.opsiPengiriman || 'standar');
@@ -39,7 +39,6 @@ const RincianPengirimanApotek = () => {
   const currentDate = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 
   useEffect(() => {
-    // Fungsi ini akan selalu dijalankan untuk memastikan data terbaru dan lengkap
     const fetchPesananData = async () => {
       setIsLoading(true);
       setError(null);
@@ -54,14 +53,12 @@ const RincianPengirimanApotek = () => {
         if (response.data.success) {
           const { pesanan, detail_pesanan } = response.data.data;
           setPesanan(pesanan);
-          setDetailPesanan(detail_pesanan || []); // Pastikan detail pesanan selalu di-set
-          setAlamatTujuan(pesanan.alamat_apotek || '');
+          setDetailPesanan(detail_pesanan || []);
+          setAlamatTujuan(pesanan.alamat_apotek || 'Alamat tidak tersedia');
 
-          // Validasi penting: Cek apakah detail pesanan punya asset ID
           if (!detail_pesanan || detail_pesanan.length === 0 || detail_pesanan.some(item => !item.id_aset_blockchain)) {
              setError("Data pesanan tidak lengkap. ID Aset Blockchain untuk satu atau lebih item tidak ditemukan. Pesanan ini tidak bisa dikirim.");
           }
-
         } else {
           throw new Error(response.data.message || 'Data pesanan tidak ditemukan');
         }
@@ -72,11 +69,9 @@ const RincianPengirimanApotek = () => {
         setIsLoading(false);
       }
     };
-
     fetchPesananData();
   }, [id, navigate]);
 
-  // --- FUNGSI INI DIUBAH TOTAL ---
   const handleSubmitPengiriman = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -91,8 +86,8 @@ const RincianPengirimanApotek = () => {
       setIsSubmitting(false);
       return;
     }
-    if (!alamatTujuan || alamatTujuan.trim() === '') {
-      setError('Alamat tujuan tidak tersedia.');
+    if (!alamatTujuan || alamatTujuan === 'Alamat tidak tersedia') {
+      setError('Alamat tujuan tidak tersedia. Hubungi admin.');
       setIsSubmitting(false);
       return;
     }
@@ -126,12 +121,14 @@ const RincianPengirimanApotek = () => {
         alert('Surat jalan berhasil dibuat dan data disimpan ke blockchain.');
         navigate(`/pbf/pengelolaan-pesanan/surat-jalan/${id}`);
       } else {
-        // Ini akan menangani error dari backend yang success: false
         throw new Error(response.data.message || 'Gagal mengatur pengiriman.');
       }
     } catch (err) {
-      // Menangkap error dari Axios (misal: 500, 404) dan error yang kita lempar di atas
-      setError(err.response?.data?.message || err.message);
+      // --- PERBAIKAN DI SINI ---
+      const errorMessage = err.response?.data?.message || err.message;
+      console.error("Gagal mengirim data:", err.response || err); // Log error lengkap ke console
+      setError(errorMessage); // Set state error agar ditampilkan di UI
+      // --- AKHIR PERBAIKAN ---
     } finally {
       setIsSubmitting(false);
     }
@@ -142,181 +139,148 @@ const RincianPengirimanApotek = () => {
     navigate('/');
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-50">
-        <div className="text-center">
-          <Loader2 className="animate-spin h-8 w-8 text-emerald-600 mx-auto mb-4" />
-          <p className="text-gray-600">Memuat data pesanan...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-50">
-        <div className="p-6 bg-red-100 text-red-700 rounded-lg flex items-center gap-2 max-w-md">
-          <Loader2 className="w-5 h-5" />
-          <span>Error: {error}</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (!pesanan) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-50">
-        <p className="text-gray-500">Data pesanan tidak ditemukan.</p>
-      </div>
-    );
-  }
-
   return (
     <div className="flex min-h-screen bg-gray-50">
       <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarPbf onLogout={handleLogout} />
         <main className="pt-16 p-6">
-          <div className="max-w-4xl mx-auto">
             <div className="flex justify-between items-center mb-6">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Rincian Pengiriman ke Apotek</h1>
-                <p className="text-gray-600">Tanggal hari ini: {currentDate}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => navigate(-1)}
-                className="bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition"
-              >
-                Kembali
-              </button>
-            </div>
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <form onSubmit={handleSubmitPengiriman} className="space-y-6">
-                {/* Detail Pesanan Table */}
-                {detailPesanan.length > 0 && (
-                  <div className="mb-6">
-                    <h2 className="text-lg font-semibold mb-2 text-gray-900">Detail Pesanan</h2>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nama Obat</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Asset ID</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Jumlah</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Harga Satuan (Rp)</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                          {detailPesanan.map((item) => (
-                            <tr key={item.id} className="hover:bg-gray-50">
-                              <td className="px-4 py-2 text-sm text-gray-900">{item.nama_obat}</td>
-                              <td className="px-4 py-2 text-sm text-gray-600 font-mono text-xs">{item.id_aset_blockchain || 'N/A'}</td>
-                              <td className="px-4 py-2 text-sm font-medium">{item.jumlah} {item.satuan}</td>
-                              <td className="px-4 py-2 text-sm font-medium">Rp {item.harga_satuan?.toLocaleString('id-ID')}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Nomor Resi</label>
-                  <input type="text" value={nomorResi} readOnly className="mt-1 block w-full p-2 border bg-gray-100 rounded-md" />
+                    <h1 className="text-2xl font-bold text-gray-900">Rincian Pengiriman ke Apotek</h1>
+                    <p className="text-gray-600">Rincian pengiriman untuk pesanan ID: {id}</p>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Nomor Surat Jalan</label>
-                  <input type="text" value={nomorSuratJalan} readOnly className="mt-1 block w-full p-2 border bg-gray-100 rounded-md" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Opsi Pengiriman</label>
-                  <select
-                    value={opsiPengiriman}
-                    onChange={(e) => setOpsiPengiriman(e.target.value)}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  >
-                    <option value="standar">Standar (2-3 hari)</option>
-                    <option value="ekspres">Ekspres (1 hari)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Catatan</label>
-                  <textarea
-                    value={catatan}
-                    onChange={(e) => setCatatan(e.target.value)}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 h-24 resize-none focus:ring-emerald-500 focus:border-emerald-500"
-                    placeholder="Masukkan catatan jika ada."
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Tanggal Pengiriman</label>
-                  <input
-                    type="date"
-                    value={tanggalPengiriman}
-                    onChange={(e) => setTanggalPengiriman(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Alamat Tujuan</label>
-                  <input
-                    type="text"
-                    value={alamatTujuan}
-                    onChange={(e) => setAlamatTujuan(e.target.value)}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    placeholder="Masukkan alamat tujuan"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Waktu Pengiriman</label>
-                  <select
-                    value={waktuPengiriman}
-                    onChange={(e) => setWaktuPengiriman(e.target.value)}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  >
-                    <option value="09:00-12:00">09:00 - 12:00</option>
-                    <option value="13:00-16:00">13:00 - 16:00</option>
-                    <option value="16:00-19:00">16:00 - 19:00</option>
-                  </select>
-                </div>
-                <div className="flex justify-end space-x-4">
-                  <button
+                <button
                     type="button"
-                    onClick={() => navigate(-1)}
-                    className="py-2 px-6 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
-                  >
+                    onClick={() => navigate('/pbf/pengelolaan-pesanan')}
+                    className="bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition"
+                >
                     Kembali
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting || !tanggalPengiriman || !alamatTujuan.trim()}
-                    className="py-2 px-6 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="animate-spin h-5 w-5" />
-                        Menyimpan...
-                      </>
-                    ) : (
-                      'Konfirmasi & Buat Surat Jalan'
-                    )}
-                  </button>
-                </div>
-              </form>
-              {error && (
-                <div className="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg flex items-center gap-2">
-                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
-                  {error}
-                </div>
-              )}
+                </button>
             </div>
-          </div>
+
+            <div className="bg-white rounded-lg shadow-lg p-6">
+            {isLoading ? (
+                <div className="flex justify-center items-center py-10">
+                    <Loader2 className="animate-spin h-8 w-8 text-emerald-600" />
+                </div>
+            ) : !pesanan ? (
+                <div className="text-center py-10 text-gray-500">
+                    Data pesanan tidak ditemukan.
+                </div>
+            ) : (
+                <form onSubmit={handleSubmitPengiriman} className="space-y-6">
+                  {/* Form inputs tetap sama */}
+                  <div>
+                      <label className="block text-sm font-medium text-gray-700">Nomor Resi</label>
+                      <input
+                      type="text"
+                      value={nomorResi}
+                      readOnly
+                      className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-800 font-semibold"
+                      />
+                  </div>
+                  <div>
+                      <label className="block text-sm font-medium text-gray-700">Nomor Surat Jalan</label>
+                      <input
+                      type="text"
+                      value={nomorSuratJalan}
+                      readOnly
+                      className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-800 font-semibold"
+                      />
+                  </div>
+                  <div>
+                      <label className="block text-sm font-medium text-gray-700">Opsi Pengiriman</label>
+                      <select
+                      value={opsiPengiriman}
+                      onChange={(e) => setOpsiPengiriman(e.target.value)}
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 p-2"
+                      >
+                      <option value="standar">Standar (2-3 hari)</option>
+                      <option value="ekspres">Ekspres (1 hari)</option>
+                      </select>
+                  </div>
+                  <div>
+                      <label className="block text-sm font-medium text-gray-700">Catatan</label>
+                      <textarea
+                      value={catatan}
+                      onChange={(e) => setCatatan(e.target.value)}
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 h-24 resize-none"
+                      placeholder="Masukkan catatan jika ada."
+                      />
+                  </div>
+                  <div>
+                      <label className="block text-sm font-medium text-gray-700">Tanggal Pengiriman</label>
+                      <input
+                      type="date"
+                      value={tanggalPengiriman}
+                      onChange={(e) => setTanggalPengiriman(e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      required
+                      />
+                  </div>
+                  <div>
+                      <label className="block text-sm font-medium text-gray-700">Alamat Tujuan</label>
+                      <input
+                      type="text"
+                      value={alamatTujuan}
+                      onChange={(e) => setAlamatTujuan(e.target.value)}
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      placeholder="Masukkan alamat tujuan"
+                      required
+                      disabled={alamatTujuan === 'Alamat tidak tersedia'}
+                      />
+                  </div>
+                  <div>
+                      <label className="block text-sm font-medium text-gray-700">Waktu Pengiriman</label>
+                      <select
+                      value={waktuPengiriman}
+                      onChange={(e) => setWaktuPengiriman(e.target.value)}
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      >
+                      <option value="09:00-12:00">09:00 - 12:00</option>
+                      <option value="13:00-16:00">13:00 - 16:00</option>
+                      <option value="16:00-19:00">16:00 - 19:00</option>
+                      </select>
+                  </div>
+                  <div className="flex space-x-4">
+                      <button
+                          type="submit"
+                          disabled={isSubmitting || isLoading || !!error}
+                          className="w-full bg-emerald-600 text-white py-3 px-6 rounded-lg hover:bg-emerald-700 transition duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                          {isSubmitting ? (
+                          <>
+                              <Loader2 className="animate-spin h-5 w-5" />
+                              Menyimpan...
+                          </>
+                          ) : (
+                          'Konfirmasi & Buat Surat Jalan'
+                          )}
+                      </button>
+                      <button
+                          type="button"
+                          onClick={() => navigate('/pbf/pengelolaan-pesanan')}
+                          className="w-full bg-gray-200 text-gray-800 py-3 px-6 rounded-lg hover:bg-gray-300 transition text-center"
+                      >
+                          Kembali
+                      </button>
+                  </div>
+                </form>
+            )}
+
+            {/* --- PERBAIKAN TAMPILAN ERROR DI SINI --- */}
+            {error && (
+                <div className="mt-6 p-4 bg-red-100 text-red-700 rounded-lg flex items-start gap-3">
+                    <AlertTriangle className="w-6 h-6 flex-shrink-0" />
+                    <div>
+                        <h3 className="font-bold">Proses Gagal</h3>
+                        <p className="text-sm">{error}</p>
+                    </div>
+                </div>
+            )}
+            </div>
         </main>
       </div>
     </div>

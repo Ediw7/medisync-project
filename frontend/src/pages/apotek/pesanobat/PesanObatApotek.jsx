@@ -147,6 +147,7 @@ const PesanObatApotek = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
+                    
                     {filteredData.length > 0 ? filteredData.map((item) => (
                       <tr key={item.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -167,11 +168,33 @@ const PesanObatApotek = () => {
                            </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          {/* Tombol aksi akan ditambahkan di sini sesuai kebutuhan alur, contoh: */}
-                          <Link to={`/apotek/pesanan/${item.id}/detail`} className="text-emerald-600 hover:text-emerald-800">
-                            Lihat Detail
-                          </Link>
-                        </td>
+    <div className="flex gap-4 items-center">
+        {item.status === 'Menunggu Konfirmasi' && (
+            <Link to={`/apotek/pesanan/${item.id}/batalkan`} className="text-red-600 hover:text-red-800 font-medium">
+                Batalkan Pesanan
+            </Link>
+        )}
+        {item.status === 'Dikirim' && (
+            <button onClick={() => navigate(`/apotek/pesanan/${item.id}/konfirmasi-penerimaan`)} className="text-emerald-600 hover:text-emerald-800 font-medium">
+                Konfirmasi Penerimaan
+            </button>
+        )}
+        {(item.status === 'Selesai' || item.status === 'Pengembalian Selesai') && (
+            item.id_aset_blockchain ? (
+                <Link to={`/apotek/pesanan/riwayat/${item.id_aset_blockchain}`} className="text-emerald-600 hover:text-emerald-800 font-medium">
+                    Lihat Riwayat
+                </Link>
+            ) : (
+                <span className="text-gray-400">Riwayat T/A</span>
+            )
+        )}
+        {(item.status === 'Dibatalkan' || item.status === 'Pembatalan Diajukan') && (
+            <Link to={`/apotek/pesanan/${item.id}/detail`} className="text-gray-600 hover:text-gray-800">
+                Lihat Detail
+            </Link>
+        )}
+    </div>
+</td>
                       </tr>
                     )) : (
                         <tr>

@@ -12,8 +12,11 @@ router.put('/:id/atur-pengiriman', authenticateToken, authorizeRole('pbf'), pesa
 
 router.get('/:id/surat-jalan', authenticateToken, authorizeRole('pbf'), pesananApotekController.getSuratJalanById);
 router.get('/:id/lacak', authenticateToken, authorizeRole('pbf'), pesananApotekController.getLacakPengirimanApotek);
+router.put('/:id/konfirmasi-pembatalan', authenticateToken, authorizeRole('pbf'), pesananApotekController.konfirmasiPembatalan);
+
 
 // Untuk Apotek yang login
 router.post('/', authenticateToken, authorizeRole('apotek'), pesananApotekController.createPesanan);
-
+// --- RUTE BARU UNTUK APOTEK MENGAJUKAN PEMBATALAN ---
+router.put('/:id/request-pembatalan', authenticateToken, authorizeRole('apotek'), pesananApotekController.requestPembatalan);
 module.exports = router;

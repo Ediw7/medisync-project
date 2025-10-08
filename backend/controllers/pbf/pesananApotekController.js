@@ -19,7 +19,6 @@ async function getPbfGateway() {
 
 
 const pesananApotekController = {
-
     
     // Untuk Apotek: Membuat pesanan baru ke PBF
     createPesanan: async (req, res) => {
@@ -111,16 +110,99 @@ const pesananApotekController = {
                 [id]
             );
 
+            const pesananData = pesananRows[0];
+            let alasan_pembatalan = '-';
+            // Ekstrak alasan dari catatan_khusus
+            if (pesananData.catatan_khusus && pesananData.catatan_khusus.includes('Alasan:')) {
+                alasan_pembatalan = pesananData.catatan_khusus.split('Alasan:')[1].trim() || '-';
+            }
+
             res.json({
                 success: true,
                 data: {
-                    pesanan: pesananRows[0],
+                    // Sertakan alasan pembatalan ke dalam objek pesanan
+                    pesanan: { ...pesananData, alasan_pembatalan },
                     detail_pesanan: detailRows,
                 },
             });
         } catch (error) {
             console.error(`Error getting pesanan apotek by ID ${id}:`, error);
             res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+        }
+    },
+
+    requestPembatalan: async (req, res) => {
+        const { id } = req.params;
+        const { alasan } = req.body;
+        const idApotek = req.user.id;
+
+        if (!alasan) {
+            return res.status(400).json({ success: false, message: 'Alasan pembatalan wajib diisi.' });
+        }
+
+        try {
+            const [pesanan] = await db.query(
+                "SELECT id FROM pesanan_apotek WHERE id = ? AND id_apotek = ? AND status = 'Menunggu Konfirmasi'",
+                [id, idApotek]
+            );
+
+            if (pesanan.length === 0) {
+                return res.status(403).json({ success: false, message: "Pesanan tidak dapat dibatalkan atau tidak ditemukan. Status harus 'Menunggu Konfirmasi'." });
+            }
+            
+            await db.query(
+                "UPDATE pesanan_apotek SET status = 'Pembatalan Diajukan', catatan_khusus = ? WHERE id = ?",
+                [`Dibatalkan oleh Apotek. Alasan: ${alasan}`, id]
+            );
+
+            res.json({ success: true, message: "Pengajuan pembatalan berhasil dikirim." });
+        } catch (error) {
+            console.error('Error in requestPembatalan (Apotek):', error);
+            res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+        }
+    },
+
+    // --- FUNGSI BARU 2: Untuk PBF mengonfirmasi/menolak pembatalan ---
+    konfirmasiPembatalan: async (req, res) => {
+        const { id } = req.params;
+        const { status } = req.body; // 'Dibatalkan' atau 'Menunggu Konfirmasi'
+        const idPbf = req.user.id;
+
+        let dbConnection;
+        try {
+            dbConnection = await db.getConnection();
+            await dbConnection.beginTransaction();
+
+            const [currentPesanan] = await dbConnection.query(
+                "SELECT status FROM pesanan_apotek WHERE id = ? AND id_pbf = ?",
+                [id, idPbf]
+            );
+
+            if (currentPesanan.length === 0) {
+                throw new Error('Pesanan tidak ditemukan atau Anda tidak berwenang.');
+            }
+
+            if (currentPesanan[0].status !== 'Pembatalan Diajukan') {
+                throw new Error("Aksi tidak valid. Pesanan tidak dalam status 'Pembatalan Diajukan'.");
+            }
+
+            // Jika PBF menolak, kembalikan statusnya. Jika menerima, batalkan.
+            if (status !== 'Dibatalkan' && status !== 'Menunggu Konfirmasi') {
+                throw new Error("Status tujuan hanya bisa 'Dibatalkan' atau 'Menunggu Konfirmasi'.");
+            }
+            
+            // Tidak perlu mengembalikan stok karena stok on-chain belum berkurang
+            await dbConnection.query(`UPDATE pesanan_apotek SET status = ? WHERE id = ?`, [status, id]);
+            await dbConnection.commit();
+
+            res.json({ success: true, message: `Status pesanan berhasil diubah menjadi ${status}.` });
+
+        } catch (error) {
+            if (dbConnection) await dbConnection.rollback();
+            console.error('Error in konfirmasiPembatalan (PBF):', error);
+            res.status(500).json({ success: false, message: `Kesalahan Server Internal: ${error.message}` });
+        } finally {
+            if (dbConnection) dbConnection.release();
         }
     },
 

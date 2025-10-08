@@ -123,13 +123,14 @@ const PengelolaanPesanan = () => {
     switch (status) {
       case 'Menunggu Konfirmasi': return 'bg-yellow-100 text-yellow-800';
       case 'Perlu Dikirim': return 'bg-orange-100 text-orange-800';
-      case 'Diproses': return 'bg-blue-100 text-blue-800'; // Tetap ada jika masih digunakan
+      // --- TAMBAHAN BARU ---
+      case 'Pembatalan Diajukan': return 'bg-red-100 text-red-800';
       case 'Dikirim': return 'bg-cyan-100 text-cyan-800';
       case 'Selesai': return 'bg-emerald-100 text-emerald-800';
-      case 'Dibatalkan': return 'bg-red-100 text-red-800';
+      case 'Dibatalkan': return 'bg-gray-100 text-gray-800'; // Dibuat abu-abu
       default: return 'bg-gray-100 text-gray-800';
     }
-  };
+};
 
   const formatDate = (dateString) => {
     if (!dateString) return '-';
@@ -160,6 +161,7 @@ const PengelolaanPesanan = () => {
               <div className="flex items-center gap-x-2 overflow-x-auto">
                 <NavItem label="Semua" filter="Semua" currentFilter={statusFilter} setFilter={setStatusFilter} />
                 <NavItem label="Menunggu Konfirmasi" filter="Menunggu Konfirmasi" currentFilter={statusFilter} setFilter={setStatusFilter} />
+                <NavItem label="Pembatalan Diajukan" filter="Pembatalan Diajukan" currentFilter={statusFilter} setFilter={setStatusFilter} />
                 <NavItem label="Perlu Dikirim" filter="Perlu Dikirim" currentFilter={statusFilter} setFilter={setStatusFilter} />
                 <NavItem label="Dikirim" filter="Dikirim" currentFilter={statusFilter} setFilter={setStatusFilter} />
                 <NavItem label="Selesai" filter="Selesai" currentFilter={statusFilter} setFilter={setStatusFilter} />
@@ -215,7 +217,13 @@ const PengelolaanPesanan = () => {
                             {order.status}
                           </span>
                         </td>
+                        
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          {order.status === 'Pembatalan Diajukan' && (
+                              <Link to={`/pbf/pengelolaan-pesanan/konfirmasi-pembatalan/${order.id}`} className="text-red-600 hover:text-red-800">
+                                  Konfirmasi Pembatalan
+                              </Link>
+                          )}
                           {order.status === 'Menunggu Konfirmasi' && (
                             <button 
                               onClick={() => handleProsesPesanan(order.id)}
@@ -241,7 +249,7 @@ const PengelolaanPesanan = () => {
                           )}
                            {order.status === 'Dibatalkan' && (
                             <Link to={`/pbf/pengelolaan-pesanan/riwayat-pembatalan/${order.id}`} className="text-gray-600 hover:text-gray-800">
-                              Detail Pembatalan
+                              Lihat Riwayat
                             </Link>
                           )}
                         </td>

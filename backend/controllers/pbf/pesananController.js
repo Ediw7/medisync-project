@@ -8,6 +8,8 @@ const nano = require('nano')(`http://${process.env.COUCHDB_USER}:${process.env.C
 const { Gateway, Wallets } = require('fabric-network');
 const grpc = require('@grpc/grpc-js');
 
+
+
 // Fungsi untuk menghitung hash file
 async function calculateFileHash(filePath) {
   try {
@@ -25,33 +27,26 @@ async function calculateFileHash(filePath) {
 }
 
 // Fungsi untuk membuat koneksi ke Hyperledger Fabric
-async function getGateway() {
+async function getPbfGateway() {
   try {
-    // 1. Tentukan path ke wallet yang sudah ada
     const walletPath = path.resolve(__dirname, '..', '..', 'wallet');
     const wallet = await Wallets.newFileSystemWallet(walletPath);
 
-    // 2. Pastikan identitas admin PBF ada di dalam wallet
     const identity = await wallet.get('pbfAdmin');
     if (!identity) {
         throw new Error('Identitas "pbfAdmin" tidak ditemukan di dalam wallet. Jalankan enrollAdminPbf.js terlebih dahulu.');
     }
 
-    // 3. Muat connection profile untuk Organisasi 2 (PBF)
     const ccpPath = path.resolve(__dirname, '..', '..', 'connection-org2.json');
     const ccp = JSON.parse(await fs.readFile(ccpPath, 'utf8'));
 
-    // 4. Buat koneksi gateway
     const gateway = new Gateway();
     await gateway.connect(ccp, {
         wallet,
-        identity: 'pbfAdmin', // Gunakan identitas PBF dari wallet
+        identity: 'pbfAdmin',
         discovery: { enabled: true, asLocalhost: true }
     });
-
-    console.log('Gateway connection for PBF established');
     return gateway;
-
   } catch (error) {
     console.error('Error initializing PBF gateway:', error);
     throw new Error(`Gagal menginisialisasi koneksi ke blockchain: ${error.message}`);
@@ -263,56 +258,82 @@ const pesananController = {
   },
 
   getRiwayatByAssetId: async (req, res) => {
-    const { assetId } = req.params;
-    const idPbf = req.user.id; // Ambil ID PBF yang sedang login
-    let gateway;
+        const { assetId } = req.params;
+        const idPbf = req.user.id; // ID PBF yang sedang login
+        let gateway;
 
-    try {
-      gateway = await getGateway(); // Fungsi getGateway PBF
-      const network = await gateway.getNetwork('medisyncchannel');
-      const contract = network.getContract('medisync');
+        try {
+            gateway = await getPbfGateway();
+            const network = await gateway.getNetwork('medisyncchannel');
+            const contract = network.getContract('medisync');
+            
+            // Panggil chaincode untuk membaca data aset
+            // Kita tetap butuh ini untuk mendapatkan data on-chain
+            const resultBuffer = await contract.evaluateTransaction('ProdusenContract:readObat', assetId);
+            const onChainData = JSON.parse(resultBuffer.toString());
 
-      // Gunakan readObat dari ProdusenContract karena PBF juga perlu membaca aset yang sama
-      const resultBuffer = await contract.evaluateTransaction('ProdusenContract:readObat', assetId);
-      const onChainData = JSON.parse(resultBuffer.toString());
-      
-      // Ambil ID pesanan dari ID aset (misal: "BATCH-001-106" -> "106")
-      const idPesanan = onChainData.id.substring(onChainData.id.lastIndexOf('-') + 1);
+            // Ekstrak ID Pesanan dari ID Aset (misal: '...-21' -> '21')
+             const isApotekOrder = onChainData.riwayat.some(h => h.status === 'DIKIRIM_KE_APOTEK');
+      const assetIdParts = assetId.split('-');
+      const idPesanan = assetIdParts[assetIdParts.length - 1];
+      let offChainRows = [];
 
-      const sql = `
-        SELECT 
-          p.id, p.nomor_po, p.status, p.tanggal_pesanan,
-          sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman, sjp.opsi_pengiriman,
-          pbf.nama_resmi AS nama_pbf,
-          produsen.nama_resmi AS nama_produsen,
-          p.bukti_foto AS buktiPenerimaUrl
-        FROM pesanan p
-        LEFT JOIN surat_jalan_produsen sjp ON p.id = sjp.id_pesanan
-        JOIN users pbf ON p.id_pbf = pbf.id
-        JOIN users produsen ON p.id_produsen = produsen.id
-        WHERE p.id = ? AND p.id_pbf = ?
-      `;
-      const [offChainRows] = await db.query(sql, [idPesanan, idPbf]);
-
-      if (offChainRows.length === 0) {
-        return res.status(404).json({ success: false, message: 'Data pesanan off-chain tidak ditemukan atau Anda tidak berwenang.' });
+      // Jika Asset ID memiliki lebih dari 3 bagian, itu adalah pesanan untuk Apotek.
+      if (assetIdParts.length > 3) {
+        const sql = `
+          SELECT 
+            pa.id, pa.nomor_pesanan, pa.status, pa.tanggal_pesanan,
+            sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman, sjp.opsi_pengiriman,
+            pbf.nama_resmi AS nama_pbf,
+            apotek.nama_resmi AS nama_apotek,
+            pa.bukti_foto AS buktiPenerimaUrl
+          FROM pesanan_apotek pa
+          LEFT JOIN surat_jalan_pbf sjp ON pa.id = sjp.id_pesanan_apotek
+          LEFT JOIN users pbf ON pa.id_pbf = pbf.id
+          LEFT JOIN users apotek ON pa.id_apotek = apotek.id
+          WHERE pa.id = ? AND pa.id_pbf = ?
+        `;
+        [offChainRows] = await db.query(sql, [idPesanan, idPbf]);
+      } else {
+        // Jika tidak, itu adalah pesanan dari Produsen.
+        const sql = `
+          SELECT 
+            p.id, p.nomor_po, p.status, p.tanggal_pesanan,
+            sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman, sjp.opsi_pengiriman,
+            pbf.nama_resmi AS nama_pbf,
+            produsen.nama_resmi AS nama_produsen,
+            p.bukti_foto AS buktiPenerimaUrl
+          FROM pesanan p
+          LEFT JOIN surat_jalan_produsen sjp ON p.id = sjp.id_pesanan
+          LEFT JOIN users pbf ON p.id_pbf = pbf.id
+          LEFT JOIN users produsen ON p.id_produsen = produsen.id
+          WHERE p.id = ? AND p.id_pbf = ?
+        `;
+        [offChainRows] = await db.query(sql, [idPesanan, idPbf]);
       }
+            if (offChainRows.length === 0) {
+                // Jika query ini gagal, maka muncul error yang Anda lihat
+                return res.status(404).json({ success: false, message: 'Data pesanan off-chain tidak ditemukan atau Anda tidak berwenang.' });
+            }
 
-      return res.json({
-        success: true,
-        data: { onChain: onChainData, offChain: offChainRows[0] }
-      });
+            return res.json({
+                success: true,
+                data: { onChain: onChainData, offChain: offChainRows[0] }
+            });
 
-    } catch (error) {
-      console.error(`Error fetching riwayat PBF for asset ${assetId}:`, error);
-      return res.status(500).json({
-        success: false,
-        message: `Gagal mengambil data riwayat: ${error.message}`
-      });
-    } finally {
-      if (gateway) gateway.disconnect();
-    }
-  },
+        } catch (error) {
+            console.error(`Error fetching riwayat PBF for asset ${assetId}:`, error);
+            // Memberikan pesan error yang lebih spesifik jika dari chaincode
+            const errorMessage = error.toString();
+            if (errorMessage.includes('does not exist')) {
+                 return res.status(404).json({ success: false, message: `Aset dengan ID ${assetId} tidak ditemukan di blockchain.` });
+            }
+            return res.status(500).json({ success: false, message: `Gagal mengambil data riwayat: ${error.message}` });
+        } finally {
+            if (gateway) gateway.disconnect();
+        }
+    },
+
 
   create: async (req, res) => {
     const {

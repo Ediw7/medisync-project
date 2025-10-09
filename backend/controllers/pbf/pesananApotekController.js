@@ -75,17 +75,26 @@ const pesananApotekController = {
     getAllPesananMasuk: async (req, res) => {
         const idPbf = req.user.id;
         try {
-            const [rows] = await db.query(
-                'SELECT * FROM pesanan_apotek WHERE id_pbf = ? ORDER BY tanggal_pesanan DESC',
-                [idPbf]
-            );
+            // --- PERBAIKAN DI SINI ---
+            // Tambahkan subquery untuk mengambil satu id_aset_blockchain
+            const sql = `
+                SELECT 
+                    pa.*,
+                    (SELECT dp.id_aset_blockchain 
+                     FROM detail_pesanan_apotek dp 
+                     WHERE dp.id_pesanan_apotek = pa.id AND dp.id_aset_blockchain IS NOT NULL
+                     LIMIT 1) AS id_aset_blockchain
+                FROM pesanan_apotek pa 
+                WHERE pa.id_pbf = ? 
+                ORDER BY pa.tanggal_pesanan DESC
+            `;
+            const [rows] = await db.query(sql, [idPbf]);
             res.json({ success: true, data: rows });
         } catch (error) {
             console.error('Error getting pesanan apotek:', error);
             res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
         }
     },
-
     getPesananById: async (req, res) => {
         const { id } = req.params;
         const idPbf = req.user.id; // Pastikan pesanan ini milik PBF yang login

@@ -65,7 +65,7 @@ import LihatStatusApotek from './pages/pbf/pengelolaanpesanan/LihatStatusApotek'
 import SuratJalanPbf from './pages/pbf/pengelolaanpesanan/SuratJalanPbf';
 import KonfirmasiPembatalanApotek from './pages/pbf/pengelolaanpesanan/KonfirmasiPembatalanApotek';
 import LihatRiwayatPembatalanApotek from './pages/pbf/pengelolaanpesanan/LihatRiwayatPembatalanApotek';
-
+import LihatRiwayatPesananApotek from './pages/pbf/pengelolaanpesanan/LihatRiwayatPesananApotek';
 
 
 import TrackingPengiriman from './pages/pbf/trackingpengiriman/TrackingPengiriman';
@@ -75,10 +75,16 @@ import LaporanAnalitikPbf from './pages/pbf/laporananalitikpbf/LaporanAnalitikPb
 import ApotekDashboard from './pages/apotek/ApotekDashboard';
 import StokObat from './pages/apotek/stokobat/StokObat';
 
+
+
 import PilihPbf from './pages/apotek/pesanobat/PilihPbf';
 import TambahPesananApotek from './pages/apotek/pesanobat/TambahPesananApotek';
 import PesanObatApotek from './pages/apotek/pesanobat/PesanObatApotek';
 import BatalPesananApotek from './pages/apotek/pesanobat/BatalPesananApotek';
+import KonfirmasiPenerimaanApotek from './pages/apotek/pesanobat/KonfirmasiPenerimaanApotek';
+import LihatRiwayatPenerimaanApotek from './pages/apotek/pesanobat/LihatRiwayatPenerimaanApotek';
+
+
 
 import RiwayatPembelian from './pages/apotek/riwayatpembelian/RiwayatPembelian';
 import Penjualan from './pages/apotek/penjualan/Penjualan';
@@ -153,7 +159,8 @@ function App() {
       <Route path="/pbf/pengelolaan-pesanan/surat-jalan/:id" element={<SuratJalanPbf />} />
      <Route path="/pbf/pengelolaan-pesanan/konfirmasi-pembatalan/:id" element={<KonfirmasiPembatalanApotek />} />
       <Route path="/pbf/pengelolaan-pesanan/riwayat-pembatalan/:id" element={<LihatRiwayatPembatalanApotek />} />
-
+      <Route path="/pbf/pengelolaan-pesanan/riwayat/:assetId" element={<LihatRiwayatPesananApotek />} />
+      
       <Route path="/pbf/tracking-pengiriman" element={<TrackingPengiriman />} />
 
       <Route path="/pbf/laporan-analitik" element={<LaporanAnalitikPbf />} />
@@ -164,6 +171,10 @@ function App() {
         <Route path="/apotek/pesan-obat/tambah/:idPbf" element={<TambahPesananApotek />} />
         <Route path="/apotek/pesan-obat" element={<PesanObatApotek />} />
         <Route path="/apotek/pesanan/:id/batalkan" element={<BatalPesananApotek />} />
+        <Route path="/apotek/pesanan/:id/konfirmasi-penerimaan" element={<KonfirmasiPenerimaanApotek />} />
+        <Route path="/apotek/pesanan/riwayat/:assetId" element={<LihatRiwayatPenerimaanApotek />} />
+
+
 
         <Route path="/apotek/riwayat-pembelian" element={<RiwayatPembelian />} />
         <Route path="/apotek/penjualan" element={<Penjualan />} />

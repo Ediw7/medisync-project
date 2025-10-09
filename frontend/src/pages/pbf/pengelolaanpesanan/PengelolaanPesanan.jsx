@@ -184,27 +184,27 @@ const PengelolaanPesanan = () => {
               ) : (
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
-                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => sortData('nama_apotek')}>
-                        Apotek Pemesan {getSortIndicator('nama_apotek')}
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => sortData('nomor_pesanan')}>
-                        Nomor Pesanan {getSortIndicator('nomor_pesanan')}
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pesanan (Surat Pesanan)</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => sortData('total_harga')}>
-                        Total Harga {getSortIndicator('total_harga')}
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => sortData('status')}>
-                        Status {getSortIndicator('status')}
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
-                    </tr>
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => sortData('nama_apotek')}>
+                          Apotek Pemesan {getSortIndicator('nama_apotek')}
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => sortData('nomor_pesanan')}>
+                          Nomor Pesanan {getSortIndicator('nomor_pesanan')}
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pesanan (Surat Pesanan)</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => sortData('total_harga')}>
+                          Total Harga {getSortIndicator('total_harga')}
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => sortData('status')}>
+                          Status {getSortIndicator('status')}
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                      </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredAndSortedData.length > 0 ? filteredAndSortedData.map((order) => (
                       <tr key={order.id} className="hover:bg-gray-50">
-                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.nama_apotek}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.nama_apotek}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.nomor_pesanan}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 hover:underline">
                           <Link to={`/pbf/pengelolaan-pesanan/surat/${order.id}`}>Lihat Surat</Link>
@@ -242,12 +242,11 @@ const PengelolaanPesanan = () => {
                               Lihat Status
                             </Link>
                           )}
-                           {order.status === 'Selesai' && (
-                             <Link to={`/pbf/pengelolaan-pesanan/riwayat/${order.id}`} className="text-purple-600 hover:text-purple-800">
-                              Lihat Riwayat
-                            </Link>
+                            {order.status === 'Selesai' && (
+                               <Link to={`/pbf/pengelolaan-pesanan/riwayat/${order.id_aset_blockchain}`} className="text-purple-600 hover:text-purple-800">Lihat Riwayat</Link>
+                            
                           )}
-                           {order.status === 'Dibatalkan' && (
+                            {order.status === 'Dibatalkan' && (
                             <Link to={`/pbf/pengelolaan-pesanan/riwayat-pembatalan/${order.id}`} className="text-gray-600 hover:text-gray-800">
                               Lihat Riwayat
                             </Link>

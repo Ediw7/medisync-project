@@ -80,6 +80,9 @@ const penerimaanController = {
 
       const hashBuktiFoto = await calculateFileHash(buktiFoto.path);
 
+      console.log(`[DEBUG] Pesanan Apotek ID: ${id}`);
+      console.log(`[DEBUG] Hash Bukti Foto: ${hashBuktiFoto}`);
+
       gateway = await getApotekGateway();
       const network = await gateway.getNetwork('medisyncchannel');
       const contract = network.getContract('medisync');
@@ -93,6 +96,8 @@ const penerimaanController = {
       if (detailPesanan.length === 0 || !detailPesanan.some(item => item.id_aset_blockchain)) {
         throw new Error('ID Aset Blockchain untuk pesanan ini tidak ditemukan di database.');
       }
+
+         console.log('[DEBUG] Aset ID yang akan dikirim ke chaincode:', JSON.stringify(detailPesanan, null, 2));
 
       for (const item of detailPesanan) {
         if (item.id_aset_blockchain) {

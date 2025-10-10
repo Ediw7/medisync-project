@@ -9,6 +9,7 @@
     "liquid-glass": "^1.0.0",
     "nodemailer": "^7.0.6",
     "nodemailer-sendgrid-transport": "^0.2.0",
-    "ogl": "^1.0.11"
+    "ogl": "^1.0.11",
+    "react-hot-toast": "^2.6.0"
   }
 }

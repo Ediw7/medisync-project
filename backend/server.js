@@ -21,6 +21,7 @@ const stokPbfRoutes = require('./routes/pbf/stokRoute');
 const apotekRoutes = require('./routes/apotek/apotekRoute'); 
 const pesananApotekPbfRoutes = require('./routes/pbf/pesananApotekRoute'); 
 const penerimaanApotekRoutes = require('./routes/apotek/penerimaanRoute');
+const dashboardApotekRoutes = require('./routes/apotek/dashboardRoute');
 
 const app = express();
 
@@ -49,6 +50,7 @@ app.use('/api/blockchain', blockchainRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/apotek', apotekRoutes);
 app.use('/api/apotek/penerimaan', penerimaanApotekRoutes);
+app.use('/api/apotek/dashboard', dashboardApotekRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

@@ -69,8 +69,9 @@ class PbfContract extends Contract {
                 throw new Error(`ERROR: Obat dengan ID ${obatId} tidak dimiliki oleh PBF.`);
             }
 
-            if (obatAsli.statusSaatIni !== 'DITERIMA_PBF') {
-                throw new Error(`ERROR: Obat dengan ID ${obatId} tidak dalam status siap dikirim.`);
+           const isReadyToSend = obatAsli.statusSaatIni === 'DITERIMA_PBF' || obatAsli.statusSaatIni === 'STOK_SEBAGIAN_DIKIRIM';
+            if (!isReadyToSend) {
+                throw new Error(`ERROR: Obat dengan ID ${obatId} tidak dalam status siap dikirim (Status saat ini: ${obatAsli.statusSaatIni}).`);
             }
 
             // Cari jumlah pesanan untuk obat ini
@@ -91,6 +92,13 @@ class PbfContract extends Contract {
                 timestamp: timestamp,
                 detail: `Transfer ke ${namaApotek} (Pesanan: ${idPesanan}). Jumlah: ${jumlahDipesan}. Sisa stok: ${obatAsli.jumlah}.`
             });
+
+             if (obatAsli.jumlah > 0) {
+                obatAsli.statusSaatIni = 'STOK_SEBAGIAN_DIKIRIM';
+            } else {
+                obatAsli.statusSaatIni = 'STOK_HABIS';
+            }
+            
             await ctx.stub.putState(obatAsli.id, Buffer.from(JSON.stringify(obatAsli)));
 
             // 2. Buat aset baru untuk Apotek (Asset Splitting)

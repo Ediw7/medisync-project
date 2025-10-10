@@ -40,55 +40,45 @@ const apotekController = {
   },
 
   getAvailableStockByPbf: async (req, res) => {
-    const { idPbf } = req.params;
-    const idApotek = req.user.id;
-    try {
-        const dbName = process.env.COUCHDB_DB || 'medisyncchannel_medisync';
-        const dbInstance = nano.use(dbName);
-        const query = {
-            selector: { docType: 'obat', pemilikSaatIni: 'PBFMSP', jumlah: { "$gt": 0 } },
-            fields: ['id', 'namaObat', 'bentukSediaan', 'dosis', 'jumlah', 'hargaPerUnit']
-        };
-        const result = await dbInstance.find(query);
-        const onChainStock = result.docs.map(doc => ({
-            id: doc.id,
-            nama_obat: doc.namaObat,
-            bentuk_sediaan: doc.bentukSediaan,
-            dosis: doc.dosis,
-            jumlah: doc.jumlah,
-            harga_per_unit: doc.hargaPerUnit || 0
-        }));
-        const sqlRiwayatHarga = `
-            WITH LastPurchase AS (
-                SELECT dpa.nama_obat, MAX(pa.id) AS last_pesanan_id
-                FROM pesanan_apotek pa
-                JOIN detail_pesanan_apotek dpa ON pa.id = dpa.id_pesanan_apotek
-                WHERE pa.id_apotek = ? AND pa.id_pbf = ?
-                GROUP BY dpa.nama_obat
-            )
-            SELECT dpa.nama_obat, dpa.harga_satuan
-            FROM detail_pesanan_apotek dpa
-            JOIN LastPurchase lp ON dpa.id_pesanan_apotek = lp.last_pesanan_id AND dpa.nama_obat = lp.nama_obat;
-        `;
-        const [historicalPrices] = await db.query(sqlRiwayatHarga, [idApotek, idPbf]);
-        const priceMap = historicalPrices.reduce((acc, item) => {
-            acc[item.nama_obat] = parseFloat(item.harga_satuan);
-            return acc;
-        }, {});
-        const enrichedStock = onChainStock.map(stockItem => {
-            const historicalPrice = priceMap[stockItem.nama_obat];
-            return {
-                ...stockItem,
-                harga_per_unit: historicalPrice !== undefined ? historicalPrice : stockItem.harga_per_unit
-            };
-        });
-        res.json({ success: true, data: enrichedStock, source: 'on-chain-with-history' });
-    } catch (error) {
-        console.error(`Error fetching stock for PBF ${idPbf}:`, error.message);
-        res.status(500).json({ success: false, message: 'Gagal mengambil stok dari blockchain.' });
-    }
-  },
+        const { idPbf } = req.params;
+        const idApotek = req.user.id;
 
+        try {
+            // Query ini akan mengambil stok PBF HANYA dari pesanan yang sudah 'Selesai'
+            const sql = `
+                SELECT
+                    dp.id_aset_blockchain as id,
+                    dp.nama_obat,
+                    -- Menghitung sisa stok: (Stok Masuk) - (Stok Keluar)
+                    (dp.jumlah_pesanan - IFNULL((
+                        SELECT SUM(dpa.jumlah)
+                        FROM detail_pesanan_apotek dpa
+                        JOIN pesanan_apotek pa ON dpa.id_pesanan_apotek = pa.id
+                        WHERE dpa.id_aset_blockchain = dp.id_aset_blockchain
+                        AND pa.status IN ('Dikirim', 'Selesai')
+                    ), 0)) as jumlah,
+                    prod.dosis,
+                    prod.bentuk_sediaan,
+                    prod.harga_per_unit
+                FROM detail_pesanan dp
+                JOIN pesanan p ON dp.id_pesanan = p.id
+                LEFT JOIN produksi prod ON dp.id_produksi = prod.id
+                WHERE p.id_pbf = ? AND p.status = 'Selesai'
+            `;
+            
+            const [rows] = await db.query(sql, [idPbf]);
+
+            // Filter hasil untuk hanya menampilkan item dengan sisa stok > 0
+            const availableStock = rows.filter(item => item.jumlah > 0);
+
+            res.json({ success: true, data: availableStock });
+
+        } catch (error)
+        {
+            console.error(`Error in getAvailableStockByPbf for PBF ID ${idPbf}:`, error);
+            res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+        }
+    },
   getAllPesanan: async (req, res) => {
     const idApotek = req.user.id;
     try {
@@ -233,6 +223,8 @@ const apotekController = {
         if (gateway) gateway.disconnect();
     }
   },
+
+  
 };
 
 module.exports = apotekController;

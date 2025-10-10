@@ -9,6 +9,7 @@ router.use(authenticateToken, authorizeRole('apotek'));
 // Mendapatkan daftar semua PBF
 router.get('/pbf', apotekController.getPbfList);
 
+
 // Mendapatkan stok tersedia dari PBF tertentu
 router.get('/pbf/:idPbf/stok', apotekController.getAvailableStockByPbf);
 

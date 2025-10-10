@@ -12,6 +12,7 @@ router.get('/pbf', apotekController.getPbfList);
 
 // Mendapatkan stok tersedia dari PBF tertentu
 router.get('/pbf/:idPbf/stok', apotekController.getAvailableStockByPbf);
+router.get('/stok', apotekController.getStokObat);
 
 // Rute terkait pesanan
 router.post('/pesanan', apotekController.createPesanan);

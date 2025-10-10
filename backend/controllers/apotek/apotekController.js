@@ -224,6 +224,52 @@ const apotekController = {
     }
   },
 
+  getStokObat: async (req, res) => {
+    const idApotek = req.user.id;
+    let gateway;
+    try {
+        // Langkah 1: Ambil semua ID Aset dari pesanan yang sudah 'Selesai' dari MySQL
+        const [selesaiRows] = await db.query(`
+            SELECT dpa.id_aset_blockchain
+            FROM detail_pesanan_apotek dpa
+            JOIN pesanan_apotek pa ON dpa.id_pesanan_apotek = pa.id
+            WHERE pa.id_apotek = ? AND pa.status = 'Selesai'
+        `, [idApotek]);
+
+        if (selesaiRows.length === 0) {
+            // Jika tidak ada pesanan yang selesai, langsung kembalikan array kosong
+            return res.json({ success: true, data: [] });
+        }
+
+        // Ekstrak semua ID Aset yang valid
+        const validAssetIds = selesaiRows.map(row => row.id_aset_blockchain).filter(Boolean);
+
+        // Langkah 2: Ambil detail lengkap untuk setiap ID Aset dari Blockchain
+        gateway = await getApotekGateway();
+        const network = await gateway.getNetwork('medisyncchannel');
+        const contract = network.getContract('medisync', 'ApotekContract');
+        
+        console.log('Memanggil chaincode ApotekContract:queryStokApotek...');
+        const resultBuffer = await contract.evaluateTransaction('queryStokApotek');
+        const allStokOnChain = JSON.parse(resultBuffer.toString());
+
+        // Langkah 3: Filter data on-chain berdasarkan daftar ID Aset yang valid dari MySQL
+        const stokDataValid = allStokOnChain.filter(item => validAssetIds.includes(item.id));
+        
+        console.log(`Berhasil mengambil dan memfilter ${stokDataValid.length} data stok.`);
+
+        res.json({ success: true, data: stokDataValid });
+
+    } catch (error) {
+        console.error('Gagal mengambil stok obat apotek:', error);
+        res.status(500).json({ success: false, message: `Gagal mengambil data stok: ${error.message}` });
+    } finally {
+        if (gateway) {
+            gateway.disconnect();
+        }
+    }
+  },
+
   
 };
 

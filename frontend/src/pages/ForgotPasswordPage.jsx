@@ -30,14 +30,13 @@ export default function ForgotPasswordPage() {
     setError("");
     setSuccess("");
 
-    // Client-side validation
     if (!email.trim()) {
-      setError("Email is required.");
+      setError("Email wajib diisi.");
       return;
     }
 
     if (!validateEmail(email)) {
-      setError("Please enter a valid email address.");
+      setError("Silakan masukkan alamat email yang valid.");
       return;
     }
 
@@ -49,13 +48,13 @@ export default function ForgotPasswordPage() {
       });
 
       setSuccess(
-        "If an account with that email exists, a reset link has been sent."
+        "Jika ada akun dengan email tersebut, tautan reset telah dikirim."
       );
-      setEmail(""); // Clear form on success
+      setEmail(""); // Kosongkan form jika berhasil
     } catch (err) {
       const errorMessage =
         err.response?.data?.message ||
-        "An error occurred while attempting to send the reset link.";
+        "Terjadi kesalahan saat mencoba mengirim tautan reset.";
       setError(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -66,15 +65,14 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen bg-gray-200 flex items-center justify-center p-4 relative overflow-hidden">
       <AnimatedBackground />
 
-
-      {/* Main card */}
+      {/* Kartu Utama */}
       <div className="relative z-10 w-full max-w-4xl rounded-3xl shadow-2xl grid md:grid-cols-2 overflow-hidden border border-gray-200">
-        {/* Left branding column */}
+        {/* Kolom branding kiri */}
         <div className="hidden md:block p-10 bg-gradient-to-br from-emerald-600/90 to-[#047857] text-white">
           <div className="h-full flex flex-col justify-center">
-            <h2 className="text-3xl font-bold mb-4">Welcome Back</h2>
+            <h2 className="text-3xl font-bold mb-4">Selamat Datang Kembali</h2>
             <p className="text-[#F9FDFE] mb-8">
-              Access your secure dashboard with enterprise-grade features
+              Akses dasbor aman Anda dengan fitur sekelas perusahaan.
             </p>
 
             <div className="space-y-6">
@@ -83,9 +81,9 @@ export default function ForgotPasswordPage() {
                   <ShieldCheck className="h-8 w-8 text-white flex-shrink-0" />
                 </div>
                 <div>
-                  <h3 className="font-semibold">Enterprise Security</h3>
+                  <h3 className="font-semibold">Keamanan Terjamin</h3>
                   <p className="text-sm text-[#F9FDFE]">
-                    Advanced encryption and compliance
+                    Enkripsi dan kepatuhan tingkat lanjut.
                   </p>
                 </div>
               </div>
@@ -95,9 +93,9 @@ export default function ForgotPasswordPage() {
                   <GitBranch className="h-8 w-8 text-white flex-shrink-" />
                 </div>
                 <div>
-                  <h3 className="font-semibold">Version Control</h3>
+                  <h3 className="font-semibold">Sistem Terintegrasi</h3>
                   <p className="text-sm text-[#F9FDFE]">
-                    Track changes and collaborate
+                    Lacak perubahan dan berkolaborasi dengan mudah.
                   </p>
                 </div>
               </div>
@@ -107,9 +105,9 @@ export default function ForgotPasswordPage() {
                   <PackageSearch className="h-8 w-8 text-white flex-shrink-" />
                 </div>
                 <div>
-                  <h3 className="font-semibold">Smart Search</h3>
+                  <h3 className="font-semibold">Pencarian Cerdas</h3>
                   <p className="text-sm text-[#F9FDFE]">
-                    Find anything instantly
+                    Temukan apa pun secara instan.
                   </p>
                 </div>
               </div>
@@ -117,34 +115,34 @@ export default function ForgotPasswordPage() {
           </div>
         </div>
 
-        {/* Right form column with glassmorphism */}
+        {/* Kolom form kanan dengan efek glassmorphism */}
         <div className="p-8 bg-gradient-to-br from-white/20 to-white/10 bg-white/20 backdrop-blur-lg border border-white/20 rounded-2xl shadow-lg">
           <div className="h-full flex flex-col justify-center">
-            {/* Back link */}
+            {/* Tautan kembali */}
             <div className="mb-6">
-              <a
-                href="/roles"
+              <Link
+                to="/roles"
                 className="inline-flex items-center text-emerald-600 hover:text-emerald-700 hover:underline transition-colors duration-200"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Choose Role
-              </a>
+                Kembali ke Pilih Peran
+              </Link>
             </div>
 
-            {/* Icon and heading */}
+            {/* Ikon dan judul */}
             <div className="text-center mb-8">
               <div className="w-16 h-16 bg-[#047857]/90 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Mail className="w-8 h-8 text-gray-100/90" />
               </div>
               <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                Reset Password
+                Atur Ulang Kata Sandi
               </h1>
               <p className="text-gray-600">
-                Enter your account email and we'll send a reset link.
+                Masukkan email akun Anda dan kami akan mengirimkan tautan reset.
               </p>
             </div>
 
-            {/* Alert messages */}
+            {/* Pesan Peringatan */}
             <div aria-live="polite">
               {error && (
                 <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm mb-6 border border-red-200">
@@ -166,7 +164,7 @@ export default function ForgotPasswordPage() {
                   htmlFor="email"
                   className="block text-sm font-medium text-gray-700 mb-2"
                 >
-                  Email Address
+                  Alamat Email
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -175,7 +173,7 @@ export default function ForgotPasswordPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email"
+                    placeholder="Masukkan email Anda"
                     disabled={isSubmitting}
                     className="w-full pl-10 pr-4 py-3 bg-white/40 backdrop-blur-xl rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 border border-gray-200/80 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     required
@@ -188,19 +186,19 @@ export default function ForgotPasswordPage() {
                 disabled={isSubmitting}
                 className="w-full bg-emerald-600 text-white py-3 rounded-lg hover:bg-emerald-700 font-semibold transition-colors duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? "Sending..." : "Send Reset Link"}
+                {isSubmitting ? "Mengirim..." : "Kirim Tautan Reset"}
               </button>
             </form>
 
-            {/* Login link */}
+            {/* Tautan Login */}
             <div className="text-center mt-6">
               <p className="text-gray-600">
-                Remembered your password?{" "}
+                Ingat kata sandi Anda?{" "}
                 <Link
                   to={`/login/${lastRole}`}
                   className="text-emerald-600 hover:text-emerald-700 hover:underline font-medium transition-colors duration-200"
                 >
-                  Login
+                  Masuk
                 </Link>
               </p>
             </div>

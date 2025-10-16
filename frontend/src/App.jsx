@@ -83,7 +83,7 @@ import PesanObatApotek from './pages/apotek/pesanobat/PesanObatApotek';
 import BatalPesananApotek from './pages/apotek/pesanobat/BatalPesananApotek';
 import KonfirmasiPenerimaanApotek from './pages/apotek/pesanobat/KonfirmasiPenerimaanApotek';
 import LihatRiwayatPenerimaanApotek from './pages/apotek/pesanobat/LihatRiwayatPenerimaanApotek';
-
+import DetailPesananApotek from './pages/apotek/pesanobat/DetailPesananApotek';
 
 
 import RiwayatPembelian from './pages/apotek/riwayatpembelian/RiwayatPembelian';
@@ -173,7 +173,7 @@ function App() {
         <Route path="/apotek/pesanan/:id/batalkan" element={<BatalPesananApotek />} />
         <Route path="/apotek/pesanan/:id/konfirmasi-penerimaan" element={<KonfirmasiPenerimaanApotek />} />
         <Route path="/apotek/pesanan/riwayat/:assetId" element={<LihatRiwayatPenerimaanApotek />} />
-
+        <Route path="/apotek/pesanan/:id/detail" element={<DetailPesananApotek />} />
 
 
         <Route path="/apotek/riwayat-pembelian" element={<RiwayatPembelian />} />

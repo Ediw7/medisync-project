@@ -5,12 +5,13 @@ import NavbarPbf from '../../../components/NavbarPbf';
 import { Search } from 'lucide-react';
 import axios from 'axios';
 
-// Komponen untuk navigasi tab status
+// --- DESAIN NAVITEM DISESUAIKAN ---
 const NavItem = ({ label, filter, currentFilter, setFilter }) => {
   const isActive = filter === currentFilter;
-  const baseClass = "py-3 px-1 text-center font-medium transition whitespace-nowrap";
-  const activeClass = "text-emerald-600 border-b-2 border-emerald-600";
-  const inactiveClass = "text-gray-600 hover:text-emerald-600";
+  // Kelas CSS disamakan dengan halaman TrackingPengiriman
+  const baseClass = "whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm";
+  const activeClass = "border-emerald-500 text-emerald-600";
+  const inactiveClass = "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300";
 
   return (
     <button
@@ -32,7 +33,6 @@ const PengelolaanPesanan = () => {
   const [statusFilter, setStatusFilter] = useState('Semua');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
 
-  // Fungsi untuk mengambil data pesanan dari server
   const fetchPesananMasuk = async () => {
       setIsLoading(true);
       try {
@@ -45,7 +45,9 @@ const PengelolaanPesanan = () => {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.data.success) {
-          setPesananList(response.data.data);
+          const relevantStatuses = ['Menunggu Konfirmasi', 'Pembatalan Diajukan', 'Dibatalkan'];
+          const filteredList = response.data.data.filter(item => relevantStatuses.includes(item.status));
+          setPesananList(filteredList);
         } else {
           throw new Error(response.data.message || 'Gagal memuat daftar pesanan.');
         }
@@ -60,7 +62,6 @@ const PengelolaanPesanan = () => {
     fetchPesananMasuk();
   }, [navigate]);
     
-  // Fungsi untuk menangani aksi "Proses Pesanan"
   const handleProsesPesanan = async (pesananId) => {
     if (!window.confirm('Apakah Anda yakin ingin memproses pesanan ini? Status akan diubah menjadi "Perlu Dikirim".')) {
       return;
@@ -72,14 +73,13 @@ const PengelolaanPesanan = () => {
       });
       if (response.data.success) {
         alert('Pesanan berhasil diproses!');
-        fetchPesananMasuk(); // Muat ulang data untuk melihat status terbaru
+        fetchPesananMasuk();
       }
     } catch (err) {
       alert('Gagal memproses pesanan: ' + (err.response?.data?.message || err.message));
     }
   };
 
-  // Fungsi untuk sorting data di tabel
   const sortData = (key) => {
     let direction = 'ascending';
     if (sortConfig.key === key && sortConfig.direction === 'ascending') {
@@ -88,11 +88,15 @@ const PengelolaanPesanan = () => {
     setSortConfig({ key, direction });
   };
 
-  // Memoized value untuk data yang sudah difilter dan di-sort
   const filteredAndSortedData = useMemo(() => {
     let filtered = [...pesananList]
       .filter(item => {
-        if (statusFilter === 'Semua') return true;
+        if (statusFilter === 'Semua') {
+          return true;
+        }
+        if (statusFilter === 'Dibatalkan') {
+          return ['Dibatalkan', 'Pembatalan Diajukan'].includes(item.status);
+        }
         return item.status === statusFilter;
       })
       .filter(item =>
@@ -122,15 +126,11 @@ const PengelolaanPesanan = () => {
   const getStatusClass = (status) => {
     switch (status) {
       case 'Menunggu Konfirmasi': return 'bg-yellow-100 text-yellow-800';
-      case 'Perlu Dikirim': return 'bg-orange-100 text-orange-800';
-      // --- TAMBAHAN BARU ---
-      case 'Pembatalan Diajukan': return 'bg-red-100 text-red-800';
-      case 'Dikirim': return 'bg-cyan-100 text-cyan-800';
-      case 'Selesai': return 'bg-emerald-100 text-emerald-800';
-      case 'Dibatalkan': return 'bg-gray-100 text-gray-800'; // Dibuat abu-abu
+      case 'Pembatalan Diajukan': return 'bg-pink-100 text-pink-800';
+      case 'Dibatalkan': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
-};
+  };
 
   const formatDate = (dateString) => {
     if (!dateString) return '-';
@@ -153,21 +153,18 @@ const PengelolaanPesanan = () => {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div>
               <h1 className="text-2xl font-bold">Pengelolaan Pesanan Apotek</h1>
-              <p className="text-gray-500">Kelola pesanan masuk dari apotek</p>
+              <p className="text-gray-500">Kelola pesanan yang membutuhkan tindakan</p>
             </div>
           </div>
           <div className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="p-4 border-b flex flex-wrap items-center gap-x-4 gap-y-3">
-              <div className="flex items-center gap-x-2 overflow-x-auto">
+            <div className="p-4 border-b flex flex-col sm:flex-row items-center gap-4">
+              {/* --- CONTAINER NAVIGASI DISESUAIKAN --- */}
+              <nav className="-mb-5 sm:-mb-4 flex-grow sm:flex-grow-0 space-x-8 overflow-x-auto" aria-label="Tabs">
                 <NavItem label="Semua" filter="Semua" currentFilter={statusFilter} setFilter={setStatusFilter} />
                 <NavItem label="Menunggu Konfirmasi" filter="Menunggu Konfirmasi" currentFilter={statusFilter} setFilter={setStatusFilter} />
-                <NavItem label="Pembatalan Diajukan" filter="Pembatalan Diajukan" currentFilter={statusFilter} setFilter={setStatusFilter} />
-                <NavItem label="Perlu Dikirim" filter="Perlu Dikirim" currentFilter={statusFilter} setFilter={setStatusFilter} />
-                <NavItem label="Dikirim" filter="Dikirim" currentFilter={statusFilter} setFilter={setStatusFilter} />
-                <NavItem label="Selesai" filter="Selesai" currentFilter={statusFilter} setFilter={setStatusFilter} />
                 <NavItem label="Dibatalkan" filter="Dibatalkan" currentFilter={statusFilter} setFilter={setStatusFilter} />
-              </div>
-               <div className="relative w-full sm:w-auto sm:ml-auto">
+              </nav>
+               <div className="relative w-full sm:w-auto sm:ml-auto mt-4 sm:mt-0">
                 <input
                   type="text"
                   placeholder="Cari Apotek atau No. Pesanan..."
@@ -185,20 +182,20 @@ const PengelolaanPesanan = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => sortData('nama_apotek')}>
-                          Apotek Pemesan {getSortIndicator('nama_apotek')}
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Apotek Pemesan
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => sortData('nomor_pesanan')}>
-                          Nomor Pesanan {getSortIndicator('nomor_pesanan')}
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Nomor Pesanan
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pesanan (Surat Pesanan)</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => sortData('total_harga')}>
-                          Total Harga {getSortIndicator('total_harga')}
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pesanan (Surat Pesanan)</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Total Harga
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => sortData('status')}>
-                          Status {getSortIndicator('status')}
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                       </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -220,7 +217,7 @@ const PengelolaanPesanan = () => {
                         
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           {order.status === 'Pembatalan Diajukan' && (
-                              <Link to={`/pbf/pengelolaan-pesanan/konfirmasi-pembatalan/${order.id}`} className="text-red-600 hover:text-red-800">
+                              <Link to={`/pbf/pengelolaan-pesanan/konfirmasi-pembatalan/${order.id}`} className="text-pink-600 hover:text-pink-800">
                                   Konfirmasi Pembatalan
                               </Link>
                           )}
@@ -232,21 +229,7 @@ const PengelolaanPesanan = () => {
                               Proses Pesanan
                             </button>
                           )}
-                          {order.status === 'Perlu Dikirim' && (
-                            <Link to={`/pbf/pengelolaan-pesanan/atur-pengiriman/${order.id}`} className="text-orange-600 hover:text-orange-800">
-                              Atur Pengiriman
-                            </Link>
-                          )}
-                          {order.status === 'Dikirim' && (
-                            <Link to={`/pbf/pengelolaan-pesanan/lacak/${order.id}`} className="text-blue-600 hover:text-blue-800">
-                              Lihat Status
-                            </Link>
-                          )}
-                            {order.status === 'Selesai' && (
-                               <Link to={`/pbf/pengelolaan-pesanan/riwayat/${order.id_aset_blockchain}`} className="text-purple-600 hover:text-purple-800">Lihat Riwayat</Link>
-                            
-                          )}
-                            {order.status === 'Dibatalkan' && (
+                           {order.status === 'Dibatalkan' && (
                             <Link to={`/pbf/pengelolaan-pesanan/riwayat-pembatalan/${order.id}`} className="text-gray-600 hover:text-gray-800">
                               Lihat Riwayat
                             </Link>

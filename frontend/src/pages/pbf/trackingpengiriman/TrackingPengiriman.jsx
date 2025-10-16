@@ -1,56 +1,113 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import SidebarPbf from '../../../components/SidebarPbf';
 import NavbarPbf from '../../../components/NavbarPbf';
-import { Search, ChevronDown, Calendar, ArrowUpDown } from 'lucide-react';
+import { Search, Calendar } from 'lucide-react';
+import axios from 'axios';
 
 const TrackingPengiriman = () => {
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState('Semua');
+  const [pesananList, setPesananList] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/');
+  const statusMapping = {
+    'Semua': ['Perlu Dikirim', 'Dikirim', 'Selesai', 'Pengembalian Diajukan', 'Dikembalikan'],
+    'Perlu Dikirim': ['Perlu Dikirim'],
+    'Dikirim': ['Dikirim'],
+    'Selesai': ['Selesai'],
+    'Pengembalian': ['Pengembalian Diajukan', 'Dikembalikan'],
+  };
+  
+  const tabs = ['Semua', 'Perlu Dikirim', 'Dikirim', 'Selesai', 'Pengembalian'];
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            navigate('/login/pbf');
+            return;
+        }
+        const response = await axios.get('http://localhost:5000/api/pbf/pesanan-apotek', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        if (response.data.success) {
+            const relevantStatuses = statusMapping['Semua'];
+            setPesananList(response.data.data.filter(p => 
+                relevantStatuses.includes(p.status)
+            ));
+        } else {
+            throw new Error(response.data.message);
+        }
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [navigate]);
+  
+  const filteredData = useMemo(() => {
+    return pesananList.filter(item => {
+        const tabStatuses = statusMapping[activeTab];
+        const searchMatch = (item.nama_apotek?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+                            (item.nomor_pesanan?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+        
+        return tabStatuses.includes(item.status) && searchMatch;
+    });
+  }, [pesananList, activeTab, searchTerm]);
+
+  // --- FUNGSI BARU: Untuk Badge Status (sama seperti di Pengelolaan Pesanan) ---
+  const getStatusClass = (status) => {
+    switch (status) {
+      case 'Perlu Dikirim': return 'bg-orange-100 text-orange-800';
+      case 'Dikirim': return 'bg-cyan-100 text-cyan-800';
+      case 'Selesai': return 'bg-emerald-100 text-emerald-800';
+      case 'Pengembalian Diajukan': return 'bg-indigo-100 text-indigo-800';
+      case 'Dikembalikan': return 'bg-purple-100 text-purple-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
 
-  const mockPesanan = [
-    {
-      id_pesanan: '000456',
-      nama_apotek: 'Apotek Maju',
-      harga_total: 7000000,
-      metode_pembayaran: 'COD',
-      status: 'Sedang Diproses',
-      status_detail: 'Mohon konfirmasi sebelum 05-02-2025 atau pesanan akan dibatalkan secara otomatis',
-    },
-    {
-      id_pesanan: '000456',
-      nama_apotek: 'Apotek Ada',
-      harga_total: 7000000,
-      metode_pembayaran: 'COD',
-      status: 'Dalam Perjalanan',
-      status_detail: 'Produk sedang dalam pengiriman ke tujuan',
-    },
-  ];
-
-  const tabs = ['Semua', 'Diproses', 'Dikirim', 'Diterima', 'Ditolak', 'Pengembalian'];
+  const renderAction = (order) => {
+    switch (order.status) {
+        case 'Perlu Dikirim':
+            return <Link to={`/pbf/tracking-pengiriman/atur-pengiriman/${order.id}`} className="text-orange-600 hover:text-orange-800 font-medium">Atur Pengiriman</Link>;
+        case 'Dikirim':
+            return <Link to={`/pbf/tracking-pengiriman/lacak/${order.id}`} className="text-emerald-600 hover:text-emerald-800 font-medium">Lacak Pengiriman</Link>;
+        case 'Selesai':
+            return <Link to={`/pbf/tracking-pengiriman/riwayat/${order.id_aset_blockchain}`} className="text-purple-600 hover:text-purple-800 font-medium">Lihat Riwayat</Link>;
+        case 'Pengembalian Diajukan':
+            return <Link to={`/pbf/tracking-pengiriman/konfirmasi-pengembalian/${order.id}`} className="text-indigo-600 hover:text-indigo-800 font-medium">Proses Pengembalian</Link>;
+        case 'Dikembalikan':
+            return <Link to={`/pbf/tracking-pengiriman/lacak-pengembalian/${order.id}`} className="text-indigo-600 hover:text-indigo-800 font-medium">Lacak Pengembalian</Link>;
+        default:
+            return null;
+    }
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
       <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
-        <NavbarPbf onLogout={handleLogout} />
+        <NavbarPbf onLogout={() => { localStorage.clear(); navigate('/'); }} />
         <main className="flex-1 pt-16 p-6">
           <div className="max-w-7xl mx-auto">
             <div className="mb-6">
-              <h1 className="text-3xl font-bold text-gray-800">Pantau pengiriman ke Apotek</h1>
+              <h1 className="text-3xl font-bold text-gray-800">Pantau Pengiriman ke Apotek</h1>
               <p className="text-gray-500 mt-1">Lacak Pengiriman obat ke Apotek</p>
             </div>
 
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              {/* Tabs Section */}
               <div className="border-b border-gray-200 mb-6">
-                <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+                <nav className="-mb-px flex space-x-8 overflow-x-auto" aria-label="Tabs">
                   {tabs.map((tab) => (
                     <button
                       key={tab}
@@ -67,84 +124,78 @@ const TrackingPengiriman = () => {
                 </nav>
               </div>
 
-              {/* Filter Section */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                   <input
                     type="text"
                     placeholder="Cari ID Pesanan atau nama apotek..."
                     className="w-full p-2 pl-10 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
                  <div className="relative">
-                  <select
-                    className="w-full p-2 pl-10 border border-gray-300 rounded-lg appearance-none focus:ring-emerald-500 focus:border-emerald-500"
-                    defaultValue="tercepat"
-                  >
-                    <option value="tercepat">Waktu pesanan tercepat</option>
-                    <option value="terlama">Waktu pesanan terlama</option>
-                  </select>
-                   <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                </div>
-                <div className="relative">
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                   <input
                     type="text"
-                    placeholder="Waktu Pesanan Dibuat"
-                    defaultValue="01/02/2025 - 02/03/2025"
-                    className="w-full p-2 pl-10 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                    placeholder="Filter tanggal belum aktif"
+                    disabled
+                    className="w-full p-2 pl-10 border border-gray-300 rounded-lg bg-gray-100"
                   />
                 </div>
               </div>
               
-              {/* Table Section */}
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Pesanan</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pesanan</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {mockPesanan.map((order, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-semibold text-gray-900">{order.nama_apotek}</div>
-                          <div className="text-sm text-gray-500">ID Pesanan : {order.id_pesanan}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <a href="#" className="text-sm text-emerald-600 hover:underline font-medium">
-                            Lihat Surat Pesanan
-                          </a>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-bold text-gray-900">
-                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(order.harga_total)}
-                          </div>
-                          <div className="text-xs text-gray-500">Via {order.metode_pembayaran}</div>
-                        </td>
-                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-semibold text-gray-900">{order.status}</div>
-                          <div className="text-xs text-gray-500 max-w-xs">{order.status_detail}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          {order.status === 'Sedang Diproses' && (
-                            <button className="text-red-600 hover:text-red-800">Batalkan Pesanan</button>
-                          )}
-                          {order.status === 'Dalam Perjalanan' && (
-                            <button className="text-emerald-600 hover:text-emerald-800">Lacak pengiriman</button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                {isLoading ? (<p className="text-center py-10">Memuat data...</p>) : 
+                 error ? (<p className="text-center py-10 text-red-500">{error}</p>) :
+                 (
+                    // --- PERUBAHAN DESAIN TABEL DIMULAI DI SINI ---
+                    <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Apotek Pemesan</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nomor Pesanan</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pesanan (Surat Pesanan)</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Harga</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredData.length > 0 ? filteredData.map((order) => {
+                            return (
+                                <tr key={order.id} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        {order.nama_apotek}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {order.nomor_pesanan}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 hover:underline">
+                                        <Link to={`/pbf/pengelolaan-pesanan/surat/${order.id}`}>
+                                            Lihat Surat
+                                        </Link>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(order.total_harga)}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(order.status)}`}>
+                                            {order.status}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                        {renderAction(order)}
+                                    </td>
+                                </tr>
+                            );
+                        }) : (
+                            <tr><td colSpan="6" className="text-center py-10 text-gray-500">Tidak ada data untuk tab ini.</td></tr>
+                        )}
+                    </tbody>
+                    </table>
+                 )}
               </div>
             </div>
           </div>

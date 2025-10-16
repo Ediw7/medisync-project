@@ -9,6 +9,7 @@ const pesananMasukRoutes = require('./routes/produsen/pesananMasukRoute');
 const pembatalanRoutes = require('./routes/produsen/pembatalanRoute');
 const riwayatRoute = require('./routes/produsen/riwayatRoute');
 const laporananalitikRoutes = require('./routes/produsen/laporananalitikRoute');
+
 const pesananPbfRoutes = require('./routes/pbf/pesananRoute'); 
 const pbfRoutes = require('./routes/pbf/pbfRoute');
 const penerimaanRoutes = require('./routes/pbf/penerimaanRoute'); 
@@ -17,6 +18,7 @@ const blockchainRoutes = require('./routes/blockchain');
 const publicRoutes = require('./routes/publicRoute');
 const produksiController = require('./controllers/produsen/produksiController');
 const stokPbfRoutes = require('./routes/pbf/stokRoute');
+const pbfDistribusiRoutes = require('./routes/pbf/distribusiRoute');
 
 const apotekRoutes = require('./routes/apotek/apotekRoute'); 
 const pesananApotekPbfRoutes = require('./routes/pbf/pesananApotekRoute'); 
@@ -40,6 +42,7 @@ app.use('/api/produsen/riwayat-distribusi', riwayatRoute);
 app.use('/api/produsen', laporananalitikRoutes);
 app.use('/api/pbf/pesanan', pesananPbfRoutes);
 app.use('/api/pbf/stok', stokPbfRoutes);
+app.use('/api/pbf/riwayat-distribusi', pbfDistribusiRoutes)
 
 app.use('/api/pbf/pesanan-apotek', pesananApotekPbfRoutes); 
 

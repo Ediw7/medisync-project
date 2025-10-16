@@ -1,0 +1,201 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import SidebarPbf from '../../../components/SidebarPbf';
+import NavbarPbf from '../../../components/NavbarPbf';
+import { Search, Package, Truck, Box } from 'lucide-react';
+
+const RiwayatDistribusiPbf = () => {
+  const navigate = useNavigate();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [distribusiData, setDistribusiData] = useState([]);
+  const [stats, setStats] = useState({
+    totalStok: 0,
+    distribusiBulanIni: 0,
+    stokMenipis: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('Semua');
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) throw new Error('Silakan login terlebih dahulu');
+
+        const [stokResponse, distribusiResponse] = await Promise.all([
+          fetch('http://localhost:5000/api/pbf/stok', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          }),
+          fetch('http://localhost:5000/api/pbf/riwayat-distribusi', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+        ]);
+
+        if (!stokResponse.ok || !distribusiResponse.ok) {
+          throw new Error('Gagal mengambil data dari server.');
+        }
+
+        const stokResult = await stokResponse.json();
+        const distribusiResult = await distribusiResponse.json();
+
+        if (!stokResult.success || !distribusiResult.success) {
+          throw new Error('Respons dari server tidak berhasil.');
+        }
+        
+        // Ambil statistik langsung dari endpoint stok PBF
+        setStats(stokResult.data.stats);
+
+        // Proses data riwayat distribusi untuk ditampilkan di tabel
+        const mappedData = (distribusiResult.data || []).map(item => ({
+          id: item.id,
+          nomor_pesanan: item.nomor_pesanan,
+          tujuan: item.nama_apotek || 'N/A',
+          nomor_surat_jalan: item.nomor_surat_jalan,
+          jumlah_total_obat: item.jumlah_total_obat || 0,
+          tanggal_pengiriman: item.tanggal_pengiriman,
+          status_pengiriman: item.status === 'Selesai' ? 'Diterima' : 'Dikirim',
+        }));
+        setDistribusiData(mappedData);
+
+      } catch (error) {
+        setError(error.message);
+        if (error.message.includes('login')) navigate('/login/pbf');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [navigate]);
+
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate('/');
+  };
+
+  const filteredData = useMemo(() => {
+    return distribusiData
+      .filter(item => {
+        if (statusFilter === 'Semua') return true;
+        return item.status_pengiriman === statusFilter;
+      })
+      .filter(item => {
+        const searchableString = `${item.nomor_pesanan || ''} ${item.nomor_surat_jalan || ''} ${item.tujuan || ''}`.toLowerCase();
+        return searchableString.includes(searchTerm.toLowerCase());
+      });
+  }, [distribusiData, searchTerm, statusFilter]);
+
+  const StatCard = ({ icon, value, label, unit }) => (
+    <div className="bg-white p-6 rounded-xl shadow-lg flex items-center gap-6">
+      <div className="bg-emerald-100 p-4 rounded-full">{icon}</div>
+      <div>
+        <p className="text-3xl font-bold text-gray-800">
+          {value.toLocaleString('id-ID')} <span className="text-xl font-medium text-gray-500">{unit}</span>
+        </p>
+        <p className="text-gray-500">{label}</p>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="flex min-h-screen bg-gray-50">
+      <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+      <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+        <NavbarPbf onLogout={handleLogout} />
+        <main className="pt-16 p-6">
+          <h1 className="text-2xl font-bold mb-6">Monitoring Stok</h1>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <StatCard icon={<Package size={32} className="text-emerald-600" />} value={stats.totalStok} label="Total Stok" unit="box" />
+            <StatCard icon={<Truck size={32} className="text-emerald-600" />} value={stats.distribusiBulanIni} label="Distribusi Bulan Ini" unit="unit" />
+            <StatCard icon={<Box size={32} className="text-emerald-600" />} value={stats.stokMenipis} label="Stok Menipis" unit="item" />
+          </div>
+
+          {error && <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">{error}</div>}
+
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b">
+              <div className="flex">
+                <Link to="/pbf/monitoring-stok" className="py-2 px-4 text-center text-gray-500 hover:text-emerald-600">
+                  Stok Gudang
+                </Link>
+                <button className="py-2 px-4 text-center border-b-2 border-emerald-600 text-emerald-600 font-medium">Riwayat Distribusi</button>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input
+                    type="text"
+                    className="w-full pl-10 pr-4 py-2 border rounded-lg"
+                    placeholder="Cari No Pesanan / Apotek..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="p-2 border rounded-lg"
+                >
+                  <option value="Semua">Semua status</option>
+                  <option value="Dikirim">Dikirim</option>
+                  <option value="Diterima">Diterima</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              {isLoading ? (
+                <p className="p-4 text-center">Memuat riwayat distribusi...</p>
+              ) : (
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nomor Pesanan</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tujuan (Apotek)</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nomor Surat Jalan</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jumlah</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal Kirim</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredData.length > 0 ? (
+                      filteredData.map(item => (
+                        <tr key={item.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.nomor_pesanan || '-'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.tujuan || '-'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.nomor_surat_jalan || '-'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.jumlah_total_obat?.toLocaleString('id-ID') || '0'} unit</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {item.tanggal_pengiriman ? new Date(item.tanggal_pengiriman).toLocaleDateString('id-ID') : '-'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${item.status_pengiriman === 'Diterima' ? 'bg-green-100 text-green-800' : 'bg-cyan-100 text-cyan-800'}`}>
+                              {item.status_pengiriman}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                          Tidak ada riwayat distribusi ditemukan.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default RiwayatDistribusiPbf;

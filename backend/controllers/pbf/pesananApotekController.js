@@ -424,6 +424,119 @@ const pesananApotekController = {
             res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
         }
     },
+
+    prosesPengirimanMassal: async (req, res) => {
+        const { selectedIds, tanggalPengiriman, waktuPengiriman, catatan, opsiPengiriman } = req.body;
+        const idPbf = req.user.id;
+
+        if (!selectedIds || selectedIds.length === 0) {
+            return res.status(400).json({ success: false, message: 'Tidak ada pesanan yang dipilih.' });
+        }
+
+        let gateway;
+        let dbConnection;
+        const processedDetails = [];
+        const errors = [];
+
+        try {
+            dbConnection = await db.getConnection();
+            gateway = await getPbfGateway();
+            const network = await gateway.getNetwork('medisyncchannel');
+            const contract = network.getContract('medisync');
+
+            for (const pesananId of selectedIds) {
+                try {
+                    await dbConnection.beginTransaction();
+
+                    const [pesanan] = await dbConnection.query(
+                      'SELECT id, id_apotek, nama_apotek, nomor_pesanan, alamat_apotek FROM pesanan_apotek WHERE id = ? AND id_pbf = ? AND status = "Perlu Dikirim" FOR UPDATE',
+                      [pesananId, idPbf]
+                    );
+
+                    if (pesanan.length === 0) {
+                        throw new Error(`Pesanan tidak ditemukan atau statusnya bukan "Perlu Dikirim".`);
+                    }
+                    
+                    const timestamp = Date.now();
+                    const nomorResi = `RES-${timestamp}-${pesananId}`;
+                    const nomorSuratJalan = `SJ-${timestamp}-${pesananId}`;
+                    const hashSuratJalan = `HASH_SJPBF_${timestamp}_${pesananId}`;
+
+                    await dbConnection.query(
+                      `INSERT INTO surat_jalan_pbf (id_pesanan_apotek, nomor_resi, nomor_surat_jalan, tanggal_pengiriman, alamat_tujuan, waktu_pengiriman, catatan, hash_surat_jalan, opsi_pengiriman)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                      [pesananId, nomorResi, nomorSuratJalan, tanggalPengiriman, pesanan[0].alamat_apotek, waktuPengiriman || null, catatan || null, hashSuratJalan, opsiPengiriman]
+                    );
+                    
+                    const [detailRows] = await dbConnection.query(
+                        `SELECT dp.id as detail_pesanan_id, dp.id_aset_blockchain, dp.jumlah, dp.nama_obat, dp.harga_satuan FROM detail_pesanan_apotek dp WHERE dp.id_pesanan_apotek = ?`, [pesananId]
+                    );
+
+                    if (detailRows.length === 0) throw new Error(`Detail pesanan tidak ditemukan.`);
+                    
+                    const obatIds = detailRows.map(row => row.id_aset_blockchain).filter(Boolean);
+                    const jumlahPesanan = detailRows.map(row => ({ obatId: row.id_aset_blockchain, jumlah: row.jumlah }));
+
+                    const transaction = contract.createTransaction('PbfContract:transferToApotek');
+                    const resultBuffer = await transaction.submit(
+                        pesananId.toString(), hashSuratJalan, pesanan[0].nama_apotek,
+                        JSON.stringify(obatIds), JSON.stringify(jumlahPesanan)
+                    );
+
+                    const resultJson = JSON.parse(resultBuffer.toString());
+                    const createdAssetIds = resultJson.createdAssetIds;
+
+                    if (createdAssetIds && createdAssetIds.length > 0) {
+                        for (const assetId of createdAssetIds) {
+                            const originalAsetId = assetId.substring(0, assetId.lastIndexOf(`-${pesananId}`));
+                            const correspondingDetail = detailRows.find(d => d.id_aset_blockchain === originalAsetId);
+                            if (correspondingDetail) {
+                                await dbConnection.query(
+                                    'UPDATE detail_pesanan_apotek SET id_aset_blockchain = ? WHERE id = ?',
+                                    [assetId, correspondingDetail.detail_pesanan_id]
+                                );
+                            }
+                        }
+                    }
+
+                    await dbConnection.query('UPDATE surat_jalan_pbf SET status_blockchain = ? WHERE id_pesanan_apotek = ?', ['Tercatat', pesananId]);
+                    await dbConnection.query('UPDATE pesanan_apotek SET status = ? WHERE id = ?', ['Dikirim', pesananId]);
+                    
+                    await dbConnection.commit();
+
+                    processedDetails.push({
+                        ...pesanan[0],
+                        nomorResi,
+                        nomorSuratJalan,
+                        detail_pesanan: detailRows,
+                    });
+
+                } catch (innerError) {
+                    await dbConnection.rollback();
+                    errors.push(`Gagal memproses Pesanan ID ${pesananId}: ${innerError.message}`);
+                }
+            } // Loop selesai
+
+            if (errors.length > 0) {
+                return res.status(207).json({ 
+                    success: false, 
+                    message: `Beberapa pesanan gagal diproses.`, 
+                    data: processedDetails,
+                    errors: errors
+                });
+            }
+
+            res.json({ success: true, message: 'Semua pesanan berhasil diproses.', data: processedDetails });
+
+        } catch (outerError) {
+            console.error('Error in prosesPengirimanMassal (Outer):', outerError);
+            res.status(500).json({ success: false, message: `Kesalahan Server Internal: ${outerError.message}` });
+        } finally {
+            if (gateway) gateway.disconnect();
+            if (dbConnection) dbConnection.release();
+        }
+    },
+  
 };
 
 module.exports = pesananApotekController;

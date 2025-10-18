@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Search, CalendarPlus } from 'lucide-react';
 import SidebarPbf from '../../../components/SidebarPbf';
 import NavbarPbf from '../../../components/NavbarPbf';
-import { Search } from 'lucide-react';
 import axios from 'axios';
 
 // --- DESAIN NAVITEM DISESUAIKAN ---
@@ -45,7 +45,7 @@ const PengelolaanPesanan = () => {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.data.success) {
-          const relevantStatuses = ['Menunggu Konfirmasi', 'Pembatalan Diajukan', 'Dibatalkan'];
+         const relevantStatuses = ['Menunggu Konfirmasi', 'Perlu Dikirim', 'Pembatalan Diajukan', 'Dibatalkan'];
           const filteredList = response.data.data.filter(item => relevantStatuses.includes(item.status));
           setPesananList(filteredList);
         } else {
@@ -125,7 +125,8 @@ const PengelolaanPesanan = () => {
     
   const getStatusClass = (status) => {
     switch (status) {
-      case 'Menunggu Konfirmasi': return 'bg-yellow-100 text-yellow-800';
+     case 'Menunggu Konfirmasi': return 'bg-yellow-100 text-yellow-800';
+      case 'Perlu Dikirim': return 'bg-orange-100 text-orange-800';
       case 'Pembatalan Diajukan': return 'bg-pink-100 text-pink-800';
       case 'Dibatalkan': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
@@ -155,13 +156,23 @@ const PengelolaanPesanan = () => {
               <h1 className="text-2xl font-bold">Pengelolaan Pesanan Apotek</h1>
               <p className="text-gray-500">Kelola pesanan yang membutuhkan tindakan</p>
             </div>
+            <div className="flex items-center">
+              <button 
+                onClick={() => navigate('/pbf/pengelolaan-pesanan/pengiriman-massal')}
+                className="bg-emerald-600 text-white font-medium py-2 px-4 rounded-lg hover:bg-emerald-700 transition flex items-center gap-2"
+              >
+                <CalendarPlus size={18} />
+                <span>Pengiriman Massal</span>
+              </button>
+            </div>
           </div>
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="p-4 border-b flex flex-col sm:flex-row items-center gap-4">
               {/* --- CONTAINER NAVIGASI DISESUAIKAN --- */}
-              <nav className="-mb-5 sm:-mb-4 flex-grow sm:flex-grow-0 space-x-8 overflow-x-auto" aria-label="Tabs">
+             <nav className="-mb-5 sm:-mb-4 flex-grow sm:flex-grow-0 space-x-8 overflow-x-auto" aria-label="Tabs">
                 <NavItem label="Semua" filter="Semua" currentFilter={statusFilter} setFilter={setStatusFilter} />
                 <NavItem label="Menunggu Konfirmasi" filter="Menunggu Konfirmasi" currentFilter={statusFilter} setFilter={setStatusFilter} />
+                <NavItem label="Perlu Dikirim" filter="Perlu Dikirim" currentFilter={statusFilter} setFilter={setStatusFilter} />
                 <NavItem label="Dibatalkan" filter="Dibatalkan" currentFilter={statusFilter} setFilter={setStatusFilter} />
               </nav>
                <div className="relative w-full sm:w-auto sm:ml-auto mt-4 sm:mt-0">
@@ -229,6 +240,10 @@ const PengelolaanPesanan = () => {
                               Proses Pesanan
                             </button>
                           )}
+                          {order.status === 'Perlu Dikirim' && (
+                            <Link to={`/pbf/pengelolaan-pesanan/atur-pengiriman/${order.id}`} className="text-orange-600 hover:text-orange-800">Atur Pengiriman</Link>
+                          )}
+
                            {order.status === 'Dibatalkan' && (
                             <Link to={`/pbf/pengelolaan-pesanan/riwayat-pembatalan/${order.id}`} className="text-gray-600 hover:text-gray-800">
                               Lihat Riwayat

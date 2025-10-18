@@ -14,15 +14,16 @@ const TrackingPengiriman = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // --- MAPPING STATUS BARU ---
   const statusMapping = {
-    'Semua': ['Perlu Dikirim', 'Dikirim', 'Selesai', 'Pengembalian Diajukan', 'Dikembalikan'],
-    'Perlu Dikirim': ['Perlu Dikirim'],
+    'Semua': ['Dikirim', 'Selesai', 'Pengembalian Diajukan', 'Dikembalikan'],
     'Dikirim': ['Dikirim'],
     'Selesai': ['Selesai'],
     'Pengembalian': ['Pengembalian Diajukan', 'Dikembalikan'],
   };
   
-  const tabs = ['Semua', 'Perlu Dikirim', 'Dikirim', 'Selesai', 'Pengembalian'];
+  // --- NAVIGASI TAB BARU ---
+  const tabs = ['Semua', 'Dikirim', 'Selesai', 'Pengembalian'];
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,6 +39,7 @@ const TrackingPengiriman = () => {
             headers: { Authorization: `Bearer ${token}` }
         });
         if (response.data.success) {
+            // Hanya ambil data yang relevan untuk halaman tracking
             const relevantStatuses = statusMapping['Semua'];
             setPesananList(response.data.data.filter(p => 
                 relevantStatuses.includes(p.status)
@@ -64,10 +66,8 @@ const TrackingPengiriman = () => {
     });
   }, [pesananList, activeTab, searchTerm]);
 
-  // --- FUNGSI BARU: Untuk Badge Status (sama seperti di Pengelolaan Pesanan) ---
   const getStatusClass = (status) => {
     switch (status) {
-      case 'Perlu Dikirim': return 'bg-orange-100 text-orange-800';
       case 'Dikirim': return 'bg-cyan-100 text-cyan-800';
       case 'Selesai': return 'bg-emerald-100 text-emerald-800';
       case 'Pengembalian Diajukan': return 'bg-indigo-100 text-indigo-800';
@@ -78,8 +78,6 @@ const TrackingPengiriman = () => {
 
   const renderAction = (order) => {
     switch (order.status) {
-        case 'Perlu Dikirim':
-            return <Link to={`/pbf/tracking-pengiriman/atur-pengiriman/${order.id}`} className="text-orange-600 hover:text-orange-800 font-medium">Atur Pengiriman</Link>;
         case 'Dikirim':
             return <Link to={`/pbf/tracking-pengiriman/lacak/${order.id}`} className="text-emerald-600 hover:text-emerald-800 font-medium">Lacak Pengiriman</Link>;
         case 'Selesai':
@@ -123,7 +121,7 @@ const TrackingPengiriman = () => {
                   ))}
                 </nav>
               </div>
-
+              {/* Sisanya tidak berubah */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
@@ -145,52 +143,40 @@ const TrackingPengiriman = () => {
                   />
                 </div>
               </div>
-              
               <div className="overflow-x-auto">
                 {isLoading ? (<p className="text-center py-10">Memuat data...</p>) : 
                  error ? (<p className="text-center py-10 text-red-500">{error}</p>) :
                  (
-                    // --- PERUBAHAN DESAIN TABEL DIMULAI DI SINI ---
                     <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Apotek Pemesan</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nomor Pesanan</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pesanan (Surat Pesanan)</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pesanan</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Harga</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {filteredData.length > 0 ? filteredData.map((order) => {
-                            return (
-                                <tr key={order.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                        {order.nama_apotek}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {order.nomor_pesanan}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 hover:underline">
-                                        <Link to={`/pbf/pengelolaan-pesanan/surat/${order.id}`}>
-                                            Lihat Surat
-                                        </Link>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(order.total_harga)}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(order.status)}`}>
-                                            {order.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                        {renderAction(order)}
-                                    </td>
-                                </tr>
-                            );
-                        }) : (
+                        {filteredData.length > 0 ? filteredData.map((order) => (
+                            <tr key={order.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.nama_apotek}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.nomor_pesanan}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 hover:underline">
+                                    <Link to={`/pbf/pengelolaan-pesanan/surat/${order.id}`}>Lihat Surat</Link>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(order.total_harga)}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(order.status)}`}>
+                                        {order.status}
+                                    </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm">{renderAction(order)}</td>
+                            </tr>
+                        )) : (
                             <tr><td colSpan="6" className="text-center py-10 text-gray-500">Tidak ada data untuk tab ini.</td></tr>
                         )}
                     </tbody>

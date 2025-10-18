@@ -1,15 +1,40 @@
-import React, { useRef } from 'react';
+// !!! INI ADALAH BARIS KUNCI PERBAIKANNYA !!!
+import React, { useRef, useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Printer, Download } from 'lucide-react';
+import { Printer, Download, Loader2 } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
+import axios from 'axios';
 
 const CetakSuratJalanMassalPbf = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const contentRef = useRef(null);
+  
   const { processedDetails, allDetails } = location.state || {};
+  
   const [pbfProfile, setPbfProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPbfProfile = async () => {
+      setIsLoading(true);
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) throw new Error('Token tidak ditemukan');
+        const response = await axios.get('http://localhost:5000/api/pbf/profile', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (response.data.success) {
+          setPbfProfile(response.data.data);
+        }
+      } catch (error) {
+        console.error("Gagal mengambil profil PBF:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchPbfProfile();
+  }, []);
 
   if (!processedDetails || processedDetails.length === 0) {
     return (
@@ -34,6 +59,10 @@ const CetakSuratJalanMassalPbf = () => {
     html2pdf().from(element).set(opt).save();
   };
 
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin h-8 w-8 text-emerald-600" /></div>;
+  }
+
   return (
     <div className="bg-gray-100">
         <div className="max-w-4xl mx-auto p-6">
@@ -53,15 +82,14 @@ const CetakSuratJalanMassalPbf = () => {
             </div>
 
             <div ref={contentRef}>
-                {processedDetails.map((data, index) => {
+                {processedDetails.map((data) => {
                   const totalHargaPesanan = data.detail_pesanan?.reduce((sum, item) => sum + (item.jumlah * item.harga_satuan), 0) || 0;
 
                   return (
                     <div key={data.id} className="bg-white p-8 border border-gray-300 shadow-md print:shadow-none print:border-0 print:break-after-page mb-8">
-                      {/* --- KONTEN DISAMAKAN DENGAN SuratJalanPbf.jsx --- */}
                       <header className="flex justify-between items-start mb-8 pb-4 border-b-2 border-black">
                           <div className="flex flex-col">
-                             <h1 className="text-2xl font-bold text-gray-800">{pbfProfile?.nama_resmi || 'Nama PBF Anda'}</h1>
+                              <h1 className="text-2xl font-bold text-gray-800">{pbfProfile?.nama_resmi || 'Nama PBF Anda'}</h1>
                               <p className="text-xs text-gray-600">{pbfProfile?.alamat || 'Alamat PBF Anda'}</p>
                           </div>
                           <div className="flex flex-col text-right">
@@ -72,7 +100,6 @@ const CetakSuratJalanMassalPbf = () => {
                               </p>
                           </div>
                       </header>
-
                       <section className="grid grid-cols-2 gap-8 mb-8 text-sm">
                           <div>
                               <h3 className="font-bold text-gray-800 mb-2">PENGIRIM</h3>
@@ -85,7 +112,6 @@ const CetakSuratJalanMassalPbf = () => {
                               <p>{data.alamat_apotek || 'Alamat tidak tersedia'}</p>
                           </div>
                       </section>
-
                       <section className="mb-8">
                         <h3 className="font-bold text-gray-800 mb-4">DETAIL PENGIRIMAN</h3>
                         <table className="w-full text-sm border-collapse table-auto">
@@ -117,23 +143,19 @@ const CetakSuratJalanMassalPbf = () => {
                           </tfoot>
                         </table>
                       </section>
-
-                      <footer className="flex justify-between items-end mt-12 pt-8 border-t">
-                        <p className="text-xs text-gray-600">No. Resi: <span className="font-bold text-gray-900">{data.nomorResi}</span></p>
-                        {/* Area Tanda Tangan */}
-                        <div className="grid grid-cols-2 gap-8 text-center text-sm w-1/2">
-                            <div>
-                                <p>Penerima,</p>
-                                <div className="h-20"></div>
-                                <p>(.....................)</p>
-                            </div>
-                            <div>
-                                <p>Hormat Kami,</p>
-                                <div className="h-20"></div>
-                                <p>( {pbfProfile?.nama_resmi || 'Nama PBF Anda'} )</p>
-                            </div>
-                        </div>
+                      <footer className="grid grid-cols-2 gap-8 text-center mt-20 pt-8 text-sm w-full">
+                          <div>
+                              <p>Penerima,</p>
+                              <div className="h-20"></div>
+                              <p>(.....................)</p>
+                          </div>
+                          <div>
+                              <p>Hormat Kami,</p>
+                              <div className="h-20"></div>
+                              <p>( {pbfProfile?.nama_resmi || 'Nama PBF Anda'} )</p>
+                          </div>
                       </footer>
+                      <p className="text-xs text-gray-600 mt-12">No. Resi: <span className="font-bold text-gray-900">{data.nomorResi}</span></p>
                     </div>
                   )
                 })}

@@ -1,6 +1,6 @@
 // frontend/src/pages/produsen/pengelolaanpengiriman/CetakSuratJalanMassal.jsx
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';

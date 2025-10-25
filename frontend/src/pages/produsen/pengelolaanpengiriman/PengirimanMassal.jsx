@@ -105,7 +105,7 @@ const PengirimanMassal = () => {
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={() => { localStorage.clear(); navigate('/'); }} />
-        <main className="pt-16 p-6">
+        <main className="pt-18 pl-12 p-6 mt-8 ml-8">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
             <div>
               <h1 className="text-2xl font-bold">Pengiriman Massal</h1>

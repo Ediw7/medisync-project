@@ -87,7 +87,7 @@ const PerluDikirim = () => {
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={handleLogout} />
-        <main className="pt-16 p-6">
+        <main className="pt-18 pl-12 p-6 mt-8 ml-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-bold">Pesanan Perlu Dikirim</h1>

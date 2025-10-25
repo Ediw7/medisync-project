@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SidebarProdusen from '../../components/SidebarProdusen';
 import NavbarProdusen from '../../components/NavbarProdusen';
-import { Package, Truck, Box, BarChart, AlertCircle } from 'lucide-react';
+import { Package, Truck, Box, BarChart, AlertCircle, Clock } from 'lucide-react';
 
 const ProdusenDashboard = () => {
   const navigate = useNavigate();
@@ -222,12 +222,23 @@ const ProdusenDashboard = () => {
   );
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-20' : 'ml-64'}`}>
+      <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-20' : 'ml-72'}`}>
         <NavbarProdusen onLogout={handleLogout} />
-        <main className="pt-18 pl-10 p-6">
-          <h1 className="text-3xl font-bold mb-6">{username || 'Produsen'}</h1>
+        <main className="pt-18 pl-10 p-6 mt-6 ml-4">
+          <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
+            Selamat Datang, {username || 'Produsen'}!
+          </h1>
+          <p className="text-gray-600 flex items-center gap-2">
+            <Clock className="h-4 w-4 ml-1" />
+            {new Date().toLocaleDateString('id-ID', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </p>
 
           {error && <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">{error}</div>}
 

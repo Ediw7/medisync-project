@@ -180,7 +180,7 @@ const RincianPengiriman = () => {
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={handleLogout} />
-        <main className="pt-16 p-6">
+        <main className="pt-16 p-6 ">
           <div className="flex justify-between items-center mb-6">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Rincian Pengiriman</h1>

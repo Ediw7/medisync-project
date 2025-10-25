@@ -94,7 +94,7 @@ const LihatStatus = () => {
         <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
         <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
           <NavbarProdusen onLogout={() => { localStorage.clear(); navigate('/'); }} />
-          <main className="pt-16 p-6 flex items-center justify-center">
+          <main className="pt-16 p-6 flex items-center justify-center mt-6 ml-4">
             <div className="text-center p-8 bg-white rounded-lg shadow-md">
                 <AlertTriangle className="mx-auto h-12 w-12 text-yellow-500" />
                 <h2 className="mt-4 text-xl font-semibold text-gray-800">Oops! Terjadi Masalah</h2>

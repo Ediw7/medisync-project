@@ -75,7 +75,7 @@ const KonfirmasiPengirimanMassal = () => {
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={() => { localStorage.clear(); navigate('/'); }} />
-        <main className="flex-1 p-6 lg:p-8">
+        <main className="flex-1 pt-18 pl-12 p-6 mt-8 ml-8 lg:p-8">
           <div className="max-w-7xl mx-auto">
             <h1 className="text-3xl font-bold text-gray-800 mb-6 pt-10">Proses Pengaturan Pengiriman</h1>
             

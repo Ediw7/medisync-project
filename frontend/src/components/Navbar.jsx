@@ -27,7 +27,7 @@ const Navbar = () => {
 
           <div className="flex items-center relative z-10">
             <Link to="/">
-              <img src={Logo} alt="MediSync Logo" className="h-11 w-auto" />
+              <img src={Logo} alt="MediSync Logo" className="h-10 w-auto" />
             </Link>
           </div>
 

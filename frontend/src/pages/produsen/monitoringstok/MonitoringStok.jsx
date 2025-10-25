@@ -114,7 +114,7 @@ const MonitoringStok = () => {
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={handleLogout} />
-        <main className="pt-16 pl-10 p-6">
+        <main className="pt-18 pl-12 p-6 mt-8 ml-8">
           <h1 className="text-2xl font-bold mb-6">Monitoring Stok</h1>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <StatCard icon={<Package size={32} className="text-emerald-600"/>} value={stats.totalStok} label="Total Stok" unit="box" />

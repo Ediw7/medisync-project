@@ -26,7 +26,7 @@ import Threads from "../components/Threads";
 import QrScanner from "../components/QrScanner";
 import RiwayatObatModal from "../components/RiwayatObatModal";
 import HeroImage from "../assets/hero.png";
-import LogoPutih from "../assets/logo-putih.png";
+import LogoPutih from "../assets/logoPutih.png";
 
 const LandingPage = () => {
   const [showScanner, setShowScanner] = useState(false);
@@ -483,19 +483,19 @@ const LandingPage = () => {
             <nav className="flex items-center gap-8">
               <a
                 href="#"
-                className="text-gray-300 hover:text-white transition-colors duration-200"
+                className="text-white hover:text-white transition-colors duration-200"
               >
                 About
               </a>
               <a
                 href="#"
-                className="text-gray-300 hover:text-white transition-colors duration-200"
+                className="text-white hover:text-white transition-colors duration-200"
               >
                 Services
               </a>
               <a
                 href="#"
-                className="text-gray-300 hover:text-white transition-colors duration-200"
+                className="text-white hover:text-white transition-colors duration-200"
               >
                 Contact
               </a>
@@ -505,28 +505,28 @@ const LandingPage = () => {
             <div className="flex items-center gap-4">
               <a
                 href="#"
-                className="text-gray-400 hover:text-white transition-colors duration-200"
+                className="text-white hover:text-white transition-colors duration-200"
                 aria-label="GitHub"
               >
                 <Github size={20} />
               </a>
               <a
                 href="#"
-                className="text-gray-400 hover:text-white transition-colors duration-200"
+                className="text-white hover:text-white transition-colors duration-200"
                 aria-label="QR Code"
               >
                 <QrCode size={20} />
               </a>
               <a
                 href="#"
-                className="text-gray-400 hover:text-white transition-colors duration-200"
+                className="text-white hover:text-white transition-colors duration-200"
                 aria-label="Collaboration"
               >
                 <HeartHandshake size={20} />
               </a>
               <a
                 href="#"
-                className="text-gray-400 hover:text-white transition-colors duration-200"
+                className="text-white hover:text-white transition-colors duration-200"
                 aria-label="Back to Top"
               >
                 <ArrowBigUpDash size={20} />
@@ -537,7 +537,7 @@ const LandingPage = () => {
           {/* Divider */}
           <div className="border-t border-slate-700 mt-8 pt-6">
             {/* Copyright */}
-            <p className="text-left text-gray-400 text-sm">
+            <p className="text-left text-white/80 text-sm">
               © Copyright 2025, All Rights Reserved by MediSync
             </p>
           </div>

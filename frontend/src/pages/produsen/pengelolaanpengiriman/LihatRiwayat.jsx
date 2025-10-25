@@ -117,7 +117,7 @@ estimasiSampai.setDate(tanggalPengiriman.getDate() + hariTambah);
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={handleLogout} />
-        <main className="pt-16 p-4 md:p-6">
+        <main className="pt-16 p-4 md:p-6 mt-6 ml-4">
           <div className="max-w-4xl mx-auto">
             <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-semibold mb-6">
               <ArrowLeft size={18} /> Kembali

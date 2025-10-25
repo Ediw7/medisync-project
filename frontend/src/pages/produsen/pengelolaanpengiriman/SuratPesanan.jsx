@@ -98,7 +98,7 @@ const SuratPesanan = () => {
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={handleLogout} />
-        <main className="flex-1 pt-16 p-6">
+        <main className="flex-1 pt-18 pl-12 p-6 mt-8 ml-8">
           <div className="max-w-4xl mx-auto">
             <div className="flex justify-between items-center mb-6">
               <button

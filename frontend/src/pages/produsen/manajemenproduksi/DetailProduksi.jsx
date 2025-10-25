@@ -155,7 +155,7 @@ const DetailProduksi = () => {
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-20' : 'ml-72'}`}>
         <NavbarProdusen onLogout={() => { localStorage.clear(); navigate('/'); }} />
         
-        <main className="flex-1 p-8 pt-24">
+        <main className="pt-18 pl-10 p-6 mt-6 ml-4">
           {/* Header */}
           <div className="mb-8">
             <button

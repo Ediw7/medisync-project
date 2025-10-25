@@ -138,7 +138,7 @@ const RiwayatDistribusi = () => {
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={handleLogout} />
-        <main className="pt-16 p-6">
+        <main className="pt-16 pl-10 p-6">
           <h1 className="text-2xl font-bold mb-6">Riwayat Distribusi</h1>
 
           {/* Statistik */}

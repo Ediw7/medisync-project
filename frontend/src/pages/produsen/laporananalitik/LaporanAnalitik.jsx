@@ -118,7 +118,7 @@ const LaporanAnalitik = () => {
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={handleLogout} />
-        <main className="pt-16 p-6">
+        <main className="pt-16 pl-10 p-6">
           <div className="mb-6">
             <h1 className="text-2xl font-bold">Laporan & Analitik</h1>
             <p className="text-gray-500">Overview performa produksi dan distribusi</p>

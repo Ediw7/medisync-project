@@ -226,7 +226,7 @@ const ProdusenDashboard = () => {
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-20' : 'ml-64'}`}>
         <NavbarProdusen onLogout={handleLogout} />
-        <main className="pt-18 pl-12 p-6">
+        <main className="pt-18 pl-10 p-6">
           <h1 className="text-3xl font-bold mb-6">{username || 'Produsen'}</h1>
 
           {error && <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">{error}</div>}

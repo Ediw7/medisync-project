@@ -44,12 +44,12 @@ const SidebarProdusen = ({ isCollapsed, setIsCollapsed }) => {
   return (
     <div
       className={`fixed top-0 left-0 h-screen text-white transition-all duration-300 shadow-2xl ${
-        isCollapsed ? "w-20" : "w-72"
+        isCollapsed ? "w-16" : "w-70" // Lebar diperkecil
       } bg-gradient-to-b from-[#18A375] via-[#16956D] to-[#129967]`}
     >
       {/* Header Section */}
       <div className="relative border-b border-white/10">
-        <div className="flex items-center justify-between p-6 pt-20">
+        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} ${isCollapsed ? 'p-4' : 'p-6'} pt-20 transition-all duration-300`}>
           {!isCollapsed && (
             <h3 className="text-lg font-bold tracking-wide">
               Produsen
@@ -100,15 +100,8 @@ const SidebarProdusen = ({ isCollapsed, setIsCollapsed }) => {
                   )}
                 </div>
                 
-                {/* Active Indicator */}
-                <NavLink
-                  to={item.path}
-                  className={({ isActive }) =>
-                    isActive && !isCollapsed
-                      ? "ml-auto w-1.5 h-1.5 bg-white rounded-full"
-                      : "hidden"
-                  }
-                />
+                {/* Indikator titik telah dihapus dari sini */}
+
               </NavLink>
             </li>
           ))}

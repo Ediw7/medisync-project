@@ -1,4 +1,3 @@
-// frontend/src/pages/produsen/pengelolaanpengiriman/PengelolaanPengiriman.jsx
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -6,7 +5,6 @@ import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
 import { Search, CalendarPlus } from 'lucide-react'; 
 
-// Komponen nav item untuk handle state aktif
 const NavItem = ({ to, children }) => {
   const location = useLocation();
   const isActive = location.pathname === to;
@@ -57,7 +55,7 @@ const PengelolaanPengiriman = () => {
     fetchData();
   }, [navigate]);
 
-  // Fungsi sorting
+
   const sortData = (key) => {
     let direction = 'ascending';
     if (sortConfig.key === key && sortConfig.direction === 'ascending') {
@@ -80,7 +78,6 @@ const PengelolaanPengiriman = () => {
     setPesananData(sortedData);
   };
 
-  // Fungsi filtering berdasarkan pencarian
   const filteredData = pesananData.filter(item =>
     item.nama_pbf.toLowerCase().includes(searchQuery.toLowerCase()) ||
     String(item.id).includes(searchQuery)
@@ -91,46 +88,38 @@ const PengelolaanPengiriman = () => {
     navigate('/');
   };
 
-  // --- UPDATED ---
-  // Menambahkan status baru dari ENUM
   const getStatusBadge = (status) => {
     switch (status) {
       case 'Perlu Dikirim': return 'bg-orange-100 text-orange-800';
       case 'Dikirim': return 'bg-blue-100 text-blue-800';
       case 'Selesai': return 'bg-emerald-100 text-emerald-800';
       case 'Ditolak': return 'bg-red-100 text-red-800';
-      
-      // --- TAMBAHAN/PENYESUAIAN ---
       case 'Pembatalan Diajukan': return 'bg-yellow-100 text-yellow-800';
       case 'Dibatalkan': return 'bg-red-100 text-red-800';
-      case 'Pengembalian Diajukan': return 'bg-indigo-100 text-indigo-800'; // Status baru
+      case 'Pengembalian Diajukan': return 'bg-indigo-100 text-indigo-800'; 
       case 'Dikembalikan': return 'bg-purple-100 text-purple-800';
-      // --- AKHIR TAMBAHAN ---
+
 
       default: return 'bg-gray-100 text-gray-800';
     }
   };
-  // --- END UPDATED ---
 
   return (
     <div className="flex min-h-screen bg-gray-50">
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={handleLogout} />
-        <main className="pt-16 p-6">
-        {/* Kontainer header yang dibuat responsif */}
+        <main className="pt-18 pl-12 p-6">
        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-bold">Pengelolaan Pengiriman</h1>
             <p className="text-gray-500">Kelola pesanan dan pengiriman ke PBF</p>
           </div>
-          {/* Kontainer untuk tombol-tombol */}
+
           <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-            {/* Gaya tombol pertama disesuaikan */}
             <button className="text-gray-600 font-medium py-2 px-3 rounded-lg hover:bg-gray-200 transition">
               Atur Pengiriman Massal
             </button>
-            {/* Tombol kedua disesuaikan (ikon & teks) */}
             <button 
                         onClick={() => navigate('/produsen/pengelolaan-pengiriman/pengiriman-massal')}
                         className="bg-emerald-600 text-white font-medium py-2 px-3 rounded-lg hover:bg-emerald-700 transition flex items-center gap-2">
@@ -218,7 +207,6 @@ const PengelolaanPengiriman = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          {/* --- UPDATED --- */}
                           {item.status === 'Perlu Dikirim' && (
                             <Link to={`/produsen/pengelolaan-pengiriman/atur-pengiriman/${item.id}`} className="text-emerald-600 hover:text-emerald-800">
                               Atur Pengiriman
@@ -234,23 +222,19 @@ const PengelolaanPengiriman = () => {
                               Lihat Riwayat
                             </Link>
                           )}
-                          
-                          {/* Link untuk status 'Pembatalan Diajukan' (Sudah ada) */}
+
                           {item.status === 'Pembatalan Diajukan' && (
                             <Link to={`/produsen/pengelolaan-pengiriman/konfirmasi-pembatalan/${item.id}`} className="text-blue-600 hover:text-blue-800">
                               Konfirmasi Pembatalan
                             </Link>
                           )}
 
-                          {/* --- INI YANG ANDA MINTA --- */}
-                          {/* Link untuk status 'Dibatalkan' */}
                           {item.status === 'Dibatalkan' && (
                             <Link to={`/produsen/pengelolaan-pengiriman/riwayat-pembatalan/${item.id}`} className="text-blue-600 hover:text-blue-800">
                               Lihat Riwayat
                             </Link>
                           )}
-                                 
-                          {/* (Opsional) Tambahan logis untuk 'Pengembalian Diajukan' */}
+
                            {item.status === 'Pengembalian Diajukan' && (
                             <Link to={`/produsen/pengelolaan-pengiriman/konfirmasi-pengembalian/${item.id}`} className="text-indigo-600 hover:text-indigo-800">
                               Konfirmasi Pengembalian
@@ -267,7 +251,6 @@ const PengelolaanPengiriman = () => {
                               Lihat Riwayat
                             </Link>
                           )}
-                          {/* --- AKHIR BARU DITAMBAHKAN --- */}
                         </td>
                       </tr>
                     )) : (

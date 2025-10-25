@@ -115,7 +115,7 @@ const ManajemenProduksi = () => {
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={() => { localStorage.clear(); navigate('/'); }} />
-        <main className="pt-16 p-6">
+        <main className="pt-18 pl-12 p-6">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">Manajemen Produksi</h1>
             <button onClick={() => navigate('/produsen/produksi/tambah')} className="bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 rounded flex items-center gap-2">

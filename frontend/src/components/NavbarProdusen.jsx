@@ -1,12 +1,14 @@
 import React from 'react';
 import { FaUserCircle, FaSignOutAlt } from 'react-icons/fa';
+import logo from '../assets/logo.png'; 
 
 const NavbarProdusen = ({ username, onLogout }) => {
   return (
     <nav className="fixed top-0 left-0 w-full bg-white shadow-md z-10 flex justify-between items-center px-6 py-3">
-      {/* Logo/Brand */}
+
       <div className="flex items-center">
-        <span className="text-green-600 font-bold text-xl">MediSync</span>
+        {/* Mengganti span dengan img */}
+        <img src={logo} alt="MediSync Logo" className="h-10 w-auto" /> 
       </div>
 
       {/* Profil dan Logout */}

@@ -82,8 +82,8 @@ const RiwayatProduksi = () => {
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={handleLogout} />
-        <main className="pt-16 p-6">
-          <h1 className="text-2xl font-bold mb-6">Riwayat Produksi (On-Chain)</h1>
+        <main className="pt-18 pl-12 p-6">
+          <h1 className="text-2xl font-bold mb-6">Riwayat Produksi</h1>
 
           {error && <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">{error}</div>}
 
@@ -115,11 +115,9 @@ const RiwayatProduksi = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      {['batch_id', 'nama_obat', 'tanggal_produksi', 'jumlah', 'status', 'qr_code'].map(key => (
-                        <th key={key} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          <button onClick={() => requestSort(key)} className="flex items-center gap-1 hover:text-gray-800">
-                            {key.replace('_', ' ')} <ArrowUpDown size={14} />
-                          </button>
+                      {[{label:'Batch ID', key: 'batch_id'}, {label: 'Nama Obat', key: 'nama_obat'}, {label: 'Tgl. Produksi', key: 'tanggal_produksi'}, {label: 'Jumlah', key: 'jumlah'}, {label: 'Status', key: 'status'},{label: 'QR Code', key: 'qr_code'}].map(header => (
+                        <th key={header.key} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <button onClick={() => requestSort(header.key)} className="flex items-center gap-1 hover:text-gray-800">{header.label} <ArrowUpDown size={14} /></button>
                         </th>
                       ))}
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>

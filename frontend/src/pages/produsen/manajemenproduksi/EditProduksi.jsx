@@ -161,263 +161,304 @@ const EditProduksi = () => {
   if (isLoading || !formData) return <div className="p-6 text-center text-gray-500">Loading...</div>;
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex min-h-screen bg-slate-50">
+      {/* Asumsi Anda memiliki fungsi renderPopup() yang serupa di file ini */}
+      {/* {renderPopup()} */}
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
-        <NavbarProdusen onLogout={() => { localStorage.clear(); navigate('/'); }} />
-        <main className="flex-1 pt-16 p-6">
-          <div className="max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold text-gray-800 mb-6">Edit Jadwal Produksi</h1>
+      <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? "ml-16" : "ml-64"}`}>
+        <NavbarProdusen
+          onLogout={() => {
+            localStorage.clear();
+            navigate("/"); 
+          }}
+        />
+        <main className="flex-1 overflow-auto">
+          <div className="max-w-5xl mx-auto px-6 py-8">
+            <div className="mb-8 pt-12">
+              <h1 className="text-4xl font-bold text-slate-900 mb-2">Edit Jadwal Produksi</h1>
+              <p className="text-slate-600">Perbarui formulir di bawah untuk mengubah data produksi</p>
+            </div>
+
             {error && (
-              <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-lg flex items-center gap-2">
+              <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200 flex items-center gap-2">
                 <span>{error}</span>
               </div>
             )}
-            <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 space-y-6">
-              <h2 className="text-lg font-semibold text-emerald-700">Identitas Produk</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Batch ID</label>
-                  <input
-                    name="batch_id"
-                    value={formData.batch_id || ''}
-                    onChange={handleInputChange}
-                    placeholder="Masukkan Batch ID Unik"
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Nama Obat (Merek/Generik)</label>
-                  <input
-                    name="nama_obat"
-                    value={formData.nama_obat || ''}
-                    onChange={handleInputChange}
-                    placeholder="Masukkan Nama Obat"
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Nomor Izin Edar (BPOM)</label>
-                  <input
-                    name="nomor_izin_edar"
-                    value={formData.nomor_izin_edar || ''}
-                    onChange={handleInputChange}
-                    placeholder="Masukkan Nomor Izin Edar"
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Dosis</label>
-                  <input
-                    name="dosis"
-                    value={formData.dosis || ''}
-                    onChange={handleInputChange}
-                    placeholder="Masukkan Dosis (cth: 500 mg)"
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Bentuk Sediaan</label>
-                  <select
-                    name="bentuk_sediaan"
-                    value={formData.bentuk_sediaan || ''}
-                    onChange={handleInputChange}
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    required
-                  >
-                    <option value="">-- Pilih Bentuk Sediaan --</option>
-                    <option value="Tablet">Tablet</option>
-                    <option value="Kapsul">Kapsul</option>
-                    <option value="Sirup">Sirup</option>
-                    <option value="Injeksi">Injeksi</option>
-                    <option value="Salep">Salep</option>
-                    <option value="Krim">Krim</option>
-                    <option value="Tetes">Tetes</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Jumlah Produksi</label>
-                  <input
-                    type="number"
-                    name="jumlah"
-                    value={formData.jumlah || ''}
-                    onChange={handleInputChange}
-                    placeholder="Masukkan Jumlah (pcs)"
-                    min="1"
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Tanggal Produksi</label>
-                  <DatePicker
-                    selected={formData.tanggal_produksi}
-                    onChange={(date) => setFormData({ ...formData, tanggal_produksi: date })}
-                    dateFormat="dd/MM/yyyy"
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Tanggal Kadaluarsa</label>
-                  <DatePicker
-                    selected={formData.tanggal_kadaluarsa}
-                    onChange={(date) => setFormData({ ...formData, tanggal_kadaluarsa: date })}
-                    dateFormat="dd/MM/yyyy"
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    required
-                  />
-                </div>
-                {/* DIPERBAIKI: Tambah field harga_per_unit */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Harga per Unit (Rp)</label>
-                  <input
-                    type="number"
-                    name="harga_per_unit"
-                    value={formData.harga_per_unit || ''}
-                    onChange={handleInputChange}
-                    placeholder="Masukkan Harga per Unit"
-                    min="0"
-                    step="0.01"
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                  />
-                </div>
-              </div>
 
-              <h2 className="text-lg font-semibold text-emerald-700">Detail Produksi</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Prioritas</label>
-                  <select
-                    name="prioritas"
-                    value={formData.prioritas || 'Medium'}
-                    onChange={handleInputChange}
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                  >
-                    <option value="High">Tinggi</option>
-                    <option value="Medium">Sedang</option>
-                    <option value="Low">Rendah</option>
-                  </select>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              
+              <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 px-6 py-4 border-b border-slate-200">
+                  <h2 className="text-lg font-semibold text-emerald-900">Identitas Produk</h2>
+                  <p className="text-sm text-emerald-700 mt-1">Informasi dasar tentang produk yang akan diproduksi</p>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Status</label>
-                  <select
-                    name="status"
-                    value={formData.status || 'Terjadwal'}
-                    onChange={handleInputChange}
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                  >
-                    <option value="Terjadwal">Terjadwal</option>
-                    <option value="Dalam Produksi">Dalam Produksi</option>
-                    <option value="Selesai">Selesai</option>
-                  </select>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700">Penanggung Jawab</label>
-                  <input
-                    name="penanggung_jawab"
-                    value={formData.penanggung_jawab || ''}
-                    onChange={handleInputChange}
-                    placeholder="Masukkan Nama Penanggung Jawab"
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    required
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Komposisi Obat</label>
-                <textarea
-                  name="komposisi_obat"
-                  value={formData.komposisi_obat || ''}
-                  onChange={handleInputChange}
-                  placeholder="Masukkan komposisi obat (misalnya: Paracetamol 500 mg, Laktosa, Pati)"
-                  className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                  rows={3}
-                />
-              </div>
-
-              <h2 className="text-lg font-semibold text-emerald-700">Dokumen Pendukung</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Dokumen BPOM (Opsional)</label>
-                  <div className="mt-1 flex items-center gap-2">
-                    <input
-                      type="file"
-                      onChange={(e) => setDokumenBpomFile(e.target.files[0])}
-                      accept=".pdf,.png,.jpg"
-                      className="hidden"
-                      id="dokumen_bpom"
-                    />
-                    <label
-                      htmlFor="dokumen_bpom"
-                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg cursor-pointer hover:bg-gray-200 transition flex items-center gap-2"
-                    >
-                      <Upload size={18} />
-                      {dokumenBpomFile ? dokumenBpomFile.name : 'Pilih File'}
-                    </label>
-                    {formData.dokumen_bpom_path && !dokumenBpomFile && (
-                      <p className="text-sm text-gray-500 mt-1">
-                        File saat ini:{' '}
-                        <a
-                          href={`http://localhost:5000/${formData.dokumen_bpom_path.replace(/\\/g, '/')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-emerald-600 hover:underline"
-                        >
-                          {formData.dokumen_bpom_path.replace('uploads\\', '')}
-                        </a>
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Sertifikat Analisis (Opsional)</label>
-                  <div className="mt-1 flex items-center gap-2">
-                    <input
-                      type="file"
-                      onChange={(e) => setSertifikatFile(e.target.files[0])}
-                      accept=".pdf,.png,.jpg"
-                      className="hidden"
-                      id="sertifikat_analisis"
-                    />
-                    <label
-                      htmlFor="sertifikat_analisis"
-                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg cursor-pointer hover:bg-gray-200 transition flex items-center gap-2"
-                    >
-                      <Upload size={18} />
-                      {sertifikatFile ? sertifikatFile.name : 'Pilih File'}
-                    </label>
-                    {formData.sertifikat_analisis_path && !sertifikatFile && (
-                      <p className="text-sm text-gray-500 mt-1">
-                        File saat ini:{' '}
-                        <a
-                          href={`http://localhost:5000/${formData.sertifikat_analisis_path.replace(/\\/g, '/')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-emerald-600 hover:underline"
-                        >
-                          {formData.sertifikat_analisis_path.replace('uploads\\', '')}
-                        </a>
-                      </p>
-                    )}
+                <div className="p-6 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Batch ID</label>
+                      <input
+                        name="batch_id"
+                        value={formData.batch_id || ''}
+                        onChange={handleInputChange}
+                        placeholder="Masukkan Batch ID Unik"
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Nama Obat (Merek/Generik)
+                      </label>
+                      <input
+                        name="nama_obat"
+                        value={formData.nama_obat || ''}
+                        onChange={handleInputChange}
+                        placeholder="Masukkan Nama Obat"
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Nomor Izin Edar (BPOM)</label>
+                      <input
+                        name="nomor_izin_edar"
+                        value={formData.nomor_izin_edar || ''}
+                        onChange={handleInputChange}
+                        placeholder="Masukkan Nomor Izin Edar"
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Dosis</label>
+                      <input
+                        name="dosis"
+                        value={formData.dosis || ''}
+                        onChange={handleInputChange}
+                        placeholder="Masukkan Dosis (cth: 500 mg)"
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Bentuk Sediaan</label>
+                      <select
+                        name="bentuk_sediaan"
+                        value={formData.bentuk_sediaan || ''}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                        required
+                      >
+                        <option value="">Pilih Bentuk Sediaan</option>
+                        <option value="Tablet">Tablet</option>
+                        <option value="Kapsul">Kapsul</option>
+                        <option value="Sirup">Sirup</option>
+                        <option value="Injeksi">Injeksi</option>
+                        <option value="Salep">Salep</option>
+                        <option value="Krim">Krim</option>
+                        <option value="Tetes">Tetes</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Jumlah Produksi</label>
+                      <input
+                        type="number"
+                        name="jumlah"
+                        value={formData.jumlah || ''}
+                        onChange={handleInputChange}
+                        placeholder="Masukkan Jumlah (pcs)"
+                        min="1"
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Tanggal Produksi</label>
+                      <DatePicker
+                        selected={formData.tanggal_produksi}
+                        onChange={(date) => setFormData({ ...formData, tanggal_produksi: date })}
+                        dateFormat="dd/MM/yyyy"
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Tanggal Kadaluarsa</label>
+                      <DatePicker
+                        selected={formData.tanggal_kadaluarsa}
+                        onChange={(date) => setFormData({ ...formData, tanggal_kadaluarsa: date })}
+                        dateFormat="dd/MM/yyyy"
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Harga Satuan (Rp)</label>
+                      <input
+                        type="number"
+                        name="harga_per_unit"
+                        value={formData.harga_per_unit || ''}
+                        onChange={handleInputChange}
+                        placeholder="Masukkan Harga Satuan"
+                        min="0"
+                        step="0.01"
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-4 pt-4">
+              <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 px-6 py-4 border-b border-slate-200">
+                  <h2 className="text-lg font-semibold text-emerald-900">Detail Produksi</h2>
+                  <p className="text-sm text-emerald-700 mt-1">Informasi detail tentang proses produksi</p>
+                </div>
+                <div className="p-6 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Prioritas</label>
+                      <select
+                        name="prioritas"
+                        value={formData.prioritas || 'Medium'}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                        required
+                      >
+                        <option value="High">Tinggi</option>
+                        <option value="Medium">Sedang</option>
+                        <option value="Low">Rendah</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Status</label>
+                      <select
+                        name="status"
+                        value={formData.status || 'Terjadwal'}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                        required
+                      >
+                        <option value="Terjadwal">Terjadwal</option>
+                        <option value="Dalam Produksi">Dalam Produksi</option>
+                        <option value="Selesai">Selesai</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Penanggung Jawab</label>
+                      <input
+                        name="penanggung_jawab"
+                        value={formData.penanggung_jawab || ''}
+                        onChange={handleInputChange}
+                        placeholder="Masukkan Nama Penanggung Jawab"
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Komposisi Obat</label>
+                    <textarea
+                      name="komposisi_obat"
+                      value={formData.komposisi_obat || ''}
+                      onChange={handleInputChange}
+                      placeholder="Masukkan komposisi obat (misalnya: Paracetamol 500 mg, Laktosa, Pati)"
+                      rows={4}
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition resize-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 px-6 py-4 border-b border-slate-200">
+                  <h2 className="text-lg font-semibold text-emerald-900">Dokumen Pendukung</h2>
+                  <p className="text-sm text-emerald-700 mt-1">Upload dokumen baru untuk menggantikan file lama (jika perlu)</p>
+                </div>
+                <div className="p-6 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Dokumen BPOM (Opsional)
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          onChange={(e) => setDokumenBpomFile(e.target.files[0])}
+                          accept=".pdf,.png,.jpg"
+                          className="hidden"
+                          id="dokumen_bpom"
+                        />
+                        <label
+                          htmlFor="dokumen_bpom"
+                          className="flex-1 px-4 py-2.5 bg-slate-100 text-slate-700 rounded-lg cursor-pointer hover:bg-slate-200 transition flex items-center gap-2 border border-slate-300"
+                        >
+                          <Upload size={18} />
+                          <span className="truncate">{dokumenBpomFile ? dokumenBpomFile.name : "Pilih File Baru"}</span>
+                        </label>
+                      </div>
+                      {formData.dokumen_bpom_path && !dokumenBpomFile && (
+                        <p className="text-sm text-slate-500 mt-2">
+                          File saat ini:{" "}
+                          <a
+                            href={`http://localhost:5000/${formData.dokumen_bpom_path.replace(/\\/g, '/')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-emerald-600 hover:underline"
+                          >
+                            {formData.dokumen_bpom_path.replace('uploads\\', '')}
+                          </a>
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Sertifikat Analisis (Opsional)
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          onChange={(e) => setSertifikatFile(e.target.files[0])}
+                          accept=".pdf,.png,.jpg"
+                          className="hidden"
+                          id="sertifikat_analisis"
+                        />
+                        <label
+                          htmlFor="sertifikat_analisis"
+                          className="flex-1 px-4 py-2.5 bg-slate-100 text-slate-700 rounded-lg cursor-pointer hover:bg-slate-200 transition flex items-center gap-2 border border-slate-300"
+                        >
+                          <Upload size={18} />
+                          <span className="truncate">{sertifikatFile ? sertifikatFile.name : "Pilih File Baru"}</span>
+                        </label>
+                      </div>
+                      {formData.sertifikat_analisis_path && !sertifikatFile && (
+                        <p className="text-sm text-slate-500 mt-2">
+                          File saat ini:{" "}
+                          <a
+                            href={`http://localhost:5000/${formData.sertifikat_analisis_path.replace(/\\/g, '/')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-emerald-600 hover:underline"
+                          >
+                            {formData.sertifikat_analisis_path.replace('uploads\\', '')}
+                          </a>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
                 <button
                   type="button"
                   onClick={() => navigate('/produsen/manajemen-produksi')}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition"
+                  className="px-6 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:bg-gray-400 flex items-center gap-2"
+                  className="px-6 py-2.5 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 transition disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {isSubmitting && <Loader2 className="animate-spin" size={18} />}
                   {isSubmitting ? 'Menyimpan...' : 'Simpan Perubahan'}
@@ -430,5 +471,4 @@ const EditProduksi = () => {
     </div>
   );
 };
-
 export default EditProduksi;

@@ -96,7 +96,7 @@ const TrackingPengiriman = () => {
       <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarPbf onLogout={() => { localStorage.clear(); navigate('/'); }} />
-        <main className="flex-1 pt-16 p-6">
+        <main className="flex-1 pt-16 p-6 mt-8 ml-8">
           <div className="max-w-7xl mx-auto">
             <div className="mb-6">
               <h1 className="text-3xl font-bold text-gray-800">Pantau Pengiriman ke Apotek</h1>

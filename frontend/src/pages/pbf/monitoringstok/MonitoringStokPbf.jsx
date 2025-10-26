@@ -98,7 +98,7 @@ const MonitoringStokPbf = () => {
       <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarPbf onLogout={handleLogout} />
-        <main className="pt-16 p-6">
+        <main className="pt-16 p-6 mt-8 ml-8">
           <h1 className="text-2xl font-bold mb-6">Monitoring Stok</h1>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

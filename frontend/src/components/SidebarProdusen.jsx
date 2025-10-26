@@ -186,7 +186,7 @@ const SidebarProdusen = ({
             </div>
           ) : (
             <div className="flex justify-center">
-              <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center mb-3">
                 <span className="text-xs font-bold">MS</span>
               </div>
             </div>

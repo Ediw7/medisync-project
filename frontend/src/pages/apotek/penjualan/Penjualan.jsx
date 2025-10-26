@@ -24,7 +24,7 @@ const Penjualan = () => {
       <SidebarApotek isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarApotek onLogout={() => { localStorage.clear(); navigate('/'); }} />
-        <main className="flex-1 pt-16 p-6">
+        <main className="flex-1 pt-16 p-6 mt-8 ml-8">
           <h1 className="text-2xl font-bold">Penjualan obat ke konsumen</h1>
           <p className="text-gray-500 mb-6">Pilih obat sesuai permintaan konsumen</p>
 

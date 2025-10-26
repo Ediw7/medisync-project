@@ -87,7 +87,7 @@ const LaporanAnalitikApotek = () => {
       <SidebarApotek isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarApotek onLogout={() => { localStorage.clear(); navigate('/'); }} />
-        <main className="flex-1 pt-16 p-6">
+        <main className="flex-1 pt-16 p-6 mt-8 ml-8">
           <h1 className="text-2xl font-bold mb-6">Laporan dan Analitik</h1>
           
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">

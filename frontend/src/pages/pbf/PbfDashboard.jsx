@@ -94,7 +94,7 @@ const PbfDashboard = () => {
       <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarPbf onLogout={handleLogout} />
-        <main className="pt-16 p-6">
+        <main className="pt-16 p-6 mt-8 ml-8">
           <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
            {error && <div className="p-4 mb-4 bg-red-100 text-red-700 rounded-lg">{error}</div>}
 

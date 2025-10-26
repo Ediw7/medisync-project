@@ -36,7 +36,7 @@ const NavbarProdusen = ({ username, onLogout, onToggleSidebar }) => {
         </div>
 
         {/* Center Section: Search Bar (Hidden on mobile) */}
-        <div className="hidden md:flex flex-1 max-w-xl mx-8">
+        {/* <div className="hidden md:flex flex-1 max-w-xl mx-8">
           <div className="relative w-full">
             <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
             <input
@@ -47,7 +47,7 @@ const NavbarProdusen = ({ username, onLogout, onToggleSidebar }) => {
               className="w-full pl-11 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#18A375] focus:border-transparent transition-all"
             />
           </div>
-        </div>
+        </div> */}
 
         {/* Right Section: Actions + Profile */}
         <div className="flex items-center space-x-2 lg:space-x-4">
@@ -58,55 +58,14 @@ const NavbarProdusen = ({ username, onLogout, onToggleSidebar }) => {
           </button>
 
           {/* Notifications */}
-          <div className="relative">
+          <div className="border-gray-200 py-2">
             <button
-              onClick={() => {
-                setShowNotifications(!showNotifications);
-                setShowProfileMenu(false);
-              }}
-              className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              aria-label="Notifications"
+              onClick={onLogout}
+              className="w-full flex items-center space-x-3 px-4 py-2.5 hover:bg-red-50 transition-colors text-left group"
             >
-              <FaBell className="text-gray-600 text-xl" />
-              {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center border-2 border-white">
-                  {unreadCount}
-                </span>
-              )}
+              <FaSignOutAlt className="text-red-500 group-hover:text-red-600" />
+              <span className="text-sm text-red-500 group-hover:text-red-600 font-medium">Logout</span>
             </button>
-
-            {/* Notifications Dropdown */}
-            {showNotifications && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setShowNotifications(false)}
-                />
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
-                  <div className="p-4 border-b border-gray-200 bg-gray-50">
-                    <h3 className="font-semibold text-gray-800">Notifikasi</h3>
-                  </div>
-                  <div className="max-h-96 overflow-y-auto">
-                    {notifications.map((notif) => (
-                      <div
-                        key={notif.id}
-                        className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer ${
-                          notif.unread ? 'bg-blue-50' : ''
-                        }`}
-                      >
-                        <p className="text-sm text-gray-800">{notif.message}</p>
-                        <p className="text-xs text-gray-500 mt-1">{notif.time}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="p-3 text-center border-t border-gray-200">
-                    <button className="text-sm text-[#18A375] hover:text-[#16956D] font-medium">
-                      Lihat Semua Notifikasi
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
           </div>
 
           {/* Divider */}
@@ -148,15 +107,6 @@ const NavbarProdusen = ({ username, onLogout, onToggleSidebar }) => {
                     <button className="w-full flex items-center space-x-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left">
                       <FaCog className="text-gray-600" />
                       <span className="text-sm text-gray-700">Pengaturan</span>
-                    </button>
-                  </div>
-                  <div className="border-t border-gray-200 py-2">
-                    <button
-                      onClick={onLogout}
-                      className="w-full flex items-center space-x-3 px-4 py-2.5 hover:bg-red-50 transition-colors text-left group"
-                    >
-                      <FaSignOutAlt className="text-red-500 group-hover:text-red-600" />
-                      <span className="text-sm text-red-500 group-hover:text-red-600 font-medium">Logout</span>
                     </button>
                   </div>
                 </div>

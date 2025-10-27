@@ -1,36 +1,44 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import SidebarApotek from '../../../components/SidebarApotek';
 import NavbarApotek from '../../../components/NavbarApotek';
-import { Search, Loader2, Box, Truck, Package } from 'lucide-react';
+import { Search, Loader2, Box, Truck, Package, TrendingUp, ArrowUpRight } from 'lucide-react';
 import axios from 'axios';
 
-// Komponen untuk kartu statistik
 const StatCard = ({ icon, value, label, unit }) => (
-    <div className="bg-white p-6 rounded-xl shadow-lg flex items-center gap-6">
-        <div className="bg-emerald-100 p-4 rounded-full">
-            {icon}
+  <div className="group relative bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg hover:border-slate-300 transition-all duration-300 overflow-hidden">
+    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-500 to-teal-600 opacity-5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+    
+    <div className="relative flex items-start justify-between">
+      <div className="flex-1">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg">
+            {React.cloneElement(icon, { className: "text-white", size: 24 })}
+          </div>
         </div>
-        <div>
-            <p className="text-3xl font-bold text-gray-800">{value.toLocaleString('id-ID')} <span className="text-xl font-medium text-gray-500">{unit}</span></p>
-            <p className="text-gray-500">{label}</p>
-        </div>
+        
+        <p className="text-3xl font-bold text-slate-900 mb-1">
+          {value.toLocaleString('id-ID')}
+          <span className="text-lg font-medium text-slate-500 ml-1">{unit}</span>
+        </p>
+        <p className="text-sm text-slate-600 font-medium">{label}</p>
+      </div>
+      
+      <ArrowUpRight className="text-slate-300 group-hover:text-slate-400 transition-colors" size={20} />
     </div>
+  </div>
 );
 
 const StokObat = () => {
   const navigate = useNavigate();
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [stokData, setStokData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Semua');
 
-  // State untuk menampung data statistik
   const [stats, setStats] = useState({
     totalStok: 0,
-    distribusiBulanIni: 0, // Placeholder
+    distribusiBulanIni: 0,
     stokMenipis: 0,
   });
 
@@ -72,13 +80,12 @@ const StokObat = () => {
           });
           setStokData(formattedData);
 
-          // Kalkulasi statistik dari data yang sudah diformat
           const total = formattedData.reduce((sum, item) => sum + item.jumlah, 0);
           const menipis = formattedData.filter(item => item.status_stok === 'Menipis').length;
 
           setStats({
             totalStok: total,
-            distribusiBulanIni: 0, // Nilai placeholder
+            distribusiBulanIni: 0,
             stokMenipis: menipis,
           });
 
@@ -115,10 +122,10 @@ const StokObat = () => {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'Tersedia': return 'bg-green-100 text-green-800';
-      case 'Menipis': return 'bg-yellow-100 text-yellow-800';
-      case 'Habis': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'Tersedia': return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+      case 'Menipis': return 'bg-amber-50 text-amber-700 border border-amber-200';
+      case 'Habis': return 'bg-red-50 text-red-700 border border-red-200';
+      default: return 'bg-slate-50 text-slate-700 border border-slate-200';
     }
   };
   
@@ -129,81 +136,112 @@ const StokObat = () => {
     });
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
+        <div className="relative">
+          <Loader2 className="animate-spin h-12 w-12 text-emerald-600" />
+          <div className="absolute inset-0 h-12 w-12 rounded-full border-4 border-emerald-200 animate-ping opacity-20"></div>
+        </div>
+        <p className="mt-4 text-slate-700 font-medium">Memuat data stok...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <SidebarApotek isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
+      <div className="flex-1 flex flex-col">
         <NavbarApotek onLogout={handleLogout} />
-        <main className="pt-16 p-6 mt-8 ml-8">
-          <h1 className="text-2xl font-bold mb-6">Mengelola Stok Obat</h1>
-
-          {/* Bagian Kartu Statistik (Tidak Dihapus) */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <StatCard icon={<Package size={32} className="text-emerald-600"/>} value={stats.totalStok} label="Total Stok" unit="box" />
-            <StatCard icon={<Truck size={32} className="text-emerald-600"/>} value={stats.distribusiBulanIni} label="Distribusi Bulan Ini" unit="unit" />
-            <StatCard icon={<Box size={32} className="text-emerald-600"/>} value={stats.stokMenipis} label="Item Stok Menipis" unit="jenis" />
-          </div>
-
-          {error && <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">{error}</div>}
-
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="p-4 border-b flex justify-between items-center gap-4">
-                <div className="relative flex-grow">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <input type="text" className="w-full max-w-xs pl-10 pr-4 py-2 border rounded-lg" placeholder="Cari batch atau nama obat..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-                </div>
-                <div className="flex items-center">
-                    <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="p-2 border rounded-lg text-gray-600 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                        <option value="Semua">Semua Status</option>
-                        <option value="Tersedia">Tersedia</option>
-                        <option value="Menipis">Menipis</option>
-                        <option value="Habis">Habis</option>
-                    </select>
-                </div>
+        
+        <main className="flex-1 overflow-auto pt-[72px]">
+          <div className="max-w-7xl mx-auto px-6 py-8">
+            {/* Header */}
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-slate-900 mb-2">Mengelola Stok Obat</h1>
+              <p className="text-slate-600">Pantau dan kelola inventori obat Anda</p>
             </div>
 
-            <div className="overflow-x-auto">
-              {isLoading ? (
-                <div className="flex justify-center items-center py-10">
-                  <Loader2 className="animate-spin h-6 w-6 text-emerald-600" />
-                  <p className="ml-2 text-gray-600">Memuat data stok dari blockchain...</p>
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <StatCard icon={<Package />} value={stats.totalStok} label="Total Stok" unit="box" />
+              <StatCard icon={<Truck />} value={stats.distribusiBulanIni} label="Distribusi Bulan Ini" unit="unit" />
+              <StatCard icon={<Box />} value={stats.stokMenipis} label="Item Stok Menipis" unit="jenis" />
+            </div>
+
+            {error && (
+              <div className="p-4 mb-6 bg-red-50 text-red-700 rounded-2xl border border-red-200 flex items-center gap-3 shadow-sm">
+                <span className="font-medium">{error}</span>
+              </div>
+            )}
+
+            {/* Table Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="p-6 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="relative flex-grow w-full sm:w-auto">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                  <input 
+                    type="text" 
+                    className="w-full sm:w-80 pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all" 
+                    placeholder="Cari batch atau nama obat..." 
+                    value={searchTerm} 
+                    onChange={(e) => setSearchTerm(e.target.value)} 
+                  />
                 </div>
-              ) : (
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Batch ID</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Obat</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Manufaktur</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stok</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal Kadaluwarsa</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <div className="w-full sm:w-auto">
+                  <select 
+                    value={statusFilter} 
+                    onChange={(e) => setStatusFilter(e.target.value)} 
+                    className="w-full sm:w-auto px-4 py-2.5 border border-slate-300 rounded-xl text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all cursor-pointer"
+                  >
+                    <option value="Semua">Semua Status</option>
+                    <option value="Tersedia">Tersedia</option>
+                    <option value="Menipis">Menipis</option>
+                    <option value="Habis">Habis</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="border-b-2 border-slate-200 bg-slate-50">
+                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Batch ID</th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Nama Obat</th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Manufaktur</th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Stok</th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Tanggal Kadaluarsa</th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="divide-y divide-slate-100">
                     {filteredData.length > 0 ? filteredData.map((item) => (
-                      <tr key={item.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.batch_id}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.nama_obat}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.manufaktur}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.jumlah} box</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate(item.tanggal_kadaluarsa)}</td>
+                      <tr key={item.id} className="hover:bg-slate-50 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap">
-                           <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(item.status_stok)}`}>
+                          <span className="text-sm font-mono text-slate-900 bg-slate-100 px-2 py-1 rounded">{item.batch_id}</span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">{item.nama_obat}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{item.manufaktur}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-emerald-700">{item.jumlah} box</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{formatDate(item.tanggal_kadaluarsa)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(item.status_stok)}`}>
                             {item.status_stok}
-                           </span>
+                          </span>
                         </td>
                       </tr>
                     )) : (
-                        <tr>
-                            <td colSpan="6" className="text-center py-10 text-gray-500">
-                                {searchTerm || statusFilter !== 'Semua' ? "Tidak ada stok yang sesuai dengan filter." : "Belum ada stok obat."}
-                            </td>
-                        </tr>
+                      <tr>
+                        <td colSpan="6" className="text-center py-12">
+                          <Package size={48} className="mx-auto mb-3 text-slate-300" />
+                          <p className="text-slate-500 font-medium">
+                            {searchTerm || statusFilter !== 'Semua' ? "Tidak ada stok yang sesuai dengan filter." : "Belum ada stok obat."}
+                          </p>
+                        </td>
+                      </tr>
                     )}
                   </tbody>
                 </table>
-              )}
+              </div>
             </div>
           </div>
         </main>
@@ -211,4 +249,5 @@ const StokObat = () => {
     </div>
   );
 };
+
 export default StokObat;

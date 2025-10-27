@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import SidebarApotek from '../../../components/SidebarApotek';
 import NavbarApotek from '../../../components/NavbarApotek';
 import { Building, ChevronRight } from 'lucide-react';
 import axios from 'axios';
@@ -54,7 +53,6 @@ const handlePbfSelect = (pbf) => {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <SidebarApotek isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarApotek onLogout={handleLogout} />
         <main className="pt-16 p-6">

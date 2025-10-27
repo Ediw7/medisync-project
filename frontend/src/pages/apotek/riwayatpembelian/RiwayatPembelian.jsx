@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import SidebarApotek from '../../../components/SidebarApotek';
 import NavbarApotek from '../../../components/NavbarApotek';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, History, Loader2 } from 'lucide-react';
 import axios from 'axios';
 
 const RiwayatPembelian = () => {
     const navigate = useNavigate();
-    const [isCollapsed, setIsCollapsed] = useState(false);
     const [riwayatData, setRiwayatData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -24,7 +22,6 @@ const RiwayatPembelian = () => {
                     navigate('/login/apotek');
                     return;
                 }
-                // Menggunakan endpoint yang sama dengan halaman 'Pesan Obat' untuk mendapatkan semua pesanan
                 const response = await axios.get('http://localhost:5000/api/apotek/pesanan', {
                     headers: { Authorization: `Bearer ${token}` },
                 });
@@ -43,15 +40,12 @@ const RiwayatPembelian = () => {
     }, [navigate]);
 
     const filteredData = useMemo(() => {
-        // Hanya tampilkan status final di halaman riwayat
         const relevantStatuses = ['Selesai', 'Dibatalkan', 'Dikembalikan', 'Ditolak'];
         return riwayatData
             .filter(item => {
-                // Jika filter bukan 'Semua', filter berdasarkan status yang dipilih
                 if (statusFilter !== 'Semua') {
                     return item.status === statusFilter;
                 }
-                // Jika filter 'Semua', tampilkan semua pesanan dengan status final
                 return relevantStatuses.includes(item.status);
             })
             .filter(item =>
@@ -62,11 +56,11 @@ const RiwayatPembelian = () => {
 
     const getStatusBadge = (status) => {
         switch (status) {
-            case 'Selesai': return 'bg-green-100 text-green-800';
-            case 'Dibatalkan': return 'bg-red-100 text-red-800';
-            case 'Dikembalikan': return 'bg-blue-100 text-blue-800'; // Contoh untuk masa depan
-            case 'Ditolak': return 'bg-orange-100 text-orange-800'; // Contoh untuk masa depan
-            default: return 'bg-gray-100 text-gray-800';
+            case 'Selesai': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+            case 'Dibatalkan': return 'bg-red-50 text-red-700 border-red-200';
+            case 'Dikembalikan': return 'bg-blue-50 text-blue-700 border-blue-200';
+            case 'Ditolak': return 'bg-orange-50 text-orange-700 border-orange-200';
+            default: return 'bg-slate-50 text-slate-700 border-slate-200';
         }
     };
 
@@ -77,96 +71,133 @@ const RiwayatPembelian = () => {
         });
     };
 
+    const handleLogout = () => {
+        localStorage.clear();
+        navigate('/');
+    };
+
+    if (isLoading) {
+        return (
+            <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
+                <div className="relative">
+                    <Loader2 className="animate-spin h-12 w-12 text-emerald-600" />
+                    <div className="absolute inset-0 h-12 w-12 rounded-full border-4 border-emerald-200 animate-ping opacity-20"></div>
+                </div>
+                <p className="mt-4 text-slate-700 font-medium">Memuat riwayat pembelian...</p>
+            </div>
+        );
+    }
+
     return (
-        <div className="flex min-h-screen bg-gray-50">
-            <SidebarApotek isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-            <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
-                <NavbarApotek onLogout={() => { localStorage.clear(); navigate('/'); }} />
-                <main className="flex-1 pt-16 p-6 mt-8 ml-8">
-                    <div className="flex flex-wrap justify-between items-center mb-6">
-                        <div>
-                            <h1 className="text-2xl font-bold">Riwayat Pembelian</h1>
-                            <p className="text-gray-500">Melihat riwayat pesanan yang telah selesai atau dibatalkan.</p>
-                        </div>
-                        <button
-                            onClick={() => navigate('/apotek/pesan-obat')}
-                            className="bg-emerald-600 text-white py-2 px-4 rounded-lg hover:bg-emerald-700 transition flex items-center gap-2"
-                        >
-                            <Plus size={18} />
-                            Pesan Obat Baru
-                        </button>
-                    </div>
-
-                    {error && <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-lg">{error}</div>}
-
-                    <div className="bg-white p-6 rounded-lg shadow">
-                        <div className="flex flex-col md:flex-row gap-4 mb-4">
-                            <div className="relative flex-grow">
-                                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                                <input
-                                    type="text"
-                                    placeholder="Cari No. Pesanan atau Nama PBF..."
-                                    className="pl-10 pr-4 py-2 border rounded-lg text-sm w-full focus:ring-2 focus:ring-emerald-500"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
+        <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
+            <div className="flex-1 flex flex-col">
+                <NavbarApotek onLogout={handleLogout} />
+                
+                <main className="flex-1 overflow-auto pt-[72px]">
+                    <div className="max-w-7xl mx-auto px-6 py-8">
+                        {/* Header */}
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                            <div>
+                                <h1 className="text-3xl font-bold text-slate-900 mb-2">Riwayat Pembelian</h1>
+                                <p className="text-slate-600">Melihat riwayat pesanan yang telah selesai atau dibatalkan</p>
                             </div>
-                            <div className="relative">
-                                <select
-                                    className="appearance-none w-full md:w-48 bg-white border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500"
-                                    value={statusFilter}
-                                    onChange={(e) => setStatusFilter(e.target.value)}
-                                >
-                                    <option value="Semua">Semua Status</option>
-                                    <option value="Selesai">Selesai</option>
-                                    <option value="Dibatalkan">Dibatalkan</option>
-                                    <option value="Dikembalikan">Dikembalikan</option>
-                                    <option value="Ditolak">Ditolak</option>
-                                </select>
-                            </div>
+                            <button
+                                onClick={() => navigate('/apotek/pesan-obat')}
+                                className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white py-2.5 px-5 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+                            >
+                                <Plus size={20} />
+                                Pesan Obat Baru
+                            </button>
                         </div>
 
-                        <div className="overflow-x-auto">
-                            {isLoading ? (
-                                <p className="text-center py-10 text-gray-500">Memuat data riwayat...</p>
-                            ) : (
+                        {error && (
+                            <div className="p-4 mb-6 bg-red-50 text-red-700 rounded-2xl border border-red-200 flex items-center gap-3 shadow-sm">
+                                <span className="font-medium">{error}</span>
+                            </div>
+                        )}
+
+                        {/* Main Card */}
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                            {/* Filters */}
+                            <div className="p-6 border-b border-slate-200">
+                                <div className="flex flex-col md:flex-row gap-4">
+                                    <div className="relative flex-grow">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                                        <input
+                                            type="text"
+                                            placeholder="Cari No. Pesanan atau Nama PBF..."
+                                            className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="w-full md:w-auto">
+                                        <select
+                                            className="w-full md:w-48 px-4 py-2.5 border border-slate-300 rounded-xl text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all cursor-pointer"
+                                            value={statusFilter}
+                                            onChange={(e) => setStatusFilter(e.target.value)}
+                                        >
+                                            <option value="Semua">Semua Status</option>
+                                            <option value="Selesai">Selesai</option>
+                                            <option value="Dibatalkan">Dibatalkan</option>
+                                            <option value="Dikembalikan">Dikembalikan</option>
+                                            <option value="Ditolak">Ditolak</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Table */}
+                            <div className="overflow-x-auto">
                                 <table className="min-w-full">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nomor Pesanan</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">PBF</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal Pesan</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Harga</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                                    <thead>
+                                        <tr className="border-b-2 border-slate-200 bg-slate-50">
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Nomor Pesanan</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">PBF</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Tanggal Pesan</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Total Harga</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Status</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Aksi</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
+                                    <tbody className="divide-y divide-slate-100">
                                         {filteredData.length > 0 ? filteredData.map((item) => (
-                                            <tr key={item.id}>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.nomor_pesanan}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm">{item.nama_pbf}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm">{formatDate(item.tanggal_pesanan)}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm">Rp {(item.total_harga || 0).toLocaleString('id-ID')}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                    <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(item.status)}`}>
+                                            <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className="text-sm font-mono text-slate-900 bg-slate-100 px-2 py-1 rounded">{item.nomor_pesanan}</span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">{item.nama_pbf}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{formatDate(item.tanggal_pesanan)}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">Rp {(item.total_harga || 0).toLocaleString('id-ID')}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusBadge(item.status)}`}>
                                                         {item.status}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-emerald-600 font-semibold hover:underline">
-                                                    <Link to={`/apotek/pesanan/${item.id}/detail`}>Lihat Detail</Link>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <Link 
+                                                        to={`/apotek/pesanan/${item.id}/detail`}
+                                                        className="text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:underline transition-colors"
+                                                    >
+                                                        Lihat Detail
+                                                    </Link>
                                                 </td>
                                             </tr>
                                         )) : (
                                             <tr>
-                                                <td colSpan="6" className="text-center py-10 text-gray-500">
-                                                    Tidak ada data riwayat yang sesuai dengan filter.
+                                                <td colSpan="6" className="text-center py-12">
+                                                    <History size={48} className="mx-auto mb-3 text-slate-300" />
+                                                    <p className="text-slate-500 font-medium">
+                                                        {searchTerm || statusFilter !== 'Semua'
+                                                            ? "Tidak ada riwayat yang sesuai dengan filter."
+                                                            : "Belum ada riwayat pembelian."}
+                                                    </p>
                                                 </td>
                                             </tr>
                                         )}
                                     </tbody>
                                 </table>
-                            )}
+                            </div>
                         </div>
                     </div>
                 </main>

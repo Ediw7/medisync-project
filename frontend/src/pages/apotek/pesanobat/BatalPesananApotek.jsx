@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import SidebarApotek from '../../../components/SidebarApotek';
 import NavbarApotek from '../../../components/NavbarApotek';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import axios from 'axios';
@@ -68,7 +67,6 @@ const BatalPesananApotek = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      <SidebarApotek isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarApotek onLogout={() => { localStorage.clear(); navigate('/'); }} />
         <main className="flex-1 pt-16 p-6">

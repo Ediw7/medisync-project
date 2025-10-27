@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import SidebarApotek from '../../../components/SidebarApotek';
 import NavbarApotek from '../../../components/NavbarApotek';
 import { Plus, Trash2, Loader2 } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
@@ -227,7 +226,6 @@ const totalHarga = detailPesanan.reduce((sum, item) => sum + item.total_harga, 0
 
     return (
         <div className="flex min-h-screen bg-gray-100">
-            <SidebarApotek isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
             <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
                 <NavbarApotek onLogout={handleLogout} />
                 <main className="flex-1 pt-16 p-6">

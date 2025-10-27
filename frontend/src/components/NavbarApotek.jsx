@@ -37,7 +37,7 @@ const NavbarApotek = ({ onLogout }) => {
 
   return (
     <nav className="fixed top-0 left-0 w-full bg-gradient-to-b from-[#18A375] via-[#16956D] to-[#129967] text-white shadow-lg z-50">
-      <div className="flex justify-between items-center px-4 lg:px-6 py-3 relative">
+      <div className="flex justify-between items-center px-4 lg:px-6 py-1 relative">
 
         <div className="flex items-center space-x-3">
           <button
@@ -56,7 +56,7 @@ const NavbarApotek = ({ onLogout }) => {
           </button>
 
 
-          <img src={logo} alt="MediSync Logo" className="h-12 w-auto" />
+          <img src={logo} alt="MediSync Logo" className="h-10 w-auto" />
         </div>
 
 

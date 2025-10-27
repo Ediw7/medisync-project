@@ -1,18 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import NavbarApotek from '../../../components/NavbarApotek';
-import { Plus, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Loader2, ArrowLeft, User, FileText, Edit, Package, AlertTriangle } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
 import axios from 'axios';
+import { toast } from 'react-hot-toast';
 
 const TambahPesananApotek = () => {
     const navigate = useNavigate();
     const { idPbf } = useParams();
-     const location = useLocation(); 
+    const location = useLocation();
     const sigCanvas = useRef({});
-    const [isCollapsed, setIsCollapsed] = useState(false);
-    
-    // State untuk data dari backend
+
     const [stokPbf, setStokPbf] = useState([]);
     const [infoApoteker, setInfoApoteker] = useState({
         nama_apotek: '',
@@ -20,55 +19,72 @@ const TambahPesananApotek = () => {
         jabatan: '',
         nomor_sipa: '',
         telepon: '',
-        
     });
-
-    // State untuk form item obat
     const [itemObat, setItemObat] = useState({
-        id_aset_blockchain: '', 
+        id_aset_blockchain: '',
         nama_obat: '',
-        keterangan: '', // Akan digunakan untuk Dosis
+        keterangan: '',
         qty: 1,
-        satuan: '', // Akan digunakan untuk Bentuk Sediaan
+        satuan: '',
         harga_satuan: 0,
         stok_tersedia: 0,
+        detail_pesanan_id: null,
     });
-
     const [detailPesanan, setDetailPesanan] = useState([]);
     const [error, setError] = useState('');
     const [isStokLoading, setIsStokLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const username = localStorage.getItem('username');
+    const pbfInfo = location.state || { namaPbf: 'PBF Tujuan', alamatPbf: 'Alamat PBF' };
 
-    // Fetch Profil Apotek
     useEffect(() => {
         const fetchProfile = async () => {
+             let token;
             try {
-                const token = localStorage.getItem('token');
-                if (!token) throw new Error("Otentikasi Gagal");
+                token = localStorage.getItem('token');
+                if (!token) throw new Error("Otentikasi Gagal. Silakan login kembali.");
                 const response = await axios.get('http://localhost:5000/api/apotek/profile', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                if (response.data.success) {
-                    const { nama_resmi, alamat, nomor_izin } = response.data.data;
-                    setInfoApoteker(prev => ({ ...prev, nama_apotek: nama_resmi, alamat_apotek: alamat, nomor_sipa: nomor_izin }));
+                if (response.data.success && response.data.data) {
+                    const { nama_resmi, alamat, nomor_izin, kontak_telepon } = response.data.data;
+                    setInfoApoteker(prev => ({
+                        ...prev,
+                        nama_apotek: nama_resmi || '',
+                        alamat_apotek: alamat || '',
+                        nomor_sipa: nomor_izin || '',
+                        telepon: kontak_telepon || ''
+                     }));
+                } else {
+                     throw new Error(response.data.message || 'Gagal memuat profil Apotek.');
                 }
             } catch (err) {
-                setError('Gagal memuat profil Apotek.');
+                 const errorMsg = err.response?.data?.message || err.message || 'Gagal memuat profil Apotek.';
+                setError(errorMsg);
+                toast.error(errorMsg);
+                if ((err.message.includes('401') || err.message.includes('403') || err.message.includes('login')) && token) {
+                    navigate('/login/apotek');
+                } else if (!token) {
+                     navigate('/login/apotek');
+                }
             }
         };
         fetchProfile();
-    }, []);
-
-   
+    }, [navigate]);
 
 
-    // Fetch Stok Obat dari PBF
     useEffect(() => {
         const fetchStokPbf = async () => {
-            if (!idPbf) return;
+            if (!idPbf) {
+                 setError('ID PBF tidak ditemukan. Silakan pilih PBF kembali.');
+                 setIsStokLoading(false);
+                 return;
+            };
             setIsStokLoading(true);
+            setError('');
+            let token;
             try {
-                const token = localStorage.getItem('token');
+                token = localStorage.getItem('token');
                 if (!token) throw new Error("Otentikasi Gagal");
                 const response = await axios.get(`http://localhost:5000/api/apotek/pbf/${idPbf}/stok`, {
                      headers: { 'Authorization': `Bearer ${token}` }
@@ -79,13 +95,20 @@ const TambahPesananApotek = () => {
                     throw new Error(response.data.message || 'Gagal mengambil data stok PBF.');
                 }
             } catch (err) {
-                 setError('Gagal memuat stok obat dari PBF.');
+                 const errorMsg = err.response?.data?.message || err.message || 'Gagal memuat stok obat dari PBF.';
+                 setError(errorMsg);
+                 toast.error(errorMsg);
+                 if ((err.message.includes('401') || err.message.includes('403') || err.message.includes('login')) && token) {
+                    navigate('/login/apotek');
+                } else if (!token) {
+                     navigate('/login/apotek');
+                }
             } finally {
                 setIsStokLoading(false);
             }
         };
         fetchStokPbf();
-    }, [idPbf]);
+    }, [idPbf, navigate]);
 
     const handleInfoChange = (e) => {
         const { name, value } = e.target;
@@ -93,265 +116,359 @@ const TambahPesananApotek = () => {
     };
 
     const handleObatSelect = (e) => {
-        const selectedId = e.target.value;
-        const selectedObat = stokPbf.find(obat => obat.id === selectedId);
+        const selectedDetailId = e.target.value; // Assuming value is detail_pesanan_id now
+        const selectedObat = stokPbf.find(obat => String(obat.detail_pesanan_id) === selectedDetailId); // Match by detail_pesanan_id as string
 
         if (selectedObat) {
             setItemObat({
-                id_aset_blockchain: selectedObat.id,
+                id_aset_blockchain: selectedObat.batch_id,
                 nama_obat: selectedObat.nama_obat,
                 keterangan: selectedObat.dosis || '',
                 qty: 1,
                 satuan: selectedObat.bentuk_sediaan || 'Box',
                 harga_satuan: selectedObat.harga_per_unit || 0,
-                stok_tersedia: selectedObat.jumlah || 0,
+                stok_tersedia: selectedObat.stok || 0,
+                detail_pesanan_id: selectedObat.detail_pesanan_id
             });
         } else {
-            setItemObat({ id_aset_blockchain: '', nama_obat: '', keterangan: '', qty: 1, satuan: '', harga_satuan: 0, stok_tersedia: 0 });
+            setItemObat({ id_aset_blockchain: '', nama_obat: '', keterangan: '', qty: 1, satuan: '', harga_satuan: 0, stok_tersedia: 0, detail_pesanan_id: null });
         }
     };
-    
+
+
     const handleQtyChange = (e) => {
-        setItemObat({ ...itemObat, qty: e.target.value });
+        const newQty = parseInt(e.target.value, 10);
+        if (newQty > 0 && newQty <= itemObat.stok_tersedia) {
+            setItemObat({ ...itemObat, qty: newQty });
+        } else if (newQty > itemObat.stok_tersedia) {
+             toast.error(`Jumlah tidak boleh melebihi stok (${itemObat.stok_tersedia})`);
+             setItemObat({ ...itemObat, qty: itemObat.stok_tersedia });
+        } else {
+             setItemObat({ ...itemObat, qty: 1 });
+        }
     };
 
-    const handleAddItem = () => {
-    // Validasi dasar
-    if (!itemObat.id_aset_blockchain) {
-        setError('Silakan pilih obat dari daftar.');
-        return;
-    }
-    const qtyToAdd = parseInt(itemObat.qty, 10);
-    if (isNaN(qtyToAdd) || qtyToAdd <= 0) {
-        setError('Jumlah pesanan harus berupa angka dan lebih dari 0.');
-        return;
-    }
+     const handleAddItem = () => {
+        setError('');
+        toast.dismiss();
 
-    const hargaSatuan = parseFloat(itemObat.harga_satuan);
-
-    // Cek apakah item sudah ada di keranjang
-    const existingItemIndex = detailPesanan.findIndex(
-        (item) => item.id_aset_blockchain === itemObat.id_aset_blockchain
-    );
-
-    if (existingItemIndex > -1) {
-        // Jika item sudah ada, perbarui jumlahnya
-        const updatedDetailPesanan = [...detailPesanan];
-        const existingItem = updatedDetailPesanan[existingItemIndex];
-        const newQty = existingItem.qty + qtyToAdd;
-
-        // Validasi stok dengan jumlah total yang baru
-        if (newQty > itemObat.stok_tersedia) {
-            setError(`Stok tidak cukup. Anda sudah punya ${existingItem.qty} di keranjang, menambahkan ${qtyToAdd} akan melebihi stok (${itemObat.stok_tersedia}).`);
+        if (!itemObat.detail_pesanan_id) {
+            setError('Silakan pilih obat yang valid dari daftar.');
+            toast.error('Silakan pilih obat yang valid dari daftar.');
+            return;
+        }
+        const qtyToAdd = parseInt(itemObat.qty, 10);
+        if (isNaN(qtyToAdd) || qtyToAdd <= 0) {
+            setError('Jumlah pesanan harus lebih dari 0.');
+            toast.error('Jumlah pesanan harus lebih dari 0.');
             return;
         }
 
-        existingItem.qty = newQty;
-        // Hitung ulang total harga untuk item yang diperbarui
-        existingItem.total_harga = newQty * existingItem.harga_satuan;
-        setDetailPesanan(updatedDetailPesanan);
+        const hargaSatuan = parseFloat(itemObat.harga_satuan);
 
-    } else {
-        // Jika item baru, tambahkan ke keranjang
-        if (qtyToAdd > itemObat.stok_tersedia) {
-            setError(`Jumlah pesanan (${qtyToAdd}) melebihi stok tersedia (${itemObat.stok_tersedia}).`);
-            return;
+        const existingItemIndex = detailPesanan.findIndex(
+            (item) => item.detail_pesanan_id === itemObat.detail_pesanan_id
+        );
+
+        if (existingItemIndex > -1) {
+            const updatedDetailPesanan = [...detailPesanan];
+            const existingItem = updatedDetailPesanan[existingItemIndex];
+            const newQty = existingItem.qty + qtyToAdd;
+
+            if (newQty > itemObat.stok_tersedia) {
+                const errorMsg = `Stok tidak cukup. Anda sudah punya ${existingItem.qty}, menambahkan ${qtyToAdd} melebihi stok (${itemObat.stok_tersedia}).`;
+                setError(errorMsg);
+                toast.error(errorMsg);
+                return;
+            }
+
+            existingItem.qty = newQty;
+            existingItem.total_harga = newQty * existingItem.harga_satuan;
+            setDetailPesanan(updatedDetailPesanan);
+            toast.success(`${itemObat.nama_obat} diperbarui di keranjang.`);
+
+        } else {
+            if (qtyToAdd > itemObat.stok_tersedia) {
+                 const errorMsg = `Jumlah pesanan (${qtyToAdd}) melebihi stok (${itemObat.stok_tersedia}).`;
+                setError(errorMsg);
+                toast.error(errorMsg);
+                return;
+            }
+
+            const newItem = {
+                id_aset_blockchain: itemObat.id_aset_blockchain,
+                detail_pesanan_id: itemObat.detail_pesanan_id,
+                nama_obat: itemObat.nama_obat,
+                satuan: itemObat.satuan,
+                keterangan: itemObat.keterangan,
+                qty: qtyToAdd,
+                harga_satuan: hargaSatuan,
+                total_harga: qtyToAdd * hargaSatuan,
+            };
+            setDetailPesanan([...detailPesanan, newItem]);
+            toast.success(`${itemObat.nama_obat} ditambahkan ke keranjang.`);
         }
 
-        const newItem = {
-            id_aset_blockchain: itemObat.id_aset_blockchain,
-            nama_obat: itemObat.nama_obat,
-            satuan: itemObat.satuan, // Ini adalah bentuk sediaan
-            keterangan: itemObat.keterangan, // Ini adalah dosis
-            qty: qtyToAdd,
-            harga_satuan: hargaSatuan,
-            total_harga: qtyToAdd * hargaSatuan, // <-- KUNCI: Hitung dan simpan total harga
-        };
-        setDetailPesanan([...detailPesanan, newItem]);
-    }
+        setItemObat({ id_aset_blockchain: '', nama_obat: '', keterangan: '', qty: 1, satuan: '', harga_satuan: 0, stok_tersedia: 0, detail_pesanan_id: null });
+    };
 
-    // Reset form item dan hapus error
-    setItemObat({ id_aset_blockchain: '', nama_obat: '', keterangan: '', qty: 1, satuan: '', harga_satuan: 0, stok_tersedia: 0 });
-    setError('');
-};
-    
     const handleRemoveItem = (index) => {
+        const removedItem = detailPesanan[index];
         setDetailPesanan(detailPesanan.filter((_, i) => i !== index));
+        toast.error(`${removedItem.nama_obat} dihapus dari keranjang.`);
     };
 
     const clearSignature = () => sigCanvas.current.clear();
-    
-    // Hitung total harga dari item yang sudah ada di detailPesanan
-const totalHarga = detailPesanan.reduce((sum, item) => sum + item.total_harga, 0);
+
+    const totalHarga = detailPesanan.reduce((sum, item) => sum + (item.total_harga || 0), 0);
+
     const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    if (detailPesanan.length === 0) { setError('Harap tambahkan minimal satu item obat.'); return; }
-    if (sigCanvas.current.isEmpty()) { setError('Tanda tangan Apoteker wajib diisi.'); return; }
-    setIsSubmitting(true);
+        e.preventDefault();
+        setError('');
+        toast.dismiss();
+        if (detailPesanan.length === 0) {
+             const msg = 'Keranjang pesanan kosong. Harap tambahkan minimal satu item obat.';
+             setError(msg);
+             toast.error(msg);
+             return;
+        }
+        if (sigCanvas.current.isEmpty()) {
+             const msg = 'Tanda tangan Apoteker Penanggung Jawab wajib diisi.';
+             setError(msg);
+             toast.error(msg);
+             return;
+        }
+        if (!infoApoteker.jabatan || !infoApoteker.telepon) {
+             const msg = 'Jabatan Penanggung Jawab dan Telepon Apotek wajib diisi.';
+             setError(msg);
+             toast.error(msg);
+             return;
+        }
 
-    // --- TAMBAHKAN DEBUGGING DI SINI ---
-    console.log("Nilai 'idPbf' dari useParams:", idPbf);
-    console.log("Tipe data 'idPbf':", typeof idPbf);
+        setIsSubmitting(true);
 
-    try {
-        const token = localStorage.getItem('token');
-        const tanda_tangan_data_url = sigCanvas.current.getTrimmedCanvas().toDataURL('image/png');
-        
-        const payload = { 
-            ...infoApoteker, 
-            id_pbf: Number(idPbf),
-            items: detailPesanan, 
-            total_harga: totalHarga, 
-            tanda_tangan_data_url 
-        };
-        
-        // --- TAMBAHKAN DEBUGGING LAGI DI SINI ---
-        console.log("Payload yang akan dikirim ke backend:", payload);
-        
-        const response = await axios.post('http://localhost:5000/api/apotek/pesanan', payload, { headers: { 'Authorization': `Bearer ${token}` }});
-        
-        if (response.data.success) navigate('/apotek/pesan-obat');
-        else throw new Error(response.data.message || 'Gagal membuat pesanan.');
-    } catch (err) {
-            setError(err.response?.data?.message || 'Kesalahan Server Internal: ' + (err.response?.data?.message || err.message));
+        console.log("Nilai 'idPbf' dari useParams:", idPbf);
+        console.log("Tipe data 'idPbf':", typeof idPbf);
+
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) throw new Error("Otentikasi Gagal");
+            const tanda_tangan_data_url = sigCanvas.current.getTrimmedCanvas().toDataURL('image/png');
+
+            const payload = {
+                nama_apotek: infoApoteker.nama_apotek,
+                alamat_apotek: infoApoteker.alamat_apotek,
+                nomor_sipa: infoApoteker.nomor_sipa,
+                telepon_apotek: infoApoteker.telepon,
+                jabatan_apoteker: infoApoteker.jabatan,
+                id_pbf: Number(idPbf),
+                items: detailPesanan.map(item => ({
+                    detail_pesanan_id: item.detail_pesanan_id,
+                    jumlah_pesanan: item.qty,
+                    nama_obat: item.nama_obat,
+                    harga_satuan: item.harga_satuan,
+                    total_harga: item.total_harga,
+                })),
+                total_harga: totalHarga,
+                tanda_tangan_data_url
+            };
+
+            console.log("Payload sending:", payload);
+
+            const response = await axios.post('http://localhost:5000/api/apotek/pesanan', payload, {
+                 headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (response.data.success) {
+                toast.success('Pesanan berhasil dibuat!');
+                navigate('/apotek/pesan-obat');
+            }
+            else { throw new Error(response.data.message || 'Gagal membuat pesanan.'); }
+        } catch (err) {
+             const errorMsg = err.response?.data?.message || err.message || 'Kesalahan Server Internal.';
+             setError(errorMsg);
+             toast.error(errorMsg);
+             console.error("Submit error:", err.response || err);
         } finally {
             setIsSubmitting(false);
         }
     };
+
     const handleLogout = () => {
         localStorage.clear();
-        navigate('/apotek/pesan-obat');
+        navigate('/'); // Redirect to home or login page after logout
     };
 
+
     return (
-        <div className="flex min-h-screen bg-gray-100">
-            <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
-                <NavbarApotek onLogout={handleLogout} />
-                <main className="flex-1 pt-16 p-6">
-                    <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-6">
-                        <h1 className="text-2xl font-bold text-gray-800">Form Pemesanan Obat</h1>
-                        
-                        {/* Informasi Apoteker (Tidak berubah) */}
-                        <div className="bg-white p-6 rounded-lg shadow-sm border">
-                            <h3 className="text-lg font-semibold text-emerald-700 mb-4 border-b pb-2">Informasi Apoteker</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <InputField label="Nama Apotek" value={infoApoteker.nama_apotek} readOnly disabled />
-                              
-                                <InputField label="Alamat Apotek" value={infoApoteker.alamat_apotek} readOnly disabled />
-                                
-                                <InputField label="Nomor SIPA" value={infoApoteker.nomor_sipa} readOnly disabled />
-                                <InputField label="Telepon" name="telepon" value={infoApoteker.telepon} onChange={handleInfoChange} required />
-                                <div className="md:col-span-2">
-                                    <InputField label="Jabatan Penanggung Jawab" name="jabatan" value={infoApoteker.jabatan} onChange={handleInfoChange} required />
-                                </div>
-                            </div>
+        <div className="flex min-h-screen bg-slate-50">
+            <div className="flex-1 flex flex-col">
+                <NavbarApotek onLogout={handleLogout} username={username} />
+                <main className="flex-1 overflow-auto pt-[72px]">
+                    <div className="max-w-4xl mx-auto px-6 py-8">
+                        <div className="mb-8">
+                            <button
+                                onClick={() => navigate('/apotek/pesan-obat/pilih-pbf')}
+                                className="mb-4 inline-flex items-center text-emerald-600 hover:text-emerald-700 transition-colors text-sm font-medium"
+                            >
+                                <ArrowLeft size={16} className="mr-1" /> Kembali Pilih PBF
+                            </button>
+                            <h1 className="text-4xl font-bold text-slate-900 mb-2">Form Pemesanan Obat</h1>
+                            <p className="text-slate-600">Lengkapi detail pesanan Anda ke <span className="font-semibold">{pbfInfo.namaPbf}</span>.</p>
                         </div>
 
-                        {/* --- PERUBAHAN UTAMA DI SINI --- */}
-                        <div className="bg-white p-6 rounded-lg shadow-sm border">
-                            <h3 className="text-lg font-semibold text-emerald-700 mb-4 border-b pb-2">Detail Pemesanan Obat</h3>
-                            {detailPesanan.length > 0 && (
-                                <div className="overflow-x-auto mb-6">
-                                    <table className="w-full text-left border-collapse">
-                                        <thead>
-                                            <tr className="bg-gray-50">
-                                                <th className="p-3 text-sm font-semibold text-gray-700">Nama Obat</th>
-                                                <th className="p-3 text-sm font-semibold text-gray-700">Bentuk Sediaan</th>
-                                                <th className="p-3 text-sm font-semibold text-gray-700">Dosis</th>
-                                                <th className="p-3 text-sm font-semibold text-gray-700 text-center">Jumlah</th>
-                                                <th className="p-3 text-sm font-semibold text-gray-700 text-right">Harga Satuan</th>
-                                                <th className="p-3 text-sm font-semibold text-gray-700 text-right">Total</th>
-                                                <th className="p-3 text-sm font-semibold text-gray-700 text-center">Aksi</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-    {detailPesanan.map((item, index) => (
-        <tr key={index} className="border-b">
-            <td className="p-3 text-gray-800">{item.nama_obat}</td>
-            <td className="p-3 text-gray-800">{item.satuan}</td>
-            <td className="p-3 text-gray-800">{item.keterangan || '-'}</td>
-            <td className="p-3 text-gray-800 text-center">{item.qty}</td>
-            <td className="p-3 text-gray-800 text-right">Rp {Number(item.harga_satuan).toLocaleString('id-ID')}</td>
-            {/* --- PERUBAHAN DI SINI --- */}
-            <td className="p-3 text-gray-800 font-semibold text-right">
-                Rp {Number(item.total_harga).toLocaleString('id-ID')}
-            </td>
-            <td className="p-3 text-center">
-                <button type="button" onClick={() => handleRemoveItem(index)} className="text-red-500 hover:text-red-700"><Trash2 size={18} /></button>
-            </td>
-        </tr>
-    ))}
-</tbody>
-                                        <tfoot>
-                                            <tr className="bg-gray-100 font-semibold">
-                                                <td colSpan="5" className="p-3 text-right text-gray-800">Total Harga:</td>
-                                                <td className="p-3 text-right text-gray-800">Rp {totalHarga.toLocaleString('id-ID')}</td>
-                                                <td className="p-3"></td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                </div>
-                            )}
+                        {error && (
+                          <div className="p-4 mb-6 bg-red-50 text-red-700 rounded-lg border border-red-200 text-sm font-medium flex items-center gap-2">
+                            <AlertTriangle size={18} /> {error}
+                          </div>
+                        )}
 
-                            {/* Form Tambah Item */}
-                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end pt-4 border-t">
-                                <div className="md:col-span-5">
-                                    <label className="block text-sm font-medium text-gray-700">Pilih Obat</label>
-                                    <select name="id_aset_blockchain" value={itemObat.id_aset_blockchain} onChange={handleObatSelect} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" disabled={isStokLoading}>
-                                        <option value="">{isStokLoading ? 'Memuat stok...' : '-- Pilih Obat --'}</option>
-                                        {stokPbf.map(o => <option key={o.id} value={o.id}>{o.nama_obat} (Stok: {o.jumlah})</option>)}
-                                    </select>
+                        <form onSubmit={handleSubmit} className="space-y-6">
+
+                            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                                <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b border-slate-200">
+                                  <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                                     <User size={20} /> Informasi Apotek Pemesan
+                                  </h2>
                                 </div>
-                                <div className="md:col-span-2">
-                                    <InputField label="Jumlah" name="qty" type="number" min="1" max={itemObat.stok_tersedia} value={itemObat.qty} onChange={handleQtyChange} disabled={!itemObat.id_aset_blockchain} />
-                                </div>
-                                <div className="md:col-span-3">
-                                   <InputField 
-        label="Harga Satuan" 
-        name="harga_satuan" 
-        value={`Rp ${Number(itemObat.harga_satuan).toLocaleString('id-ID')}`}   
-        readOnly // <-- Tambahkan prop readOnly di sini
-    />
-                                </div>
-                                <div className="md:col-span-2">
-                                    <button type="button" onClick={handleAddItem} className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-400" disabled={!itemObat.id_aset_blockchain || isStokLoading}>
-                                        <Plus size={18} className="inline-block mr-1"/> Tambah
-                                    </button>
+                                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <InputField label="Nama Apotek" value={infoApoteker.nama_apotek} readOnly disabled />
+                                    <InputField label="Alamat Apotek" value={infoApoteker.alamat_apotek} readOnly disabled />
+                                    <InputField label="Nomor SIPA" value={infoApoteker.nomor_sipa} readOnly disabled />
+                                    <InputField label="Telepon*" name="telepon" value={infoApoteker.telepon} onChange={handleInfoChange} placeholder="Masukkan nomor telepon aktif" required />
+                                    <div className="md:col-span-2">
+                                       <InputField label="Jabatan Penanggung Jawab*" name="jabatan" value={infoApoteker.jabatan} onChange={handleInfoChange} placeholder="Contoh: Apoteker Penanggung Jawab" required />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        {/* --- AKHIR PERUBAHAN --- */}
 
-                        {/* Tanda Tangan (Tidak berubah) */}
-                        <div className="bg-white p-6 rounded-lg shadow-sm border">
-                            <h3 className="text-lg font-semibold text-emerald-700 mb-2">Tanda Tangan Apoteker</h3>
-                            <p className="text-sm text-gray-500 mb-4">Silahkan Tanda tangan di area di bawah ini :</p>
-                            <div className="w-full h-48 bg-gray-50 border border-dashed border-gray-400 rounded-lg">
-                                <SignatureCanvas ref={sigCanvas} penColor='black' canvasProps={{className: 'w-full h-full'}} />
+                            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                                <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 px-6 py-4 border-b border-slate-200">
+                                    <h2 className="text-lg font-semibold text-emerald-900 flex items-center gap-2">
+                                       <Package size={20} /> Detail Pesanan Obat
+                                    </h2>
+                                </div>
+
+                                {detailPesanan.length > 0 && (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-slate-50 text-slate-700">
+                                                <tr>
+                                                    <th className="px-4 py-3 text-left font-semibold border-b border-slate-200">Nama Obat</th>
+                                                    <th className="px-4 py-3 text-left font-semibold border-b border-slate-200">Sediaan</th>
+                                                    <th className="px-4 py-3 text-left font-semibold border-b border-slate-200">Dosis</th>
+                                                    <th className="px-4 py-3 text-center font-semibold border-b border-slate-200">Jumlah</th>
+                                                    <th className="px-4 py-3 text-right font-semibold border-b border-slate-200">Harga Satuan</th>
+                                                    <th className="px-4 py-3 text-right font-semibold border-b border-slate-200">Total</th>
+                                                    <th className="px-4 py-3 text-center font-semibold border-b border-slate-200">Aksi</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {detailPesanan.map((item, index) => (
+                                                    <tr key={index} className="hover:bg-slate-50">
+                                                        <td className="px-4 py-3 font-medium text-slate-800">{item.nama_obat}</td>
+                                                        <td className="px-4 py-3 text-slate-600">{item.satuan}</td>
+                                                        <td className="px-4 py-3 text-slate-600">{item.keterangan || '-'}</td>
+                                                        <td className="px-4 py-3 text-center font-medium text-emerald-700">{item.qty}</td>
+                                                        <td className="px-4 py-3 text-right text-slate-600">Rp {Number(item.harga_satuan).toLocaleString('id-ID')}</td>
+                                                        <td className="px-4 py-3 font-semibold text-slate-800 text-right">
+                                                            Rp {Number(item.total_harga).toLocaleString('id-ID')}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center">
+                                                            <button type="button" onClick={() => handleRemoveItem(index)} className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded" title="Hapus Item">
+                                                              <Trash2 size={16} />
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                             <tfoot className="bg-slate-100 font-semibold text-slate-800">
+                                                <tr>
+                                                    <td colSpan="5" className="px-4 py-3 text-right border-t-2 border-slate-300">Total Harga Keseluruhan:</td>
+                                                    <td className="px-4 py-3 text-right border-t-2 border-slate-300">Rp {totalHarga.toLocaleString('id-ID')}</td>
+                                                    <td className="px-4 py-3 border-t-2 border-slate-300"></td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                )}
+
+                                <div className="p-6 border-t border-slate-200 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                                    <div className="md:col-span-5">
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Pilih Obat*</label>
+                                        <select name="detail_pesanan_id" value={itemObat.detail_pesanan_id || ''} onChange={handleObatSelect} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-white appearance-none" disabled={isStokLoading}>
+                                            <option value="">{isStokLoading ? 'Memuat stok...' : '-- Pilih Obat Tersedia --'}</option>
+                                            {stokPbf.map(o => <option key={o.detail_pesanan_id} value={o.detail_pesanan_id}>{o.nama_obat} - {o.batch_id} (Stok: {o.stok})</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <InputField label="Jumlah*" name="qty" type="number" min="1" max={itemObat.stok_tersedia || 1} value={itemObat.qty} onChange={handleQtyChange} disabled={!itemObat.detail_pesanan_id} required />
+                                    </div>
+                                    <div className="md:col-span-3">
+                                       <InputField
+                                            label="Harga Satuan"
+                                            name="harga_satuan"
+                                            value={`Rp ${Number(itemObat.harga_satuan).toLocaleString('id-ID')}`}
+                                            readOnly
+                                            disabled
+                                        />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <button type="button" onClick={handleAddItem} className="w-full bg-blue-600 text-white py-2.5 px-4 rounded-lg hover:bg-blue-700 disabled:bg-slate-400 flex items-center justify-center gap-1" disabled={!itemObat.detail_pesanan_id || isStokLoading}>
+                                            <Plus size={16} /> Tambah
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="flex justify-end gap-4 mt-4">
-                                <button type="button" onClick={clearSignature} className="px-4 py-2 text-sm text-red-600 hover:text-red-800">Hapus tanda tangan</button>
-                                <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-gray-400 flex items-center gap-2">
-                                    {isSubmitting ? <Loader2 className="animate-spin" size={18}/> : null}
-                                    {isSubmitting ? 'Mengirim...' : 'Simpan Pesanan'}
+
+                            <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+                                <h3 className="text-lg font-semibold text-emerald-700 mb-2 flex items-center gap-2"><Edit size={18}/>Tanda Tangan Apoteker*</h3>
+                                <p className="text-sm text-slate-500 mb-4">Tanda tangan di area kosong di bawah ini.</p>
+                                <div className="w-full h-48 bg-slate-50 border border-dashed border-slate-400 rounded-lg overflow-hidden">
+                                    <SignatureCanvas ref={sigCanvas} penColor='black' canvasProps={{className: 'w-full h-full'}} />
+                                </div>
+                                <div className="flex justify-end mt-3">
+                                   <button type="button" onClick={clearSignature} className="px-4 py-2 text-xs text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors">
+                                     Hapus Tanda Tangan
+                                   </button>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4">
+                                <button
+                                  type="button"
+                                  onClick={() => navigate('/apotek/pesan-obat')}
+                                  className="px-6 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition"
+                                >
+                                  Batal
+                                </button>
+                                <button
+                                  type="submit"
+                                  disabled={isSubmitting || detailPesanan.length === 0}
+                                  className="px-6 py-2.5 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 transition disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                  {isSubmitting ? <Loader2 className="animate-spin" size={18}/> : null}
+                                  {isSubmitting ? 'Mengirim Pesanan...' : 'Kirim Pesanan'}
                                 </button>
                             </div>
-                        </div>
-                        {error && <div className="p-4 text-center bg-red-100 text-red-700 rounded-lg">{error}</div>}
-                    </form>
+                        </form>
+                    </div>
                 </main>
             </div>
         </div>
     );
 };
 
-// Helper component
-const InputField = ({ label, ...props }) => (
+const InputField = ({ label, readOnly = false, ...props }) => (
     <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-        <input {...props} className="w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-200" />
+        <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
+        <input
+           {...props}
+           readOnly={readOnly}
+           className={`w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition ${readOnly ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white'}`}
+        />
     </div>
 );
+
 
 export default TambahPesananApotek;

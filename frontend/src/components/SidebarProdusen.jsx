@@ -79,7 +79,7 @@ const SidebarProdusen = ({
       >
         {/* Header Section */}
         <div className="relative border-b border-white/10">
-          <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} ${isCollapsed ? 'p-4' : 'px-6 py-5'} pt-20 transition-all duration-300`}>
+          <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} ${isCollapsed ? 'p-4' : 'px-6 py-5'} pt-16 transition-all duration-300`}>
 
             {!isCollapsed && (
               <div>

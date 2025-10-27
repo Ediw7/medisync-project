@@ -174,14 +174,19 @@ const TambahProduksi = () => {
     setPopupType("success")
   }
 
-  const renderPopup = () => {
+   const renderPopup = () => {
     if (!showPopup) return null
-    console.log("[v0] Rendering popup with message:", popupMessage)
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white p-8 rounded-lg shadow-2xl max-w-sm w-full mx-auto animate-in fade-in zoom-in-95 duration-200">
+      <div
+        className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        onClick={closePopup}
+      >
+        <div
+          className="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full mx-auto animate-in fade-in zoom-in-95 duration-200 border border-slate-200"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div
-            className={`flex items-center gap-3 mb-4 ${popupType === "success" ? "text-green-600" : "text-red-600"}`}
+            className={`flex items-center gap-3 mb-4 ${popupType === "success" ? "text-emerald-600" : "text-red-600"}`}
           >
             {popupType === "success" ? (
               <CheckCircle size={28} className="flex-shrink-0" />
@@ -190,24 +195,23 @@ const TambahProduksi = () => {
             )}
             <h3 className="font-bold text-lg">{popupType === "success" ? "Sukses" : "Error"}</h3>
           </div>
-          <p className="text-gray-700 mb-6 leading-relaxed">{popupMessage}</p>
+          <p className="text-slate-700 mb-6 leading-relaxed">{popupMessage}</p>
           <div className="flex justify-end gap-2">
             <button
               onClick={closePopup}
               className={`px-6 py-2.5 font-medium rounded-lg transition ${
                 popupType === "success"
-                  ? "bg-green-600 text-white hover:bg-green-700"
-                  : "bg-red-600 text-white hover:bg-red-700"
+                  ? "bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800"
+                  : "bg-red-600 text-white hover:bg-red-700 active:bg-red-800"
               }`}
             >
-              Tutup
+              Oke
             </button>
           </div>
         </div>
       </div>
     )
   }
-
   return (
     <div className="flex min-h-screen bg-slate-50">
       {renderPopup()}

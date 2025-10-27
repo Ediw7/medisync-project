@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
-import { Loader2 } from 'lucide-react';
+import DatePicker from 'react-datepicker'; // Keep import if logic might use it
+import "react-datepicker/dist/react-datepicker.css";
+import { Loader2, Calendar, Clock, MapPin, FileText, DollarSign, ArrowLeft, ExternalLink, AlertCircle } from 'lucide-react'; // Added icons
 
 const AturPengiriman = () => {
   const { id } = useParams();
@@ -11,20 +13,38 @@ const AturPengiriman = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pesanan, setPesanan] = useState(null);
-  const [waktuPengiriman, setWaktuPengiriman] = useState('01:00 PM');
-  const [opsiPengiriman, setOpsiPengiriman] = useState('kargo'); 
+  // Default waktu ke opsi pertama
+  const [waktuPengiriman, setWaktuPengiriman] = useState('09:00-12:00');
+  const [opsiPengiriman] = useState('kargo'); // Tetap kargo
   const [catatan, setCatatan] = useState('');
-  
-  // Fungsi untuk menghitung tanggal pengiriman
+
   const calculateShippingDates = (orderDate) => {
     const dates = [];
     const startDate = new Date(orderDate);
+    if (isNaN(startDate.getTime())) {
+        console.error("Invalid orderDate received:", orderDate);
+        const today = new Date();
+         for (let i = 1; i <= 5; i++) {
+            const date = new Date();
+            date.setDate(today.getDate() + i);
+            // Gunakan format yang sama seperti di desain target
+            const day = date.toLocaleDateString('id-ID', { weekday: 'short' });
+            const dateNum = date.getDate();
+            const month = date.toLocaleDateString('id-ID', { month: 'short' });
+            const formattedDate = date.toISOString().split('T')[0];
+            dates.push({ day, dateNum, month, date: formattedDate });
+        }
+        return dates;
+    }
+
     for (let i = 1; i <= 5; i++) {
-      const date = new Date(orderDate);
+      const date = new Date(startDate);
       date.setDate(startDate.getDate() + i);
-      const day = date.toLocaleDateString('id-ID', { weekday: 'long' });
+      const day = date.toLocaleDateString('id-ID', { weekday: 'short' });
+      const dateNum = date.getDate();
+      const month = date.toLocaleDateString('id-ID', { month: 'short' }); // Tambah bulan
       const formattedDate = date.toISOString().split('T')[0];
-      dates.push({ day, date: formattedDate });
+      dates.push({ day, dateNum, month, date: formattedDate }); // Sertakan bulan
     }
     return dates;
   };
@@ -35,8 +55,10 @@ const AturPengiriman = () => {
   useEffect(() => {
     const fetchPesananData = async () => {
       setIsLoading(true);
+      setError(null);
+      let token;
       try {
-        const token = localStorage.getItem('token');
+        token = localStorage.getItem('token');
         if (!token) {
           navigate('/login/produsen');
           return;
@@ -46,18 +68,44 @@ const AturPengiriman = () => {
           headers: { 'Authorization': `Bearer ${token}` },
         });
 
-        if (!response.ok) throw new Error('Gagal mengambil data pesanan.');
-        const result = await response.json();
-        if (result.success) {
-          setPesanan(result.data.pesanan);
-          const dates = calculateShippingDates(result.data.pesanan.tanggal_pesanan);
-          setShippingDates(dates);
-          setSelectedDate(dates[0].date); // Set default ke tanggal pertama
-        } else {
-          throw new Error(result.message || 'Data pesanan tidak ditemukan.');
+        const contentType = response.headers.get("content-type");
+        if (!response.ok) {
+            let errorMsg = `Gagal mengambil data pesanan: Status ${response.status}`;
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                const errData = await response.json();
+                errorMsg = errData.message || errorMsg;
+            } else {
+                 errorMsg = await response.text() || errorMsg;
+            }
+            throw new Error(errorMsg);
         }
+
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+             const result = await response.json();
+             if (result.success && result.data?.pesanan) {
+                const orderDate = result.data.pesanan.tanggal_pesanan;
+                setPesanan(result.data.pesanan);
+                const dates = calculateShippingDates(orderDate);
+                setShippingDates(dates);
+                if (dates.length > 0) {
+                   setSelectedDate(dates[0].date);
+                }
+             } else {
+               throw new Error(result.message || 'Data pesanan tidak valid atau tidak ditemukan.');
+             }
+        } else {
+             const resultText = await response.text();
+             console.warn("Received non-JSON response:", resultText);
+             throw new Error('Menerima format data tidak terduga dari server.');
+        }
+
       } catch (err) {
         setError(err.message);
+        if ((err.message.includes('401') || err.message.includes('403') || err.message.includes('login')) && token) {
+            navigate('/login/produsen');
+        } else if (!token){
+             navigate('/login/produsen');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -71,20 +119,20 @@ const AturPengiriman = () => {
     setError(null);
 
     if (!selectedDate || !waktuPengiriman) {
-      setError('Tanggal dan Waktu pengiriman wajib diisi.');
+      setError('Tanggal dan Waktu pengiriman wajib dipilih.');
       return;
     }
-    
+
     if (!pesanan) {
       setError('Data pesanan belum dimuat, tidak bisa melanjutkan.');
       return;
     }
-    
+
     navigate(`/produsen/pengelolaan-pengiriman/rincian-pengiriman/${id}`, {
-      state: { 
-        pesanan, 
-        tanggalPengiriman: selectedDate, 
-        waktuPengiriman, 
+      state: {
+        pesanan,
+        tanggalPengiriman: selectedDate,
+        waktuPengiriman,
         catatan,
         opsiPengiriman
       },
@@ -93,46 +141,68 @@ const AturPengiriman = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <Loader2 className="animate-spin h-8 w-8 text-emerald-600" />
+       <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
+          <div className="relative">
+            <Loader2 className="animate-spin h-12 w-12 text-emerald-600" />
+            <div className="absolute inset-0 h-12 w-12 rounded-full border-4 border-emerald-200 animate-ping opacity-20"></div>
+          </div>
+          <p className="mt-4 text-slate-700 font-medium">Memuat data pesanan...</p>
       </div>
     );
   }
+
   if (error && !pesanan) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <p className="text-red-500">Error: {error}</p>
-      </div>
+       <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-red-50 p-6">
+          <div className="bg-white p-8 rounded-xl shadow-lg border border-red-200 text-center">
+            <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+            <h2 className="text-xl font-bold text-red-800 mb-2">Gagal Memuat Data</h2>
+            <p className="text-red-600 mb-6">{error}</p>
+            <button
+               onClick={() => navigate('/produsen/pengelolaan-pengiriman')}
+               className="flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition mx-auto" // Tambahkan mx-auto
+             >
+               <ArrowLeft size={18} />
+               Kembali
+             </button>
+          </div>
+       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-slate-50">
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
-        <NavbarProdusen onLogout={() => { localStorage.clear(); navigate('/'); }} />
-        <main className="flex-1 p-6 mt-8 ml-8 lg:p-8">
-          <div className="max-w-4xl mx-auto">
-            <div className="mb-6 pt-10">
-              <h1 className="text-3xl font-bold text-gray-800">Atur Pengiriman</h1>
-              <p className="text-gray-500 mt-1">Opsi Pengiriman: Kargo</p>
+      <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? "ml-16" : "ml-64"}`}>
+        <NavbarProdusen onLogout={() => { localStorage.clear(); navigate('/'); }} username={localStorage.getItem('username')} />
+
+        <main className="flex-1 overflow-auto pt-[72px]">
+          <div className="max-w-4xl mx-auto px-6 py-8">
+
+            <div className="mb-8">
+               <button
+                  onClick={() => navigate(-1)}
+                  className="mb-4 inline-flex items-center text-emerald-600 hover:text-emerald-700 transition-colors text-sm font-medium"
+                >
+                  <ArrowLeft size={16} className="mr-1" /> Kembali
+                </button>
+              <h1 className="text-4xl font-bold text-slate-900 mb-2">Atur Pengiriman</h1>
+              <p className="text-slate-600">Pilih tanggal dan waktu pengiriman untuk pesanan <span className="font-semibold">#{String(pesanan?.id).padStart(6, '0')}</span></p>
             </div>
 
-            <div className="bg-white rounded-xl shadow-md p-8">
-              <div className="flex items-center gap-4 mb-8 pb-6 border-b border-gray-200">
-                <div className="bg-emerald-100 p-3 rounded-lg">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
+            <form onSubmit={handleSubmit} className="space-y-6">
+
+              <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 px-6 py-4 border-b border-slate-200">
+                  <h2 className="text-lg font-semibold text-emerald-900 flex items-center gap-2">
+                    <Calendar size={20} /> Jadwal Pengiriman
+                  </h2>
+                   <p className="text-sm text-emerald-700 mt-1">Metode: Kargo (Default)</p>
                 </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-800">Atur Pengiriman</h2>
-                  <p className="text-gray-500">Opsi Pengiriman: Kargo</p>
-                </div>
-              </div>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label className="block text-base font-semibold text-gray-800 mb-3">Tanggal Pengiriman</label>
+
+                <div className="p-6 space-y-6">
+                  <div>
+                     <label className="block text-base font-semibold text-gray-800 mb-3">Tanggal Pengiriman</label>
                   <div className="flex space-x-2">
                     {shippingDates.map((date, index) => (
                       <button
@@ -144,86 +214,114 @@ const AturPengiriman = () => {
                         {date.day.slice(0, 3)}<br />{date.date.split('-').reverse().join('-')}
                       </button>
                     ))}
-                  </div>
-                </div>
-                
-                <div>
-                  <label htmlFor="waktu-pengiriman" className="block text-base font-semibold text-gray-800 mb-3">Waktu Pengiriman</label>
-                  <select
-                    id="waktu-pengiriman"
-                    value={waktuPengiriman}
-                    onChange={(e) => setWaktuPengiriman(e.target.value)}
-                    className="w-full sm:w-1/3 appearance-none bg-white border border-gray-300 rounded-lg p-3 pr-10 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  >
-                    <option value="09:00-12:00">09:00 AM - 12:00 PM</option>
-                    <option value="13:00-16:00">01:00 PM - 04:00 PM</option>
-                    <option value="16:00-19:00">04:00 PM - 07:00 PM</option>
-                  </select>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-6">
-                  <div className="sm:w-1/2">
-                    <label htmlFor="alamat-tujuan" className="block text-base font-semibold text-gray-800 mb-3">Alamat Tujuan</label>
-                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-300 h-full flex flex-col justify-center">
-                      <p><strong>{pesanan?.nama_pbf || 'Loading...'}</strong></p>
-                      <p>{pesanan?.alamat_pbf || 'Loading...'}</p>
-                      <p>{pesanan?.kontak_telepon || 'Loading...'}</p>
-                      <p>{pesanan?.tujuan_distribusi || 'Loading...'}</p>
                     </div>
                   </div>
-                  <div className="sm:w-1/2">
-                    <label htmlFor="catatan" className="block text-base font-semibold text-gray-800 mb-3">Catatan</label>
-                    <textarea
-                      id="catatan"
-                      value={catatan}
-                      onChange={(e) => setCatatan(e.target.value)}
-                      className="w-full bg-gray-50 border border-gray-300 rounded-lg p-3 h-full resize-none"
-                      placeholder="Mohon masukan catatan ..."
-                    />
+
+                  <div>
+                    <label htmlFor="waktu-pengiriman" className="block text-sm font-semibold text-slate-700 mb-2">Waktu Pengiriman*</label>
+                    <select
+                      id="waktu-pengiriman"
+                      value={waktuPengiriman}
+                      onChange={(e) => setWaktuPengiriman(e.target.value)}
+                      className="w-full md:w-2/3 px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-white appearance-none"
+                      required
+                    >
+                      <option value="09:00-12:00">Pagi (09:00 - 12:00)</option>
+                      <option value="13:00-16:00">Siang (13:00 - 16:00)</option>
+                      <option value="16:00-19:00">Sore (16:00 - 19:00)</option>
+                    </select>
                   </div>
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-base font-semibold text-gray-800 mb-3">Detail Pesanan</label>
-                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-300">
-                    <div className="flex justify-between items-center flex-wrap gap-4">
-                      <div>
-                        <p className="text-sm"><strong>ID Pesanan</strong></p>
-                        <p className="text-lg font-bold">{String(pesanan?.id).padStart(6, '0') || 'Loading...'}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm"><strong>Pesanan Produk</strong></p>
-                        <Link to={`/produsen/pengelolaan-pengiriman/detail/${pesanan?.id}/surat`} className="text-emerald-600 hover:underline">
-                          Lihat Surat Pesanan
-                        </Link>
-                      </div>
-                      <div>
-                        <p className="text-sm"><strong>Total Harga</strong></p>
-                        <p className="text-lg font-bold">Rp. {pesanan?.total_harga?.toLocaleString('id-ID') || 'Loading...'} <span className="text-gray-500 text-sm">Via Transfer Bank</span></p>
-                      </div>
+              <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                 <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b border-slate-200">
+                    <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                       <MapPin size={20} /> Informasi Tujuan & Catatan
+                    </h2>
+                 </div>
+                 <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                     <div>
+                       <label className="block text-sm font-semibold text-slate-700 mb-2">Alamat Tujuan</label>
+                       <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-1 text-sm text-slate-700 h-full">
+                         <p className="font-semibold text-slate-800">{pesanan?.nama_pbf || 'Memuat...'}</p>
+                         <p>{pesanan?.alamat_pbf || '...'}</p>
+                         <p>Kontak: {pesanan?.kontak_telepon || '...'}</p>
+                         <p>Distribusi ke: {pesanan?.tujuan_distribusi || '...'}</p>
+                       </div>
+                     </div>
+                     <div>
+                       <label htmlFor="catatan" className="block text-sm font-semibold text-slate-700 mb-2">Catatan Pengiriman (Opsional)</label>
+                       <textarea
+                         id="catatan"
+                         value={catatan}
+                         onChange={(e) => setCatatan(e.target.value)}
+                         rows={5} // Sesuaikan tinggi jika perlu
+                         className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition resize-none"
+                         placeholder="Instruksi khusus untuk kurir..."
+                       />
+                     </div>
+                  </div>
+              </div>
+
+              <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                 <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b border-slate-200">
+                    <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                       <FileText size={20} /> Ringkasan Pesanan
+                    </h2>
+                 </div>
+                 <div className="p-6 bg-slate-50 rounded-b-lg">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                          <p className="text-xs font-medium text-slate-500 mb-1">ID Pesanan</p>
+                          <p className="text-lg font-bold text-slate-800">#{String(pesanan?.id).padStart(6, '0')}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-slate-500 mb-1">Surat Pesanan</p>
+                          <Link
+                            to={`/produsen/pesanan/detail/${pesanan?.id}/surat`} // Pastikan link benar
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm font-medium text-emerald-600 hover:underline inline-flex items-center gap-1"
+                          >
+                            Lihat Dokumen <ExternalLink size={14} />
+                          </Link>
+                        </div>
+                        <div className="text-left sm:text-right">
+                          <p className="text-xs font-medium text-slate-500 mb-1">Total Pembayaran</p>
+                          <p className="text-lg font-bold text-emerald-700 flex items-center gap-1">
+                            {/* Pastikan format Rupiah benar */}
+                            Rp. {pesanan?.total_harga?.toLocaleString('id-ID', { minimumFractionDigits: 0 }) || '...'}
+                          </p>
+                           <p className="text-xs text-slate-500 mt-0.5">Metode: Transfer Bank</p>
+                        </div>
                     </div>
-                  </div>
-                </div>
+                 </div>
+              </div>
 
-                {error && <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">{error}</div>}
-
-                <div className="flex justify-end gap-4">
-                  <button
-                    type="button"
-                    onClick={() => navigate(-1)}
-                    className="py-2 px-6 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300"
-                  >
-                    Kembali
-                  </button>
-                  <button
-                    type="submit"
-                    className="py-2 px-6 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700"
-                  >
-                    Konfirmasi
-                  </button>
+              {error && (
+                <div className="p-4 bg-red-50 text-red-700 rounded-lg border border-red-200 text-sm font-medium flex items-center gap-2">
+                  <AlertCircle size={18} /> {error}
                 </div>
-              </form>
-            </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => navigate(-1)}
+                  className="px-6 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 transition disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center gap-2"
+                  disabled={isLoading || !pesanan}
+                >
+                  Lanjut ke Rincian
+                </button>
+              </div>
+            </form>
           </div>
         </main>
       </div>

@@ -93,7 +93,7 @@ const SidebarPbf = ({
               isCollapsed ? "justify-center" : "justify-between"
             } ${
               isCollapsed ? "p-4" : "px-6 py-5"
-            } pt-20 transition-all duration-300`}
+            } pt-16 transition-all duration-300`}
           >
             {!isCollapsed && (
               <div>

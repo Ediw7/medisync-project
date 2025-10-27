@@ -162,8 +162,7 @@ const EditProduksi = () => {
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      {/* Asumsi Anda memiliki fungsi renderPopup() yang serupa di file ini */}
-      {/* {renderPopup()} */}
+
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? "ml-16" : "ml-64"}`}>
         <NavbarProdusen

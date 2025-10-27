@@ -8,7 +8,7 @@ const NavbarPbf = ({ onLogout, onToggleSidebar }) => {
 
   return (
     <nav className="fixed top-0 left-0 w-full bg-white border-b border-gray-200 z-50 shadow-sm">
-      <div className="flex justify-between items-center px-4 lg:px-6 py-3">
+      <div className="flex justify-between items-center px-4 lg:px-6 py-1">
 
         {/* Left Section: Logo + Mobile Menu Toggle */}
         <div className="flex items-center space-x-4">
@@ -22,7 +22,7 @@ const NavbarPbf = ({ onLogout, onToggleSidebar }) => {
           </button>
 
           {/* Logo */}
-          <img src={logo} alt="MediSync Logo" className="h-12 w-auto" />
+          <img src={logo} alt="MediSync Logo" className="h-10 w-auto" />
         </div>
 
         {/* Right Section: Actions + Profile */}

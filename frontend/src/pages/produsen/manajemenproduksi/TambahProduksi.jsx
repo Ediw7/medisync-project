@@ -7,6 +7,7 @@ import NavbarProdusen from "../../../components/NavbarProdusen"
 import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
 import { Upload, Loader2, CheckCircle, XCircle } from "lucide-react"
+import { FaCogs } from "react-icons/fa";
 
 const TambahProduksi = () => {
   const navigate = useNavigate()
@@ -214,30 +215,52 @@ const TambahProduksi = () => {
     )
   }
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      {renderPopup()}
-      <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? "ml-16" : "ml-64"}`}>
-        <NavbarProdusen
-          onLogout={() => {
-            localStorage.clear()
-            navigate("/") 
-          }}
-        />
-        <main className="flex-1 overflow-auto">
-          <div className="max-w-5xl mx-auto px-6 py-8">
-            {/* Header Section */}
-            <div className="mb-8 pt-12">
-              <h1 className="text-4xl font-bold text-slate-900 mb-2">Jadwalkan Produksi Baru</h1>
-              <p className="text-slate-600">Isi formulir di bawah untuk membuat jadwal produksi obat baru</p>
-            </div>
+  <div className="flex min-h-screen bg-slate-50">
+    {renderPopup()}
 
+    <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
 
-            {error && (
-              <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200 flex items-center gap-2">
-                <span>{error}</span>
+    <div
+      className={`flex-1 flex flex-col transition-all duration-300 ${
+        isCollapsed ? "ml-16" : "ml-64"
+      }`}
+    >
+      <NavbarProdusen
+        onLogout={() => {
+          localStorage.clear();
+          navigate("/");
+        }}
+      />
+
+      <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-10 relative">
+            <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+            <div className="absolute -top-20 -right-20 w-72 h-72 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+
+            <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg">
+                  <FaCogs className="text-white" size={24} />
+                </div>
+
+                <div>
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-emerald-900 to-teal-900 bg-clip-text text-transparent">
+                    Jadwalkan Produksi Baru
+                  </h1>
+                  <p className="text-slate-600 text-lg mt-1">
+                    Isi formulir di bawah untuk membuat jadwal produksi obat baru
+                  </p>
+                </div>
               </div>
-            )}
+            </div>
+          </div>
+
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200 flex items-center gap-2">
+              <span>{error}</span>
+            </div>
+          )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">

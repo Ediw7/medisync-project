@@ -5,7 +5,7 @@ import NavbarPbf from '../../components/NavbarPbf';
 import {
   ShoppingCart,
   Truck,
-  CheckCircle,
+  CheckCircle2, // Diganti dari CheckCircle
   Box,
   Loader2,
   TrendingUp,
@@ -147,6 +147,17 @@ const PbfDashboard = () => {
     };
     return styles[status] || 'bg-slate-50 text-slate-700 border-slate-200';
   };
+  
+  const formatDate = (dateString) => {
+     if (!dateString) return '-';
+     try {
+        const date = new Date(dateString);
+         if (isNaN(date.getTime())) return '-';
+         return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
+     } catch (e) {
+         return '-';
+     }
+  };
 
   if (isLoading) {
     return (
@@ -165,17 +176,21 @@ const PbfDashboard = () => {
       <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarPbf onLogout={handleLogout} username={username}/>
-        <main className="flex-1 overflow-auto pt-[72px]">
-          <div className="max-w-7xl mx-auto px-6 py-4 ml-8">
+        
+        <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
+          <div className="max-w-7xl mx-auto">
 
-            <div className="mb-10">
+            <div className="mb-10 relative">
+               <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+               <div className="absolute -top-20 -right-20 w-72 h-72 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+
+              <div className="relative">
                 <div className="flex items-center gap-3 mb-3">
-
-                  <div className="flex items-center justify-center w-12 h-12  bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl">
+                  <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg">
                     <Truck className="text-white" size={24} />
                   </div>
                   <div>
-                    <h1 className="text-4xl font-bold text-slate-900">
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-emerald-900 to-teal-900 bg-clip-text text-transparent">
                       Dasbor PBF
                     </h1>
                   </div>
@@ -189,9 +204,8 @@ const PbfDashboard = () => {
                   <Calendar size={16} />
                   <span>{new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
                 </div>
+              </div>
             </div>
-            {/* --- Akhir Header --- */}
-
 
             {error && (
               <div className="p-4 mb-6 bg-red-50 text-red-700 rounded-2xl border border-red-200 flex items-center gap-3 shadow-sm">
@@ -206,24 +220,21 @@ const PbfDashboard = () => {
                 value={stats.totalDipesan}
                 label="Total Pesanan Diterima"
                 unit=""
-                trend="+3%"
-                color="purple"
+                color="emerald"
               />
               <StatCard
                 icon={<Truck />}
                 value={stats.pengirimanAktif}
                 label="Pengiriman ke Apotek"
                 unit=""
-                trend="+1%"
-                color="blue"
+                color="purple"
               />
                <StatCard
                 icon={<Box />}
                 value={stats.stokTersedia}
                 label="Total Stok Tersedia"
                 unit="Pcs"
-                trend="+15%"
-                color="emerald"
+                color="blue"
               />
               <StatCard
                 icon={<FileText />}
@@ -235,62 +246,81 @@ const PbfDashboard = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-bold mb-4">Stok obat terbaru</h2>
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow duration-300">
+                <div className="bg-gray-50 px-6 py-4 border-b border-slate-200">
+                  <h2 className="text-xl font-bold text-emerald-800 flex items-center gap-2">
+                    <Box size={20} />
+                    Stok Obat Terbaru
+                  </h2>
+                </div>
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                  <table className="min-w-full">
+                    <thead className="bg-slate-50 border-b border-slate-200">
                       <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Batch ID</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nama Obat</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Stok</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Kadaluwarsa</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Batch ID</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Nama Obat</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Stok</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Kedaluwarsa</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {stokTerbaru.map((item, index) => (
-                        <tr key={item.batch_id || index}>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">{item.batch_id}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{item.nama_obat}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{item.stok.toLocaleString('id-ID')} box</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-yellow-600 font-medium">{new Date(item.tanggal_kadaluarsa).toLocaleDateString('id-ID')}</td>
+                    <tbody className="bg-white divide-y divide-slate-100">
+                      {stokTerbaru.length > 0 ? stokTerbaru.map((item, index) => (
+                        <tr key={item.batch_id || index} className="hover:bg-emerald-50/50 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 font-mono">{item.batch_id}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{item.nama_obat}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-700">{item.stok.toLocaleString('id-ID')} Pcs</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-orange-600 font-medium">
+                            {formatDate(item.tanggal_kadaluarsa)}
+                          </td>
                         </tr>
-                      ))}
-                      {stokTerbaru.length === 0 && !isLoading && (
-                           <tr><td colSpan="4" className="text-center py-6 text-slate-500">Tidak ada data stok terbaru.</td></tr>
+                      )) : (
+                           <tr><td colSpan="4" className="text-center py-10 text-slate-500">
+                             <Package size={32} className="mx-auto mb-2 opacity-50"/>
+                             Tidak ada data stok terbaru.
+                           </td></tr>
                       )}
                     </tbody>
                   </table>
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-bold mb-4">Pesanan terbaru</h2>
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow duration-300">
+                <div className="bg-gray-50 px-6 py-4 border-b border-slate-200">
+                  <h2 className="text-xl font-bold text-emerald-800 flex items-center gap-2">
+                    <ShoppingCart size={20} />
+                    Pesanan Terbaru dari Apotek
+                  </h2>
+                </div>
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                  <table className="min-w-full">
+                    <thead className="bg-slate-50 border-b border-slate-200">
                       <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nama Apotek</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Obat</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Jumlah</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Nama Apotek</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Obat & Batch</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Jumlah</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {pesananTerbaru.map(item => (
-                        <tr key={item.id}>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">{item.namaApotek}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{item.obat}<br/><span className="text-xs text-gray-400">Batch ID: {item.batchId}</span></td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{item.jumlah.toLocaleString('id-ID')} box</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm">
-                            <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusBadge(item.status)}`}>
+                    <tbody className="bg-white divide-y divide-slate-100">
+                      {pesananTerbaru.length > 0 ? pesananTerbaru.map(item => (
+                        <tr key={item.id} className="hover:bg-blue-50/50 transition-colors">
+                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{item.namaApotek}</td>
+                           <td className="px-6 py-4 whitespace-nowrap">
+                             <span className="text-sm text-slate-700 block">{item.obat}</span>
+                             <span className="text-xs text-slate-500 font-mono bg-slate-100 px-1.5 py-0.5 rounded">Batch: {item.batchId}</span>
+                           </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-700">{item.jumlah.toLocaleString('id-ID')} Pcs</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusBadge(item.status)}`}>
                               {item.status}
                             </span>
                           </td>
                         </tr>
-                      ))}
-                       {pesananTerbaru.length === 0 && !isLoading && (
-                           <tr><td colSpan="4" className="text-center py-6 text-slate-500">Tidak ada pesanan terbaru.</td></tr>
+                      )) : (
+                           <tr><td colSpan="4" className="text-center py-10 text-slate-500">
+                               <FileText size={32} className="mx-auto mb-2 opacity-50" />
+                               Tidak ada pesanan terbaru.
+                           </td></tr>
                       )}
                     </tbody>
                   </table>
@@ -301,6 +331,19 @@ const PbfDashboard = () => {
         </main>
       </div>
 
+      <style jsx>{`
+        @keyframes blob {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+      `}</style>
     </div>
   );
 };

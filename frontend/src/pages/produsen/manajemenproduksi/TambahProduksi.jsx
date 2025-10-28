@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import SidebarProdusen from "../../../components/SidebarProdusen"
 import NavbarProdusen from "../../../components/NavbarProdusen"
@@ -49,10 +49,11 @@ const TambahProduksi = () => {
     if (showPopup && popupType === "success") {
       const timer = setTimeout(() => {
         setShowPopup(false)
+        navigate("/produsen/manajemen-produksi") 
       }, 3000)
       return () => clearTimeout(timer)
     }
-  }, [showPopup, popupType])
+  }, [showPopup, popupType, navigate])
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -122,7 +123,6 @@ const TambahProduksi = () => {
     }
 
     const data = new FormData()
-    // Append text fields
     Object.keys(formData).forEach((key) => {
       if (key === "tanggal_produksi" || key === "tanggal_kadaluarsa") {
         if (formData[key]) {
@@ -150,9 +150,7 @@ const TambahProduksi = () => {
       const result = await response.json()
       if (!response.ok) throw new Error(result.message || "Gagal menambahkan data produksi.")
       showCustomAlert("Jadwal produksi berhasil dibuat!", "success")
-      setTimeout(() => {
-        navigate("/produsen/manajemen-produksi")
-      }, 3500)
+
     } catch (err) {
       showCustomAlert(err.message, "error")
     } finally {
@@ -170,6 +168,9 @@ const TambahProduksi = () => {
   const closePopup = () => {
     console.log("[v0] Popup closed")
     setShowPopup(false)
+    if (popupType === "success") {
+        navigate("/produsen/manajemen-produksi");
+    }
     setPopupMessage("")
     setPopupType("success")
   }
@@ -220,10 +221,10 @@ const TambahProduksi = () => {
         <NavbarProdusen
           onLogout={() => {
             localStorage.clear()
-            navigate.push("/")
+            navigate("/") 
           }}
         />
-        <main className="flex-1 overflow-auto mt-6">
+        <main className="flex-1 overflow-auto">
           <div className="max-w-5xl mx-auto px-6 py-8">
             {/* Header Section */}
             <div className="mb-8 pt-12">
@@ -492,7 +493,7 @@ const TambahProduksi = () => {
               <div className="flex justify-end gap-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => navigate.push("/produsen/manajemen-produksi")}
+                  onClick={() => navigate("/produsen/manajemen-produksi")} // <-- PERBAIKAN 2
                   className="px-6 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition"
                 >
                   Batal

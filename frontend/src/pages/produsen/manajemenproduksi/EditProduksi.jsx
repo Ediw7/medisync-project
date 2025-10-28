@@ -4,7 +4,7 @@ import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { Upload, Loader2 } from 'lucide-react';
+import { Upload, Loader2, CheckCircle, XCircle } from 'lucide-react';
 
 const EditProduksi = () => {
   const navigate = useNavigate();
@@ -13,24 +13,88 @@ const EditProduksi = () => {
   const [formData, setFormData] = useState(null);
   const [dokumenBpomFile, setDokumenBpomFile] = useState(null);
   const [sertifikatFile, setSertifikatFile] = useState(null);
-  const [error, setError] = useState('');
+  const [fetchError, setFetchError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupMessage, setPopupMessage] = useState('');
+  const [popupType, setPopupType] = useState('success');
+
+  const showCustomAlert = (message, type) => {
+    setPopupMessage(message);
+    setPopupType(type);
+    setShowPopup(true);
+  };
+
+  const closePopup = () => {
+    setShowPopup(false);
+    if (popupType === 'success') {
+      navigate('/produsen/manajemen-produksi');
+    }
+    setPopupMessage("");
+    setPopupType("success");
+  };
+
+  const renderPopup = () => {
+    if (!showPopup) return null
+    return (
+      <div
+        className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        onClick={closePopup}
+      >
+        <div
+          className="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full mx-auto animate-in fade-in zoom-in-95 duration-200 border border-slate-200"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div
+            className={`flex items-center gap-3 mb-4 ${popupType === "success" ? "text-emerald-600" : "text-red-600"}`}
+          >
+            {popupType === "success" ? (
+              <CheckCircle size={28} className="flex-shrink-0" />
+            ) : (
+              <XCircle size={28} className="flex-shrink-0" />
+            )}
+            <h3 className="font-bold text-lg">{popupType === "success" ? "Sukses" : "Error"}</h3>
+          </div>
+          <p className="text-slate-700 mb-6 leading-relaxed">{popupMessage}</p>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={closePopup}
+              className={`px-6 py-2.5 font-medium rounded-lg transition ${
+                popupType === "success"
+                  ? "bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800"
+                  : "bg-red-600 text-white hover:bg-red-700 active:bg-red-800"
+              }`}
+            >
+              Oke
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+
   useEffect(() => {
     const fetchProduksi = async () => {
+      setIsLoading(true);
+      setFetchError('');
       const token = localStorage.getItem('token');
       if (!token) {
-        alert('Anda harus login untuk mengakses halaman ini.');
-        navigate('/login/produsen');
+        showCustomAlert('Anda harus login untuk mengakses halaman ini.', 'error');
+        setTimeout(() => navigate('/login/produsen'), 1500);
+        setIsLoading(false);
         return;
       }
       try {
         const response = await fetch(`http://localhost:5000/api/produksi/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!response.ok) throw new Error('Gagal mengambil data');
+        if (!response.ok) throw new Error('Gagal mengambil data produksi untuk diedit.');
         const result = await response.json();
+         if (!result.success || !result.data) throw new Error(result.message || 'Data tidak ditemukan.');
+
         const data = result.data;
         setFormData({
           ...data,
@@ -38,10 +102,10 @@ const EditProduksi = () => {
           tanggal_kadaluarsa: data.tanggal_kadaluarsa ? new Date(data.tanggal_kadaluarsa) : null,
           bentuk_sediaan: data.bentuk_sediaan || '',
           penanggung_jawab: data.penanggung_jawab || '',
-          harga_per_unit: data.harga_per_unit || '', // DIPERBAIKI: Pastikan field ini loaded sebagai string untuk input
+          harga_per_unit: data.harga_per_unit || '',
         });
       } catch (err) {
-        setError(err.message);
+        setFetchError(err.message);
       } finally {
         setIsLoading(false);
       }
@@ -55,84 +119,72 @@ const EditProduksi = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     setIsSubmitting(true);
 
-    // Validasi field wajib
     if (!formData.batch_id || !formData.nama_obat || !formData.jumlah || !formData.tanggal_produksi || !formData.tanggal_kadaluarsa) {
-      setError('Semua field wajib harus diisi: Batch ID, Nama Obat, Jumlah, Tanggal Produksi, Tanggal Kadaluarsa.');
+      showCustomAlert('Semua field wajib harus diisi: Batch ID, Nama Obat, Jumlah, Tanggal Produksi, Tanggal Kadaluarsa.', 'error');
       setIsSubmitting(false);
       return;
     }
     if (!formData.bentuk_sediaan) {
-      setError('Bentuk sediaan wajib diisi.');
+      showCustomAlert('Bentuk sediaan wajib diisi.', 'error');
       setIsSubmitting(false);
       return;
     }
     if (!formData.penanggung_jawab) {
-      setError('Penanggung jawab wajib diisi.');
+      showCustomAlert('Penanggung jawab wajib diisi.', 'error');
       setIsSubmitting(false);
       return;
     }
 
-    // Validasi jumlah positif
     if (Number(formData.jumlah) <= 0) {
-      setError('Jumlah produksi harus lebih dari 0.');
+      showCustomAlert('Jumlah produksi harus lebih dari 0.', 'error');
       setIsSubmitting(false);
       return;
     }
 
-    // Validasi tanggal kadaluarsa
     if (
       formData.tanggal_produksi &&
       formData.tanggal_kadaluarsa &&
       new Date(formData.tanggal_kadaluarsa) <= new Date(formData.tanggal_produksi)
     ) {
-      setError('Tanggal kadaluarsa harus setelah tanggal produksi.');
+      showCustomAlert('Tanggal kadaluarsa harus setelah tanggal produksi.', 'error');
       setIsSubmitting(false);
       return;
     }
 
-    // DIPERBAIKI: Validasi harga_per_unit jika dikirim (opsional, tapi pastikan numeric)
     if (formData.harga_per_unit && (isNaN(formData.harga_per_unit) || Number(formData.harga_per_unit) < 0)) {
-      setError('Harga per unit harus angka valid >= 0.');
+      showCustomAlert('Harga per unit harus angka valid >= 0.', 'error');
       setIsSubmitting(false);
       return;
     }
 
     const token = localStorage.getItem('token');
     if (!token) {
-      setError('Sesi Anda telah berakhir, silakan login kembali.');
+      showCustomAlert('Sesi Anda telah berakhir, silakan login kembali.', 'error');
       setIsSubmitting(false);
       return;
     }
 
-    const data = new FormData();
-    // Append semua field (skip created_at, updated_at, id_produsen, id)
+    const dataPayload = new FormData();
     Object.keys(formData).forEach((key) => {
       if (key === 'tanggal_produksi' || key === 'tanggal_kadaluarsa') {
         if (formData[key]) {
-          data.append(key, formData[key].toISOString().split('T')[0]);
+          dataPayload.append(key, formData[key].toISOString().split('T')[0]);
         }
-      } else if (key !== 'created_at' && key !== 'updated_at' && key !== 'id_produsen' && key !== 'id') {
-        data.append(key, formData[key] || '');
+      } else if (key !== 'created_at' && key !== 'updated_at' && key !== 'id_produsen' && key !== 'id' && key !== 'dokumen_bpom_path' && key !== 'sertifikat_analisis_path' && key !== 'hash_sertifikat_analisis') { // Explicitly exclude paths and hash
+        dataPayload.append(key, formData[key] || '');
       }
     });
 
-    // Append files and existing paths
     if (dokumenBpomFile) {
-      data.append('dokumen_bpom', dokumenBpomFile);
-    } else if (formData.dokumen_bpom_path) {
-      data.append('dokumen_bpom_path_existing', formData.dokumen_bpom_path);
+      dataPayload.append('dokumen_bpom', dokumenBpomFile);
     }
     if (sertifikatFile) {
-      data.append('sertifikat_analisis', sertifikatFile);
-    } else if (formData.sertifikat_analisis_path) {
-      data.append('sertifikat_analisis_path_existing', formData.sertifikat_analisis_path);
-      data.append('hash_sertifikat_analisis_existing', formData.hash_sertifikat_analisis || '');
+      dataPayload.append('sertifikat_analisis', sertifikatFile);
     }
 
-    console.log('FormData contents:', Array.from(data.entries())); // Debug log
+    console.log('FormData contents:', Array.from(dataPayload.entries()));
 
     try {
       const response = await fetch(`http://localhost:5000/api/produksi/${id}`, {
@@ -140,7 +192,7 @@ const EditProduksi = () => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-        body: data,
+        body: dataPayload,
       });
 
       const result = await response.json();
@@ -148,28 +200,40 @@ const EditProduksi = () => {
         throw new Error(result.message || 'Gagal mengupdate data produksi.');
       }
 
-      alert('Jadwal produksi berhasil diperbarui!');
-      navigate('/produsen/manajemen-produksi');
+      showCustomAlert('Jadwal produksi berhasil diperbarui!', 'success');
+      // Navigation is handled by closePopup on success
     } catch (err) {
-      setError(err.message);
+      showCustomAlert(err.message || 'Terjadi kesalahan saat menyimpan.', 'error');
       console.error('Error details:', err);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (isLoading || !formData) return <div className="p-6 text-center text-gray-500">Loading...</div>;
+  if (isLoading || !formData) {
+     return (
+       <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
+          <div className="relative">
+            <Loader2 className="animate-spin h-12 w-12 text-emerald-600" />
+            <div className="absolute inset-0 h-12 w-12 rounded-full border-4 border-emerald-200 animate-ping opacity-20"></div>
+          </div>
+          <p className="mt-4 text-slate-700 font-medium">Memuat data produksi...</p>
+      </div>
+    );
+  }
+
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-
+      {renderPopup()}
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? "ml-16" : "ml-64"}`}>
         <NavbarProdusen
           onLogout={() => {
             localStorage.clear();
-            navigate("/"); 
+            navigate("/");
           }}
+          username={localStorage.getItem('username')}
         />
         <main className="flex-1 overflow-auto">
           <div className="max-w-5xl mx-auto px-6 py-8">
@@ -178,14 +242,14 @@ const EditProduksi = () => {
               <p className="text-slate-600">Perbarui formulir di bawah untuk mengubah data produksi</p>
             </div>
 
-            {error && (
+            {fetchError && (
               <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200 flex items-center gap-2">
-                <span>{error}</span>
+                <AlertTriangle size={18}/> <span>{fetchError}</span>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              
+
               <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
                 <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 px-6 py-4 border-b border-slate-200">
                   <h2 className="text-lg font-semibold text-emerald-900">Identitas Produk</h2>
@@ -243,7 +307,7 @@ const EditProduksi = () => {
                         name="bentuk_sediaan"
                         value={formData.bentuk_sediaan || ''}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-white appearance-none"
                         required
                       >
                         <option value="">Pilih Bentuk Sediaan</option>
@@ -319,7 +383,7 @@ const EditProduksi = () => {
                         name="prioritas"
                         value={formData.prioritas || 'Medium'}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-white appearance-none"
                         required
                       >
                         <option value="High">Tinggi</option>
@@ -333,7 +397,7 @@ const EditProduksi = () => {
                         name="status"
                         value={formData.status || 'Terjadwal'}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-white appearance-none"
                         required
                       >
                         <option value="Terjadwal">Terjadwal</option>
@@ -450,7 +514,7 @@ const EditProduksi = () => {
                 <button
                   type="button"
                   onClick={() => navigate('/produsen/manajemen-produksi')}
-                  className="px-6 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition"
+                  className="px-6 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition"
                 >
                   Batal
                 </button>

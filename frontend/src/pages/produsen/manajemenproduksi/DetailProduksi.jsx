@@ -183,7 +183,7 @@ const DetailProduksi = () => {
             </div>
           </div>
 
-          {/* Error Alert */}
+  
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3">
               <AlertCircle size={20} />
@@ -192,13 +192,10 @@ const DetailProduksi = () => {
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Main Info - Left Side */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Informasi Produk */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-emerald-50 to-emerald-100">
                   <h2 className="text-lg font-semibold text-emerald-900 flex items-center gap-2">
-                    {/* <Package size={20} className="text-emerald-600" /> */}
                     Informasi Produk
                   </h2>
                 </div>
@@ -217,11 +214,10 @@ const DetailProduksi = () => {
                 </div>
               </div>
 
-              {/* Informasi Waktu */}
+
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-emerald-50 to-emerald-100">
                   <h2 className="text-lg font-semibold text-emerald-900 flex items-center gap-2">
-                    {/* <Calendar size={20} className="text-emerald-600" /> */}
                     Informasi Waktu
                   </h2>
                 </div>
@@ -247,11 +243,9 @@ const DetailProduksi = () => {
                 </div>
               </div>
 
-              {/* Dokumen & Sertifikasi */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-emerald-50 to-emerald-100">
                   <h2 className="text-lg font-semibold text-emerald-900 flex items-center gap-2">
-                    {/* <FileText size={20} className="text-emerald-600" /> */}
                     Dokumen & Sertifikasi
                   </h2>
                 </div>
@@ -276,9 +270,8 @@ const DetailProduksi = () => {
               </div>
             </div>
 
-            {/* QR Code & Actions - Right Side */}
+
             <div className="space-y-6">
-              {/* Action Card */}
               {produksi.status === 'Selesai' && (
                 <div className="bg-gray-50 rounded-2xl shadow-sm border border-emerald-200 overflow-hidden">
                   <div className="p-6">
@@ -315,7 +308,6 @@ const DetailProduksi = () => {
                 </div>
               )}
 
-              {/* QR Code Display */}
               {produksi.status === 'Tercatat di Blockchain' && (
                 <>
                   <div className="bg-gray-50 rounded-2xl shadow-sm border border-emerald-200 p-6">
@@ -367,7 +359,6 @@ const DetailProduksi = () => {
                 </>
               )}
 
-              {/* Info Card */}
               <div className="bg-red-50 rounded-2xl shadow-sm border border-red-200 p-6">
                 <h3 className="font-semibold text-red-900 mb-3">Informasi</h3>
                 <ul className="space-y-2 text-sm text-red-800">

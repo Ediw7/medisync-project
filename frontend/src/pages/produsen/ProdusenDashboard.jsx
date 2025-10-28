@@ -3,13 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import SidebarProdusen from '../../components/SidebarProdusen';
 import NavbarProdusen from '../../components/NavbarProdusen';
 import {
-  Package,
   Truck,
   Box,
   BarChart,
   AlertCircle,
-  Clock,
-  CheckCircle2,
   ArrowRight,
   BellRing,
   ShoppingCart,
@@ -19,6 +16,10 @@ import {
   ArrowUpRight,
   Calendar
 } from 'lucide-react';
+import {
+  FaHome,
+
+} from "react-icons/fa";
 import { toast } from 'react-hot-toast';
 
 const ProdusenDashboard = () => {
@@ -126,7 +127,7 @@ const ProdusenDashboard = () => {
                       title: item.title,
                       description: item.description,
                       type: item.type,
-                      timestamp: item.timestamp, // Keep as Date object
+                      timestamp: item.timestamp,
                       status: item.status
                   }));
 
@@ -167,20 +168,21 @@ const ProdusenDashboard = () => {
 
   const StatCard = ({ icon, value, label, unit, isCurrency = false, trend, color = "emerald" }) => {
     const colorClasses = {
-      emerald: "from-emerald-500 to-teal-600",
-      blue: "from-blue-500 to-cyan-600",
-      purple: "from-purple-500 to-pink-600",
-      orange: "from-orange-500 to-red-600"
+      emerald: { bg: "bg-gradient-to-br from-emerald-400 to-emerald-600", text: "text-emerald-600", bgLight: "bg-emerald-50" },
+      blue: { bg: "bg-gradient-to-br from-blue-400 to-blue-600", text: "text-blue-600", bgLight: "bg-blue-50" },
+      purple: { bg: "bg-gradient-to-br from-purple-400 to-purple-600", text: "text-purple-600", bgLight: "bg-purple-50" },
+      orange: { bg: "bg-gradient-to-br from-orange-400 to-orange-600", text: "text-orange-600", bgLight: "bg-orange-50" },
     };
+    const selectedColor = colorClasses[color] || colorClasses.emerald;
 
     return (
       <div className="group relative bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-xl hover:border-slate-300 transition-all duration-300 overflow-hidden">
-        <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${colorClasses[color]} opacity-5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500`}></div>
+        <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${selectedColor.bg} opacity-5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500`}></div>
 
         <div className="relative flex items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-3">
-              <div className={`p-2.5 rounded-xl bg-gradient-to-br ${colorClasses[color]} shadow-lg`}>
+              <div className={`p-2.5 rounded-xl bg-gradient-to-br ${selectedColor.bg} shadow-lg`}>
                 {React.cloneElement(icon, { className: "text-white", size: 24 })}
               </div>
               {trend && (
@@ -258,8 +260,8 @@ const ProdusenDashboard = () => {
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={handleLogout} username={username} />
 
-        <main className="flex-1 overflow-auto pt-[72px]">
-          <div className="max-w-7xl mx-auto px-6 py-8 pt-4 ml-8">
+        <main className="flex-1 overflow-auto pt-[72px] px-6 py-8">
+          <div className="max-w-7xl mx-auto">
             <div className="mb-10 relative">
               <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
               <div className="absolute -top-20 -right-20 w-72 h-72 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
@@ -267,7 +269,8 @@ const ProdusenDashboard = () => {
               <div className="relative">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg">
-                    <Factory className="text-white" size={24} />
+                    {/* --- PERBAIKAN DI SINI --- */}
+                    <FaHome className="text-white" size={24} />
                   </div>
                   <div>
                     <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-emerald-900 to-teal-900 bg-clip-text text-transparent">
@@ -300,31 +303,28 @@ const ProdusenDashboard = () => {
                 value={stats.totalPesanan}
                 label="Total Pesanan Masuk"
                 unit=""
-                trend="+5%"
-                color="purple"
+                color="emerald"
               />
               <StatCard
                 icon={<Truck />}
                 value={stats.pengirimanAktif}
                 label="Pengiriman Aktif"
                 unit=""
-                trend="+2%"
-                color="blue"
+                color="purple"
               />
               <StatCard
                 icon={<Box />}
                 value={stats.stokTersedia}
                 label="Total Stok Tersedia"
                 unit="Pcs"
-                trend="+10%"
-                color="emerald"
+                color="orange"
               />
               <StatCard
                 icon={<BarChart />}
                 value={stats.efisiensiProduksi}
                 label="Efisiensi Produksi"
                 unit="%"
-                color="orange"
+                color="blue"
               />
             </div>
 

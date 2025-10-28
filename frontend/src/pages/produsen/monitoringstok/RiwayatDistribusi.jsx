@@ -4,7 +4,7 @@ import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
 import {
   Search,
-  Package,
+  Calendar,
   Truck,
   Box,
   AlertTriangle,
@@ -216,13 +216,33 @@ const RiwayatDistribusi = () => {
     <div className="flex min-h-screen bg-slate-50">
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
-        <NavbarProdusen onLogout={handleLogout} username={username}/>
-        <main className="flex-1 overflow-auto pt-[72px]">
-           <div className="max-w-7xl mx-auto px-6 py-4 ml-8">
-              <div className="mb-8">
-                 <h1 className="text-4xl font-bold text-slate-900 mb-2">Riwayat Distribusi</h1>
-                 <p className="text-slate-600">Lacak pengiriman obat yang telah Anda distribusikan.</p>
+        <NavbarProdusen onLogout={handleLogout} username={username} />
+        
+        <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
+          <div className="max-w-7xl mx-auto">
+            
+            <div className="mb-10 relative">
+              <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+              <div className="absolute -top-20 -right-20 w-72 h-72 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+
+              <div className="relative">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg">
+                    <Truck className="text-white" size={24} />
+                  </div>
+                  <div>
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-emerald-900 to-teal-900 bg-clip-text text-transparent">
+                      Riwayat Distribusi
+                    </h1>
+                     <p className="text-slate-600 text-lg mt-1">Lacak pengiriman obat yang telah Anda distribusikan.</p>
+                  </div>
+                </div>
+                 <div className="flex items-center gap-2 mt-2 text-sm text-slate-500">
+                  <Calendar size={16} />
+                  <span>{new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                </div>
               </div>
+            </div>
 
               {error && (
                  <div className="p-4 mb-6 bg-red-50 text-red-700 rounded-lg border border-red-200 flex items-center gap-2">
@@ -237,7 +257,6 @@ const RiwayatDistribusi = () => {
                     value={stats.totalStok}
                     label="Total Stok Gudang"
                     unit="Pcs"
-                    trend="+10%" 
                     color="emerald"
                   />
                   <StatCard
@@ -245,7 +264,6 @@ const RiwayatDistribusi = () => {
                     value={stats.distribusiBulanIni}
                     label="Distribusi Bulan Ini"
                     unit="Pcs"
-                    trend="+2%" 
                     color="blue"
                   />
                   <StatCard

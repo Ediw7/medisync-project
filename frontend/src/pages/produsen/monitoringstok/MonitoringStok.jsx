@@ -1,19 +1,42 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
 import {
   Search,
   Eye,
-  Package,
+  Package, 
   Truck,
-  Box,
+  Box, 
   AlertTriangle,
   Loader2,
   TrendingUp,
-  ArrowUpRight
+  ArrowUpRight,
+  Calendar 
 } from 'lucide-react';
+import {FaChartLine} from "react-icons/fa";
+  
 import { toast } from 'react-hot-toast';
+
+
+const NavItem = ({ to, children }) => {
+  const location = useLocation();
+  const isActive = location.pathname === to;
+
+  const baseClass = "py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap block text-center sm:inline-block";
+  const activeClass = "bg-emerald-600 text-white shadow-md";
+  const inactiveClass = "text-slate-500 hover:text-emerald-800 hover:bg-gray-300";
+
+  return isActive ? (
+    <span className={`${baseClass} ${activeClass}`}>
+      {children}
+    </span>
+  ) : (
+    <Link to={to} className={`${baseClass} ${inactiveClass}`}>
+      {children}
+    </Link>
+  );
+};
 
 const MonitoringStok = () => {
   const navigate = useNavigate();
@@ -27,37 +50,45 @@ const MonitoringStok = () => {
   const [stats, setStats] = useState({
     totalStok: 0,
     distribusiBulanIni: 0,
-    stokMenipis: 0, 
+    stokMenipis: 0,
   });
   const username = localStorage.getItem('username');
 
-  useEffect(() => {
-    const storedNamaProdusen = localStorage.getItem('namaResmi');
-    if (storedNamaProdusen) {
-      setNamaProdusen(storedNamaProdusen);
-    }
-
-    const fetchData = async () => {
+  const fetchData = useCallback(async () => {
       setIsLoading(true);
       setError(null);
       let token;
       try {
         token = localStorage.getItem('token');
         if (!token) throw new Error('Silakan login terlebih dahulu');
-
-        const response = await fetch('http://localhost:5000/api/produksi/jadwal', {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-
-        if (!response.ok) {
-            const errorData = await response.text();
-            throw new Error(`Gagal mengambil data: Status ${response.status} - ${errorData}`);
+        
+        const storedNamaProdusen = localStorage.getItem('namaResmi');
+        if (storedNamaProdusen) {
+          setNamaProdusen(storedNamaProdusen);
         }
 
-        const result = await response.json();
-        if (!result.success) throw new Error(result.message || 'Gagal memuat data stok.');
+        const [stokResponse, distribusiResponse] = await Promise.all([
+          fetch('http://localhost:5000/api/produksi/jadwal', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          }),
+          fetch('http://localhost:5000/api/produsen/riwayat-distribusi', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+        ]);
 
-        const data = result.data || [];
+        if (!stokResponse.ok) {
+            const errorData = await stokResponse.text();
+            throw new Error(`Gagal mengambil data stok: ${stokResponse.status} - ${errorData}`);
+        }
+        if (!distribusiResponse.ok) {
+             console.warn(`Gagal mengambil data distribusi: ${distribusiResponse.status}`);
+        }
+
+        const stokResult = await stokResponse.json();
+        if (!stokResult.success) throw new Error(stokResult.message || 'Gagal memuat data stok.');
+        
+        const distribusiResult = await distribusiResponse.json().catch(() => ({ success: false, data: [] })); 
+        const data = stokResult.data || [];
         let total = 0;
         let totalMenipisQuantity = 0;
 
@@ -67,19 +98,27 @@ const MonitoringStok = () => {
           let status_stok = 'Tersedia';
           if (currentStock === 0) {
             status_stok = 'Habis';
-          } else if (currentStock < 2000) { 
+          } else if (currentStock < 2000) {
             status_stok = 'Menipis';
-            totalMenipisQuantity += currentStock; 
+            totalMenipisQuantity += currentStock;
           }
           return { ...item, status_stok };
         });
 
+        const distribusiBulanIni = (distribusiResult.data || []).filter(item => {
+            if (!item.tanggal_pengiriman) return false;
+            const bulanIni = new Date().getMonth();
+            const tahunIni = new Date().getFullYear();
+            const tanggalData = new Date(item.tanggal_pengiriman);
+            return tanggalData.getMonth() === bulanIni && tanggalData.getFullYear() === tahunIni;
+        }).reduce((sum, item) => sum + (item.jumlah_total_obat || 0), 0); 
+
         setStokData(dataWithStockStatus);
-        setStats(prevStats => ({
-          ...prevStats, 
+        setStats({
           totalStok: total,
-          stokMenipis: totalMenipisQuantity, 
-        }));
+          distribusiBulanIni: distribusiBulanIni,
+          stokMenipis: totalMenipisQuantity,
+        });
 
       } catch (error) {
         setError(error.message);
@@ -92,9 +131,11 @@ const MonitoringStok = () => {
       } finally {
         setIsLoading(false);
       }
-    };
-    fetchData();
-  }, [navigate]);
+    }, [navigate]);
+
+  useEffect(() => {
+     fetchData();
+  }, [fetchData]); 
 
   const handleLogout = () => {
     localStorage.clear();
@@ -112,7 +153,6 @@ const MonitoringStok = () => {
         item.nama_obat?.toLowerCase().includes(searchTerm.toLowerCase())
       );
   }, [stokData, searchTerm, statusFilter]);
-
 
   const StatCard = ({ icon, value, label, unit, trend, color = "emerald", isCurrency = false }) => {
     const colorClasses = {
@@ -151,7 +191,6 @@ const MonitoringStok = () => {
       </div>
     );
   };
-  // --- AKHIR DEFINISI StatCard BARU ---
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -160,6 +199,17 @@ const MonitoringStok = () => {
       case 'Habis': return 'bg-red-100 text-red-800 border-red-200';
       default: return 'bg-slate-100 text-slate-800 border-slate-200';
     }
+  };
+  
+  const formatDate = (dateString) => {
+     if (!dateString) return '-';
+     try {
+        const date = new Date(dateString);
+         if (isNaN(date.getTime())) return '-';
+         return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
+     } catch (e) {
+         return '-';
+     }
   };
 
   if (isLoading && stokData.length === 0) {
@@ -180,11 +230,29 @@ const MonitoringStok = () => {
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={handleLogout} username={username}/>
 
-        <main className="flex-1 overflow-auto pt-[72px]">
-           <div className="max-w-7xl mx-auto px-6 py-4 ml-8">
-              <div className="mb-8">
-                 <h1 className="text-4xl font-bold text-slate-900 mb-2">Monitoring Stok</h1>
-                 <p className="text-slate-600">Pantau ketersediaan stok obat di gudang Anda.</p>
+       <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
+          <div className="max-w-7xl mx-auto">
+              <div className="mb-10 relative">
+                  <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+                  <div className="absolute -top-20 -right-20 w-72 h-72 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+
+                  <div className="relative">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg">
+                        <FaChartLine className="text-white" size={24} />
+                      </div>
+                      <div>
+                        <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-emerald-900 to-teal-900 bg-clip-text text-transparent">
+                          Monitoring Stok
+                        </h1>
+                         <p className="text-slate-600 text-lg mt-1">Pantau ketersediaan stok obat di gudang Anda.</p>
+                      </div>
+                    </div>
+                     <div className="flex items-center gap-2 mt-2 text-sm text-slate-500">
+                      <Calendar size={16} />
+                      <span>{new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                    </div>
+                  </div>
               </div>
 
               {error && (
@@ -198,37 +266,34 @@ const MonitoringStok = () => {
                   <StatCard
                     icon={<Box />}
                     value={stats.totalStok}
-                    label="Total Stok"
-                    unit="box" 
-                    trend="+10%" 
+                    label="Total Stok Gudang"
+                    unit="Pcs"
                     color="emerald"
                   />
-
                   <StatCard
                     icon={<Truck />}
                     value={stats.distribusiBulanIni}
                     label="Distribusi Bulan Ini"
-                    unit="unit" 
-                    trend="+2%" 
+                    unit="Pcs"
                     color="blue"
                   />
-                
                   <StatCard
                     icon={<AlertTriangle />}
                     value={stats.stokMenipis} 
-                    label="Stok Menipis" 
-                    unit="box" 
+                    label="Total Stok Menipis" 
+                    unit="Pcs"
                     color="orange" 
                   />
-                 
               </div>
 
 
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden relative z-10">
                 <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4">
-                   <div className="flex flex-wrap gap-x-4">
-                     <button className="py-2 px-1 text-center border-b-2 border-emerald-600 text-emerald-600 font-semibold text-sm whitespace-nowrap">Stok Gudang</button>
-                     <Link to="/produsen/riwayat-distribusi" className="py-2 px-1 text-center text-slate-500 hover:text-emerald-600 hover:border-b-2 hover:border-emerald-300 text-sm font-medium whitespace-nowrap">Riwayat Distribusi</Link>
+                   <div className="flex overflow-x-auto sm:overflow-visible w-full sm:w-auto">
+                     <div className="flex space-x-2 bg-slate-100 p-1.5 rounded-lg">
+                       <NavItem to="/produsen/monitoring-stok">Stok Gudang</NavItem>
+                       <NavItem to="/produsen/riwayat-distribusi">Riwayat Distribusi</NavItem>
+                     </div>
                    </div>
                    <div className="flex items-center gap-2 w-full sm:w-auto">
                      <div className="relative flex-1 sm:flex-none">
@@ -273,12 +338,12 @@ const MonitoringStok = () => {
                       <tbody className="bg-white divide-y divide-slate-100">
                         {filteredData.length > 0 ? (
                           filteredData.map((item) => (
-                            <tr key={item.id} className="hover:bg-emerald-50/50 transition-colors duration-150">
+                            <tr key={item.id} className="hover:bg-gray-50 transition-colors duration-150">
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 font-mono">{item.batch_id}</td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{item.nama_obat}</td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-700">{item.jumlah?.toLocaleString('id-ID') || '0'} Pcs</td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                                {item.tanggal_kadaluarsa ? new Date(item.tanggal_kadaluarsa).toLocaleDateString('id-ID', {day: '2-digit', month:'short', year:'numeric'}) : '-'}
+                                {formatDate(item.tanggal_kadaluarsa)}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusBadge(item.status_stok)}`}>
@@ -301,7 +366,7 @@ const MonitoringStok = () => {
                           <tr>
                             <td colSpan="7" className="px-6 py-10 text-center text-slate-500">
                               <Package size={32} className="mx-auto mb-2 opacity-50"/>
-                              Tidak ada data stok yang sesuai dengan filter.
+                              {searchTerm ? 'Tidak ada data stok yang sesuai.' : 'Tidak ada data stok tersedia.'}
                             </td>
                           </tr>
                         )}
@@ -313,10 +378,17 @@ const MonitoringStok = () => {
            </div>
         </main>
       </div>
-       <style jsx global>{`
-        @media print {
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .print\\:hidden { display: none !important; }
+       <style jsx>{`
+        @keyframes blob {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
         }
       `}</style>
     </div>

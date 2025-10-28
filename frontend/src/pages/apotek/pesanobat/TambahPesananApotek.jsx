@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import NavbarApotek from '../../../components/NavbarApotek';
 import { Plus, Trash2, Loader2, ArrowLeft, User, FileText, Edit, Package, AlertTriangle } from 'lucide-react';
@@ -11,8 +11,8 @@ const TambahPesananApotek = () => {
     const { idPbf } = useParams();
     const location = useLocation();
     const sigCanvas = useRef({});
-
-    const [stokPbf, setStokPbf] = useState([]);
+    // State untuk menyimpan stok asli seperti yang diterima dari API
+    const [originalStokPbf, setOriginalStokPbf] = useState([]);
     const [infoApoteker, setInfoApoteker] = useState({
         nama_apotek: '',
         alamat_apotek: '',
@@ -20,22 +20,37 @@ const TambahPesananApotek = () => {
         nomor_sipa: '',
         telepon: '',
     });
+    // State untuk item yang sedang dipilih/diedit
     const [itemObat, setItemObat] = useState({
-        id_aset_blockchain: '',
+        id: '', // id_aset_blockchain
         nama_obat: '',
-        keterangan: '',
+        keterangan: '', // dosis + bentuk sediaan
         qty: 1,
-        satuan: '',
+        satuan: '', // bentuk sediaan
         harga_satuan: 0,
-        stok_tersedia: 0,
-        detail_pesanan_id: null,
+        stok_tersedia: 0, // stok *saat ini* untuk batch yang dipilih
     });
-    const [detailPesanan, setDetailPesanan] = useState([]);
+    const [detailPesanan, setDetailPesanan] = useState([]); // Keranjang pesanan
     const [error, setError] = useState('');
     const [isStokLoading, setIsStokLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const username = localStorage.getItem('username');
     const pbfInfo = location.state || { namaPbf: 'PBF Tujuan', alamatPbf: 'Alamat PBF' };
+
+    // State turunan: menghitung stok tersedia untuk setiap batch individual
+    const availableStock = useMemo(() => {
+        return originalStokPbf.map(stokItem => {
+            // Cari item yang sama di keranjang berdasarkan ID (id_aset_blockchain)
+            const itemInCart = detailPesanan.find(cartItem => cartItem.id === stokItem.id);
+            const quantityInCart = itemInCart ? itemInCart.qty : 0;
+            // Stok awal item ini adalah 'jumlah'
+            const currentStock = (stokItem.jumlah || 0) - quantityInCart;
+            return {
+                ...stokItem,
+                stok_saat_ini: currentStock >= 0 ? currentStock : 0, // Pastikan tidak negatif
+            };
+        });
+    }, [originalStokPbf, detailPesanan]);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -74,6 +89,7 @@ const TambahPesananApotek = () => {
 
 
     useEffect(() => {
+        // Fetch stok PBF (tidak ada penggabungan)
         const fetchStokPbf = async () => {
             if (!idPbf) {
                  setError('ID PBF tidak ditemukan. Silakan pilih PBF kembali.');
@@ -90,7 +106,8 @@ const TambahPesananApotek = () => {
                      headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (response.data.success) {
-                    setStokPbf(response.data.data || []);
+                    // Langsung simpan data asli ke originalStokPbf
+                    setOriginalStokPbf(response.data.data || []);
                 } else {
                     throw new Error(response.data.message || 'Gagal mengambil data stok PBF.');
                 }
@@ -115,33 +132,35 @@ const TambahPesananApotek = () => {
         setInfoApoteker({ ...infoApoteker, [name]: value });
     };
 
+    // Handler saat memilih obat dari dropdown
     const handleObatSelect = (e) => {
-        const selectedDetailId = e.target.value; // Assuming value is detail_pesanan_id now
-        const selectedObat = stokPbf.find(obat => String(obat.detail_pesanan_id) === selectedDetailId); // Match by detail_pesanan_id as string
+        const selectedObatId = e.target.value; // Value adalah id_aset_blockchain
+        // Cari obat di availableStock berdasarkan ID
+        const selectedObat = availableStock.find(obat => obat.id === selectedObatId);
 
         if (selectedObat) {
             setItemObat({
-                id_aset_blockchain: selectedObat.batch_id,
+                id: selectedObat.id, // Simpan id_aset_blockchain
                 nama_obat: selectedObat.nama_obat,
-                keterangan: selectedObat.dosis || '',
+                keterangan: `${selectedObat.dosis || ''} ${selectedObat.bentuk_sediaan || ''}`.trim(),
                 qty: 1,
                 satuan: selectedObat.bentuk_sediaan || 'Box',
                 harga_satuan: selectedObat.harga_per_unit || 0,
-                stok_tersedia: selectedObat.stok || 0,
-                detail_pesanan_id: selectedObat.detail_pesanan_id
+                // Stok tersedia adalah stok *batch* ini saat ini
+                stok_tersedia: selectedObat.stok_saat_ini || 0,
             });
         } else {
-            setItemObat({ id_aset_blockchain: '', nama_obat: '', keterangan: '', qty: 1, satuan: '', harga_satuan: 0, stok_tersedia: 0, detail_pesanan_id: null });
+            // Reset jika tidak dipilih
+            setItemObat({ id: '', nama_obat: '', keterangan: '', qty: 1, satuan: '', harga_satuan: 0, stok_tersedia: 0 });
         }
     };
-
 
     const handleQtyChange = (e) => {
         const newQty = parseInt(e.target.value, 10);
         if (newQty > 0 && newQty <= itemObat.stok_tersedia) {
             setItemObat({ ...itemObat, qty: newQty });
         } else if (newQty > itemObat.stok_tersedia) {
-             toast.error(`Jumlah tidak boleh melebihi stok (${itemObat.stok_tersedia})`);
+             toast.error(`Jumlah tidak boleh melebihi stok tersedia (${itemObat.stok_tersedia})`);
              setItemObat({ ...itemObat, qty: itemObat.stok_tersedia });
         } else {
              setItemObat({ ...itemObat, qty: 1 });
@@ -152,52 +171,44 @@ const TambahPesananApotek = () => {
         setError('');
         toast.dismiss();
 
-        if (!itemObat.detail_pesanan_id) {
-            setError('Silakan pilih obat yang valid dari daftar.');
-            toast.error('Silakan pilih obat yang valid dari daftar.');
-            return;
+        if (!itemObat.id) {
+            toast.error('Silakan pilih obat yang valid.'); return;
         }
         const qtyToAdd = parseInt(itemObat.qty, 10);
         if (isNaN(qtyToAdd) || qtyToAdd <= 0) {
-            setError('Jumlah pesanan harus lebih dari 0.');
-            toast.error('Jumlah pesanan harus lebih dari 0.');
-            return;
+            toast.error('Jumlah pesanan harus lebih dari 0.'); return;
+        }
+        if (qtyToAdd > itemObat.stok_tersedia) {
+            toast.error(`Jumlah pesanan (${qtyToAdd}) melebihi stok tersedia untuk batch ini (${itemObat.stok_tersedia}).`); return;
         }
 
         const hargaSatuan = parseFloat(itemObat.harga_satuan);
-
-        const existingItemIndex = detailPesanan.findIndex(
-            (item) => item.detail_pesanan_id === itemObat.detail_pesanan_id
-        );
+        // Cek item di keranjang berdasarkan ID (id_aset_blockchain)
+        const existingItemIndex = detailPesanan.findIndex(item => item.id === itemObat.id);
 
         if (existingItemIndex > -1) {
+            // Jika batch yang sama sudah ada, update jumlahnya
             const updatedDetailPesanan = [...detailPesanan];
             const existingItem = updatedDetailPesanan[existingItemIndex];
             const newQty = existingItem.qty + qtyToAdd;
+            const currentStockInfo = availableStock.find(s => s.id === itemObat.id);
+            // Ambil stok awal dari originalStokPbf untuk validasi total
+            const originalStockInfo = originalStokPbf.find(s => s.id === itemObat.id);
+            const maxStock = originalStockInfo ? originalStockInfo.jumlah : 0;
 
-            if (newQty > itemObat.stok_tersedia) {
-                const errorMsg = `Stok tidak cukup. Anda sudah punya ${existingItem.qty}, menambahkan ${qtyToAdd} melebihi stok (${itemObat.stok_tersedia}).`;
-                setError(errorMsg);
-                toast.error(errorMsg);
-                return;
+            if (newQty > maxStock) {
+                 toast.error(`Total jumlah di keranjang (${newQty}) melebihi stok awal batch ini (${maxStock}).`);
+                 return;
             }
 
             existingItem.qty = newQty;
             existingItem.total_harga = newQty * existingItem.harga_satuan;
             setDetailPesanan(updatedDetailPesanan);
-            toast.success(`${itemObat.nama_obat} diperbarui di keranjang.`);
-
+            toast.success(`${itemObat.nama_obat} (batch ${itemObat.id.slice(-6)}) diperbarui.`);
         } else {
-            if (qtyToAdd > itemObat.stok_tersedia) {
-                 const errorMsg = `Jumlah pesanan (${qtyToAdd}) melebihi stok (${itemObat.stok_tersedia}).`;
-                setError(errorMsg);
-                toast.error(errorMsg);
-                return;
-            }
-
+            // Tambah batch baru ke keranjang
             const newItem = {
-                id_aset_blockchain: itemObat.id_aset_blockchain,
-                detail_pesanan_id: itemObat.detail_pesanan_id,
+                id: itemObat.id,
                 nama_obat: itemObat.nama_obat,
                 satuan: itemObat.satuan,
                 keterangan: itemObat.keterangan,
@@ -206,20 +217,19 @@ const TambahPesananApotek = () => {
                 total_harga: qtyToAdd * hargaSatuan,
             };
             setDetailPesanan([...detailPesanan, newItem]);
-            toast.success(`${itemObat.nama_obat} ditambahkan ke keranjang.`);
+            toast.success(`${itemObat.nama_obat} (batch ${itemObat.id.slice(-6)}) ditambahkan.`);
         }
-
-        setItemObat({ id_aset_blockchain: '', nama_obat: '', keterangan: '', qty: 1, satuan: '', harga_satuan: 0, stok_tersedia: 0, detail_pesanan_id: null });
+        // Reset form
+        setItemObat({ id: '', nama_obat: '', keterangan: '', qty: 1, satuan: '', harga_satuan: 0, stok_tersedia: 0 });
     };
 
     const handleRemoveItem = (index) => {
         const removedItem = detailPesanan[index];
         setDetailPesanan(detailPesanan.filter((_, i) => i !== index));
-        toast.error(`${removedItem.nama_obat} dihapus dari keranjang.`);
+        toast.error(`${removedItem.nama_obat} (batch ${removedItem.id.slice(-6)}) dihapus.`);
     };
 
     const clearSignature = () => sigCanvas.current.clear();
-
     const totalHarga = detailPesanan.reduce((sum, item) => sum + (item.total_harga || 0), 0);
 
     const handleSubmit = async (e) => {
@@ -246,10 +256,6 @@ const TambahPesananApotek = () => {
         }
 
         setIsSubmitting(true);
-
-        console.log("Nilai 'idPbf' dari useParams:", idPbf);
-        console.log("Tipe data 'idPbf':", typeof idPbf);
-
         try {
             const token = localStorage.getItem('token');
             if (!token) throw new Error("Otentikasi Gagal");
@@ -258,22 +264,23 @@ const TambahPesananApotek = () => {
             const payload = {
                 nama_apotek: infoApoteker.nama_apotek,
                 alamat_apotek: infoApoteker.alamat_apotek,
+                jabatan: infoApoteker.jabatan,
                 nomor_sipa: infoApoteker.nomor_sipa,
-                telepon_apotek: infoApoteker.telepon,
-                jabatan_apoteker: infoApoteker.jabatan,
-                id_pbf: Number(idPbf),
+                telepon: infoApoteker.telepon,
+                id_pbf: parseInt(idPbf, 10),
                 items: detailPesanan.map(item => ({
-                    detail_pesanan_id: item.detail_pesanan_id,
-                    jumlah_pesanan: item.qty,
+                    id_aset_blockchain: item.id, // Kirim ID batch yang benar
                     nama_obat: item.nama_obat,
+                    keterangan: item.keterangan,
+                    qty: item.qty,
+                    satuan: item.satuan,
                     harga_satuan: item.harga_satuan,
-                    total_harga: item.total_harga,
                 })),
                 total_harga: totalHarga,
                 tanda_tangan_data_url
             };
 
-            console.log("Payload sending:", payload);
+            console.log("Payload yang akan dikirim ke backend:", payload);
 
             const response = await axios.post('http://localhost:5000/api/apotek/pesanan', payload, {
                  headers: { 'Authorization': `Bearer ${token}` }
@@ -282,8 +289,7 @@ const TambahPesananApotek = () => {
             if (response.data.success) {
                 toast.success('Pesanan berhasil dibuat!');
                 navigate('/apotek/pesan-obat');
-            }
-            else { throw new Error(response.data.message || 'Gagal membuat pesanan.'); }
+            } else { throw new Error(response.data.message || 'Gagal membuat pesanan.'); }
         } catch (err) {
              const errorMsg = err.response?.data?.message || err.message || 'Kesalahan Server Internal.';
              setError(errorMsg);
@@ -294,21 +300,15 @@ const TambahPesananApotek = () => {
         }
     };
 
-    const handleLogout = () => {
-        localStorage.clear();
-        navigate('/'); // Redirect to home or login page after logout
-    };
-
-
     return (
         <div className="flex min-h-screen bg-slate-50">
             <div className="flex-1 flex flex-col">
-                <NavbarApotek onLogout={handleLogout} username={username} />
+                <NavbarApotek onLogout={() => { localStorage.clear(); navigate('/'); }} username={username} />
                 <main className="flex-1 overflow-auto pt-[72px]">
                     <div className="max-w-4xl mx-auto px-6 py-8">
                         <div className="mb-8">
                             <button
-                                onClick={() => navigate('/apotek/pesan-obat/pilih-pbf')}
+                                onClick={() => navigate('/apotek/pesan-obat/tambah')} // Kembali ke PilihPbf
                                 className="mb-4 inline-flex items-center text-emerald-600 hover:text-emerald-700 transition-colors text-sm font-medium"
                             >
                                 <ArrowLeft size={16} className="mr-1" /> Kembali Pilih PBF
@@ -324,7 +324,6 @@ const TambahPesananApotek = () => {
                         )}
 
                         <form onSubmit={handleSubmit} className="space-y-6">
-
                             <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
                                 <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b border-slate-200">
                                   <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
@@ -356,7 +355,7 @@ const TambahPesananApotek = () => {
                                                 <tr>
                                                     <th className="px-4 py-3 text-left font-semibold border-b border-slate-200">Nama Obat</th>
                                                     <th className="px-4 py-3 text-left font-semibold border-b border-slate-200">Sediaan</th>
-                                                    <th className="px-4 py-3 text-left font-semibold border-b border-slate-200">Dosis</th>
+                                                    <th className="px-4 py-3 text-left font-semibold border-b border-slate-200">Keterangan</th>
                                                     <th className="px-4 py-3 text-center font-semibold border-b border-slate-200">Jumlah</th>
                                                     <th className="px-4 py-3 text-right font-semibold border-b border-slate-200">Harga Satuan</th>
                                                     <th className="px-4 py-3 text-right font-semibold border-b border-slate-200">Total</th>
@@ -396,25 +395,44 @@ const TambahPesananApotek = () => {
                                 <div className="p-6 border-t border-slate-200 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                                     <div className="md:col-span-5">
                                         <label className="block text-sm font-medium text-slate-700 mb-1">Pilih Obat*</label>
-                                        <select name="detail_pesanan_id" value={itemObat.detail_pesanan_id || ''} onChange={handleObatSelect} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-white appearance-none" disabled={isStokLoading}>
+                                        <select
+                                            name="id"
+                                            value={itemObat.id || ''}
+                                            onChange={handleObatSelect}
+                                            className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-white appearance-none"
+                                            disabled={isStokLoading}
+                                        >
                                             <option value="">{isStokLoading ? 'Memuat stok...' : '-- Pilih Obat Tersedia --'}</option>
-                                            {stokPbf.map(o => <option key={o.detail_pesanan_id} value={o.detail_pesanan_id}>{o.nama_obat} - {o.batch_id} (Stok: {o.stok})</option>)}
+                                            {/* Filter item yang stoknya > 0 */}
+                                            {availableStock.filter(o => o.stok_saat_ini > 0).map(o => (
+                                                <option key={o.id} value={o.id}>
+                                                    {o.nama_obat} ({o.dosis} {o.bentuk_sediaan}) - Batch: {o.id.slice(-6)} (Stok: {o.stok_saat_ini})
+                                                </option>
+                                            ))}
                                         </select>
                                     </div>
                                     <div className="md:col-span-2">
-                                        <InputField label="Jumlah*" name="qty" type="number" min="1" max={itemObat.stok_tersedia || 1} value={itemObat.qty} onChange={handleQtyChange} disabled={!itemObat.detail_pesanan_id} required />
+                                        <InputField
+                                            label="Jumlah*" name="qty" type="number" min="1"
+                                            max={itemObat.stok_tersedia || 1}
+                                            value={itemObat.qty} onChange={handleQtyChange}
+                                            disabled={!itemObat.id} required
+                                        />
                                     </div>
                                     <div className="md:col-span-3">
                                        <InputField
-                                            label="Harga Satuan"
-                                            name="harga_satuan"
+                                            label="Harga Satuan" name="harga_satuan"
                                             value={`Rp ${Number(itemObat.harga_satuan).toLocaleString('id-ID')}`}
-                                            readOnly
-                                            disabled
+                                            readOnly disabled
                                         />
                                     </div>
                                     <div className="md:col-span-2">
-                                        <button type="button" onClick={handleAddItem} className="w-full bg-blue-600 text-white py-2.5 px-4 rounded-lg hover:bg-blue-700 disabled:bg-slate-400 flex items-center justify-center gap-1" disabled={!itemObat.detail_pesanan_id || isStokLoading}>
+                                        <button 
+                                            type="button" 
+                                            onClick={handleAddItem} 
+                                            className="w-full bg-blue-600 text-white py-2.5 px-4 rounded-lg hover:bg-blue-700 disabled:bg-slate-400 flex items-center justify-center gap-1" 
+                                            disabled={!itemObat.id || isStokLoading}
+                                        >
                                             <Plus size={16} /> Tambah
                                         </button>
                                     </div>
@@ -459,6 +477,7 @@ const TambahPesananApotek = () => {
     );
 };
 
+// Komponen InputField tidak berubah
 const InputField = ({ label, readOnly = false, ...props }) => (
     <div>
         <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
@@ -469,6 +488,5 @@ const InputField = ({ label, readOnly = false, ...props }) => (
         />
     </div>
 );
-
 
 export default TambahPesananApotek;

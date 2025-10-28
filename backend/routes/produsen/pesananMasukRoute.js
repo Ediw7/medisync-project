@@ -43,7 +43,7 @@ router.put(
   upload.single('buktiFoto'), // Middleware multer
   pesananMasukController.confirmReturnReceipt
 );
-
+router.post('/proses-pengiriman-massal', pesananMasukController.prosesPengirimanMassal);
 
 // Mencatat pengiriman ke blockchain
 router.post('/:id/record-to-blockchain', pesananMasukController.recordToBlockchainForShipment);

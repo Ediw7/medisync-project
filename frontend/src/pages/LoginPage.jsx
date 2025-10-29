@@ -28,6 +28,13 @@ const LoginPage = () => {
       localStorage.setItem("username", res.data.username)
       localStorage.setItem("namaResmi", res.data.namaResmi)
 
+      if (res.data.id) {
+        localStorage.setItem("produsenId", res.data.id) 
+      } else {
+        console.error("Login response does not contain 'id'. 'produsenId' was not set.");
+      }
+  
+
       const userRole = res.data.role
       if (userRole !== role) {
         setError(`Login gagal. Akun ini bukan untuk peran ${role}.`)

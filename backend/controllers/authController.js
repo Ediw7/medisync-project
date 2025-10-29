@@ -85,6 +85,7 @@ const authController = {
         role: user.role,
         username: user.username,
         namaResmi: user.nama_resmi,
+        id: user.id,
       });
     } catch (err) {
       res.status(500).json({ message: "Kesalahan server", error: err.message });

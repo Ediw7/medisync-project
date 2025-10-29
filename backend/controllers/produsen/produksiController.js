@@ -35,20 +35,18 @@ async function getGateway() {
 }
 
 const produksiController = {
-  // Mengambil semua jadwal produksi milik produsen yang sedang login
+  
   getAll: async (req, res) => {
     try {
-      // Ambil parameter filter & sorting dari req.query
+    
       const { month, year, minJumlah, maxJumlah, status, sortBy, sortOrder } = req.query;
 
-      // Persiapkan query dasar
       let sql = `
         SELECT id, batch_id, nama_obat, jumlah, status, tanggal_produksi, tanggal_kadaluarsa, qr_code_url 
         FROM produksi 
         WHERE id_produsen = ?`;
       const params = [req.user.id];
 
-      // Tambahkan filter secara dinamis
       if (status) {
         sql += ' AND status = ?';
         params.push(status);
@@ -69,15 +67,14 @@ const produksiController = {
         sql += ' AND jumlah <= ?';
         params.push(maxJumlah);
       }
-      
-      // Tambahkan sorting secara dinamis
+
       const allowedSortBy = ['batch_id', 'nama_obat', 'tanggal_produksi', 'jumlah', 'status'];
-      const direction = sortOrder?.toLowerCase() === 'asc' ? 'ASC' : 'DESC'; // Default DESC
+      const direction = sortOrder?.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
       
       if (sortBy && allowedSortBy.includes(sortBy)) {
         sql += ` ORDER BY ${sortBy} ${direction}`;
       } else {
-        // Default sort
+
         sql += ' ORDER BY tanggal_produksi DESC';
       }
 
@@ -88,7 +85,7 @@ const produksiController = {
       res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
     }
 },
-  // Mengambil satu data produksi berdasarkan ID
+
   getById: async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM produksi WHERE id = ? AND id_produsen = ?', [
@@ -98,16 +95,16 @@ const produksiController = {
     if (rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
     }
-    res.json({ success: true, data: rows[0] }); // Pastikan ini mengembalikan semua kolom, termasuk qr_code_url
+    res.json({ success: true, data: rows[0] }); 
   } catch (error) {
     console.error('Error in getById:', error);
     res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
   }
 },
-  // Membuat jadwal produksi baru
+
   create: async (req, res) => {
+
     const {
-      batch_id,
       nama_obat,
       nomor_izin_edar,
       dosis,
@@ -123,13 +120,27 @@ const produksiController = {
     } = req.body;
     const id_produsen = req.user.id;
 
-    // Validasi field wajib
-    if (!batch_id || !nama_obat || !jumlah || !tanggal_produksi || !tanggal_kadaluarsa) {
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const day = now.getDate().toString().padStart(2, '0');
+    const dateStamp = `${year}${month}${day}`; 
+    
+    const randomHash = crypto.randomBytes(4).toString('hex').toUpperCase(); 
+    
+  
+    const batch_id = `P${id_produsen}-${dateStamp}-${randomHash}`;
+
+
+   
+    if (!nama_obat || !jumlah || !tanggal_produksi || !tanggal_kadaluarsa) { 
       return res.status(400).json({
         success: false,
-        message: 'Batch ID, Nama Obat, Jumlah, Tanggal Produksi, dan Tanggal Kadaluarsa wajib diisi.',
+        message: 'Nama Obat, Jumlah, Tanggal Produksi, dan Tanggal Kadaluarsa wajib diisi.', 
       });
     }
+
     if (!bentuk_sediaan) {
       return res.status(400).json({ success: false, message: 'Bentuk sediaan wajib diisi.' });
     }
@@ -186,7 +197,12 @@ const produksiController = {
       ];
 
       const [result] = await db.query(sql, params);
-      res.status(201).json({ success: true, message: 'Jadwal produksi berhasil dibuat', id: result.insertId });
+      res.status(201).json({ 
+        success: true, 
+        message: 'Jadwal produksi berhasil dibuat', 
+        id: result.insertId,
+        generated_batch_id: batch_id 
+      });
     } catch (error) {
       console.error('Error in create:', error);
       if (error.code === 'ER_DUP_ENTRY') {

@@ -13,7 +13,6 @@ const TambahProduksi = () => {
   const navigate = useNavigate()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [formData, setFormData] = useState({
-    batch_id: "",
     nama_obat: "",
     nomor_izin_edar: "",
     dosis: "",
@@ -36,15 +35,35 @@ const TambahProduksi = () => {
   const [popupMessage, setPopupMessage] = useState("")
   const [popupType, setPopupType] = useState("success") 
 
+  const [previewBatchId, setPreviewBatchId] = useState("Membuat ID...")
+
   useEffect(() => {
     const token = localStorage.getItem("token")
-    if (!token) {
-      showCustomAlert("Anda harus login untuk mengakses halaman ini.", "error")
+    const produsenId = localStorage.getItem("produsenId"); 
+
+
+    if (!token || !produsenId) { 
+      showCustomAlert("Sesi Anda tidak valid. Silakan login kembali.", "error")
       setTimeout(() => {
         navigate("/login/produsen")
       }, 1500)
+      return; 
     }
-  }, [navigate])
+
+ 
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const day = now.getDate().toString().padStart(2, '0');
+    const dateStamp = `${year}${month}${day}`;
+
+    const randomHash = Math.random().toString(36).substring(2, 8).toUpperCase(); 
+
+
+    setPreviewBatchId(`P${produsenId}-${dateStamp}-${randomHash}`);
+
+  }, [navigate]) 
+
 
   useEffect(() => {
     if (showPopup && popupType === "success") {
@@ -67,7 +86,6 @@ const TambahProduksi = () => {
 
 
     if (
-      !formData.batch_id ||
       !formData.nama_obat ||
       !formData.jumlah ||
       !formData.tanggal_produksi ||
@@ -143,6 +161,7 @@ const TambahProduksi = () => {
     }
 
     try {
+
       const response = await fetch("http://localhost:5000/api/produksi", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
@@ -150,7 +169,9 @@ const TambahProduksi = () => {
       })
       const result = await response.json()
       if (!response.ok) throw new Error(result.message || "Gagal menambahkan data produksi.")
-      showCustomAlert("Jadwal produksi berhasil dibuat!", "success")
+
+      const finalBatchId = result.generated_batch_id || ""; 
+      showCustomAlert(`Jadwal produksi berhasil dibuat! (Batch ID: ${finalBatchId})`, "success")
 
     } catch (err) {
       showCustomAlert(err.message, "error")
@@ -271,14 +292,12 @@ const TambahProduksi = () => {
                 <div className="p-6 space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Batch ID</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Batch ID (Otomatis)</label>
                       <input
-                        name="batch_id"
-                        value={formData.batch_id}
-                        onChange={handleInputChange}
-                        placeholder="Masukkan Batch ID Unik"
-                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
-                        required
+                        type="text"
+                        value={previewBatchId}  
+                        disabled
+                        className="w-full px-4 py-2.5 border border-slate-200 bg-slate-100 text-slate-500 rounded-lg cursor-not-allowed"
                       />
                     </div>
                     <div>

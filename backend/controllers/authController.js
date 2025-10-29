@@ -1,8 +1,7 @@
 require("dotenv").config();
 const User = require("../models/userModel");
 const jwt = require("jsonwebtoken");
-// const nodemailer = require("nodemailer");
-// const sgTransport = require("nodemailer-sendgrid-transport")
+
 const sgMail = require("@sendgrid/mail");
 
 const JWT_SECRET = process.env.JWT_SECRET || "kunci-rahasia-default";
@@ -86,6 +85,7 @@ const authController = {
         username: user.username,
         namaResmi: user.nama_resmi,
         id: user.id,
+        nomor_izin: user.nomor_izin
       });
     } catch (err) {
       res.status(500).json({ message: "Kesalahan server", error: err.message });

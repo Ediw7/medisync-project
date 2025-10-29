@@ -33,6 +33,8 @@ const LoginPage = () => {
       } else {
         console.error("Login response does not contain 'id'. 'produsenId' was not set.");
       }
+
+      localStorage.setItem("nomorIzin", res.data.nomor_izin);
   
 
       const userRole = res.data.role

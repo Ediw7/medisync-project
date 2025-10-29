@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
 import {
@@ -97,30 +97,34 @@ const LihatStatus = () => {
     }
   };
 
-  const StatusStep = ({ icon: Icon, label, timestamp, isCompleted, isCurrent, isLast = false }) => (
-    <div className={`flex items-start ${isLast ? '' : 'flex-1'}`}>
-      <div className="flex flex-col items-center mr-4">
-        <div className={`w-12 h-12 rounded-full flex items-center justify-center border-2 ${
-           isCurrent ? 'bg-emerald-100 border-emerald-500 animate-pulse' :
-           isCompleted ? 'bg-emerald-500 border-emerald-600 text-white' :
-           'bg-slate-100 border-slate-300 text-slate-400'
-        } transition-colors duration-300`}>
-          <Icon size={24} />
-        </div>
-        {!isLast && (
-           <div className={`w-0.5 h-16 mt-2 ${isCompleted ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-        )}
-      </div>
-      <div className="pt-2.5">
-        <p className={`font-semibold ${
-          isCurrent ? 'text-emerald-700' :
-          isCompleted ? 'text-slate-800' :
-          'text-slate-500'
-        }`}>{label}</p>
-        {timestamp && <p className="text-sm text-slate-500 mt-0.5">{timestamp}</p>}
-      </div>
-    </div>
-  );
+  const formatDate = (date, includeTime = false) => {
+      if (!date || isNaN(new Date(date).getTime())) return 'N/A';
+      const options = { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' };
+      if(includeTime) {
+          options.hour = '2-digit';
+          options.minute = '2-digit';
+      }
+      return new Date(date).toLocaleDateString('id-ID', options);
+  };
+
+  const getCurrentStatus = () => {
+    if (shippingData.statusBlockchain === 'DITERIMA_PBF') return 'Selesai';
+    if (shippingData.statusBlockchain === 'DIKIRIM_KE_PBF') return 'Dikirim';
+    if (shippingData.statusPengiriman === 'Dikirim') return 'Dikirim';
+    return 'Dipersiapkan';
+  };
+  const currentStatus = getCurrentStatus();
+
+  const isDipersiapkanCompleted = true;
+  const isDikirimCompleted = currentStatus === 'Dikirim' || currentStatus === 'Selesai';
+  const isSelesaiCompleted = currentStatus === 'Selesai';
+
+  const getTimestamp = (status) => {
+      if (status === 'Dipersiapkan' && shippingData.waktuPesan) return formatDate(shippingData.waktuPesan, true);
+      if (status === 'Dikirim' && shippingData.tanggalPengiriman) return `${formatDate(shippingData.tanggalPengiriman)} ${shippingData.waktuPengiriman}`;
+      if (status === 'Selesai' && shippingData.estimasiSampai) return `Estimasi: ${formatDate(shippingData.estimasiSampai)}`;
+      return null;
+  };
 
   if (isLoading) {
     return (
@@ -169,35 +173,6 @@ const LihatStatus = () => {
   }
 
   if (!shippingData) return <div className="p-6 text-center text-slate-500">Data pengiriman tidak ditemukan.</div>;
-
-  const formatDate = (date, includeTime = false) => {
-      if (!date || isNaN(new Date(date).getTime())) return 'N/A';
-      const options = { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' };
-      if(includeTime) {
-          options.hour = '2-digit';
-          options.minute = '2-digit';
-      }
-      return new Date(date).toLocaleDateString('id-ID', options);
-  };
-
-  const getCurrentStatus = () => {
-    if (shippingData.statusBlockchain === 'DITERIMA_PBF') return 'Selesai';
-    if (shippingData.statusBlockchain === 'DIKIRIM_KE_PBF') return 'Dikirim';
-    if (shippingData.statusPengiriman === 'Dikirim') return 'Dikirim';
-    return 'Dipersiapkan';
-  };
-  const currentStatus = getCurrentStatus();
-
-  const isDipersiapkanCompleted = true;
-  const isDikirimCompleted = currentStatus === 'Dikirim' || currentStatus === 'Selesai';
-  const isSelesaiCompleted = currentStatus === 'Selesai';
-
-  const getTimestamp = (status) => {
-      if (status === 'Dipersiapkan' && shippingData.waktuPesan) return formatDate(shippingData.waktuPesan, true);
-      if (status === 'Dikirim' && shippingData.tanggalPengiriman) return `${formatDate(shippingData.tanggalPengiriman)} ${shippingData.waktuPengiriman}`;
-      if (status === 'Selesai' && shippingData.estimasiSampai) return `Estimasi: ${formatDate(shippingData.estimasiSampai)}`;
-      return null;
-  };
 
   return (
     <div className="flex min-h-screen bg-slate-50">
@@ -280,29 +255,64 @@ const LihatStatus = () => {
                   </div>
               </div>
 
-              <div className="p-6 py-10 flex flex-col sm:flex-row justify-around items-start sm:items-center">
-                <StatusStep
-                  icon={Package}
-                  label="Dipersiapkan"
-                  timestamp={getTimestamp('Dipersiapkan')}
-                  isCompleted={isDipersiapkanCompleted}
-                  isCurrent={currentStatus === 'Dipersiapkan'}
-                />
-                <StatusStep
-                  icon={Truck}
-                  label="Dikirim"
-                  timestamp={getTimestamp('Dikirim')}
-                  isCompleted={isDikirimCompleted}
-                  isCurrent={currentStatus === 'Dikirim'}
-                />
-                <StatusStep
-                  icon={CheckCircle2}
-                  label="Selesai"
-                  timestamp={getTimestamp('Selesai')}
-                  isCompleted={isSelesaiCompleted}
-                  isCurrent={currentStatus === 'Selesai'}
-                  isLast={true}
-                />
+              <div className="p-6 py-8">
+                <h3 className="text-lg font-semibold text-slate-800 mb-6 text-center">Alur Pengiriman</h3>
+                <div className="relative flex items-start justify-between">
+                  {/* Step 1: Dipersiapkan */}
+                  <div className="flex flex-col items-center flex-1 text-center">
+                    <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-2 shadow-md transition-all duration-300 ${
+                      isDipersiapkanCompleted 
+                        ? 'bg-emerald-500 text-white border-2 border-emerald-600' 
+                        : 'bg-slate-100 text-slate-400 border-2 border-slate-300'
+                    }`}>
+                      <Package size={22} />
+                    </div>
+                    <p className="text-sm font-medium text-slate-800 mb-1">Dipersiapkan</p>
+                    <p className="text-xs text-slate-500">{getTimestamp('Dipersiapkan')}</p>
+                  </div>
+
+                  {/* Horizontal Line 1 */}
+                  <div className={`w-16 h-1 mx-1 bg-slate-300 rounded-full flex-1 ${
+                    isDipersiapkanCompleted ? 'bg-emerald-500' : ''
+                  }`}>
+                  </div>
+
+                  {/* Step 2: Dikirim */}
+                  <div className="flex flex-col items-center flex-1 text-center">
+                    <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-2 shadow-md transition-all duration-300 ${
+                      isDikirimCompleted 
+                        ? 'bg-emerald-500 text-white border-2 border-emerald-600' 
+                        : !isDipersiapkanCompleted && currentStatus === 'Dikirim'
+                          ? 'bg-blue-100 text-blue-600 border-2 border-blue-300 ring-2 ring-blue-200' 
+                          : 'bg-slate-100 text-slate-400 border-2 border-slate-300'
+                    }`}>
+                      <Truck size={22} />
+                    </div>
+                    <p className="text-sm font-medium text-slate-800 mb-1">Dikirim</p>
+                    <p className="text-xs text-slate-500">{getTimestamp('Dikirim')}</p>
+                  </div>
+
+                  {/* Horizontal Line 2 */}
+                  <div className={`w-16 h-1 mx-1 bg-slate-300 rounded-full flex-1 ${
+                    isDikirimCompleted ? 'bg-emerald-500' : ''
+                  }`}>
+                  </div>
+
+                  {/* Step 3: Selesai */}
+                  <div className="flex flex-col items-center flex-1 text-center">
+                    <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-2 shadow-md transition-all duration-300 ${
+                      isSelesaiCompleted 
+                        ? 'bg-emerald-500 text-white border-2 border-emerald-600' 
+                        : !isDikirimCompleted && currentStatus === 'Selesai'
+                          ? 'bg-blue-100 text-blue-600 border-2 border-blue-300 ring-2 ring-blue-200' 
+                          : 'bg-slate-100 text-slate-400 border-2 border-slate-300'
+                    }`}>
+                      <CheckCircle2 size={22} />
+                    </div>
+                    <p className="text-sm font-medium text-slate-800 mb-1">Selesai</p>
+                    <p className="text-xs text-slate-500">{getTimestamp('Selesai')}</p>
+                  </div>
+                </div>
               </div>
 
               <div className="px-6 pb-6">

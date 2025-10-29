@@ -4,7 +4,19 @@ import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
 import { Loader2 } from 'lucide-react';
 
-// Definisikan generateProNumber di atas
+
+const toRoman = (num) => {
+  const map = { M: 1000, CM: 900, D: 500, CD: 400, C: 100, XC: 90, L: 50, XL: 40, X: 10, IX: 9, V: 5, IV: 4, I: 1 };
+  let result = '';
+  for (let key in map) {
+    while (num >= map[key]) {
+      result += key;
+      num -= map[key];
+    }
+  }
+  return result;
+};
+
 const generateProNumber = (prefix, orderId) => {
   const date = new Date();
   const year = date.getFullYear().toString().slice(-2);
@@ -12,6 +24,22 @@ const generateProNumber = (prefix, orderId) => {
   const day = date.getDate().toString().padStart(2, '0');
   const timestamp = date.getTime().toString().slice(-4);
   return `${prefix}-${year}${month}${day}-${orderId}-${timestamp}`;
+};
+
+
+const generateSuratJalanNumber = (orderId) => {
+  const nomorIzin = localStorage.getItem('nomorIzin');
+  if (!nomorIzin) {
+    return 'ERROR-NO-IZIN';
+  }
+
+  const date = new Date();
+  const year = date.getFullYear().toString().slice(-2);
+  const month = date.getMonth() + 1; 
+  const monthRoman = toRoman(month); 
+  const paddedOrderId = String(orderId).padStart(6, '0'); 
+
+  return `SJ-FARMASI-${paddedOrderId}-${nomorIzin}-${monthRoman}-${year}`;
 };
 
 const RincianPengiriman = () => {
@@ -24,9 +52,9 @@ const RincianPengiriman = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   const [nomorResi] = useState(() => generateProNumber('RES', id));
-  const [nomorSuratJalan] = useState(() => generateProNumber('SJ', id));
+  const [nomorSuratJalan] = useState(() => generateSuratJalanNumber(id));
+
   const [opsiPengiriman, setOpsiPengiriman] = useState('standar');
   const [catatan, setCatatan] = useState(location.state?.catatan || '');
   const [tanggalPengiriman, setTanggalPengiriman] = useState(location.state?.tanggalPengiriman || '');
@@ -43,6 +71,13 @@ const RincianPengiriman = () => {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('Silakan login terlebih dahulu');
 
+        const nomorIzin = localStorage.getItem('nomorIzin'); 
+        
+        if (!token) throw new Error('Silakan login terlebih dahulu');
+
+        if (!nomorIzin || nomorSuratJalan === 'ERROR-NO-IZIN') {
+          throw new Error("Nomor Izin produsen tidak ditemukan di cache. Silakan logout dan login kembali.");
+        }
         const pesananId = String(id).padStart(6, '0');
         const response = await fetch(`http://localhost:5000/api/produsen/pesanan-masuk/${pesananId}`, {
           headers: { 'Authorization': `Bearer ${token}` },
@@ -67,7 +102,7 @@ const RincianPengiriman = () => {
       }
     };
     fetchData();
-  }, [id, navigate]);
+  }, [id, navigate,nomorSuratJalan]);
 
   const handleCetakSuratJalan = async (e) => {
     e.preventDefault();

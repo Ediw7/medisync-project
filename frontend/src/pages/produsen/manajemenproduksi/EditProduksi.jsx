@@ -4,7 +4,8 @@ import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { Upload, Loader2, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'; // Tambah AlertTriangle
+import { FaCogs } from "react-icons/fa";
+import { Upload, Loader2, CheckCircle, XCircle, AlertTriangle, ChevronDown } from 'lucide-react'; // Tambah ChevronDown
 
 const EditProduksi = () => {
   const navigate = useNavigate();
@@ -134,7 +135,6 @@ const EditProduksi = () => {
 
         const data = result.data;
 
-        // Debug log untuk tanggal (hapus setelah test)
         console.log('Raw API dates:', {
           produksi: data.tanggal_produksi,
           kadaluarsa: data.tanggal_kadaluarsa
@@ -222,6 +222,14 @@ const EditProduksi = () => {
       }
     });
 
+    if (formData.dokumen_bpom_path && !dokumenBpomFile) {
+      dataPayload.append('dokumen_bpom_path_existing', formData.dokumen_bpom_path);
+    }
+    if (formData.sertifikat_analisis_path && !sertifikatFile) {
+      dataPayload.append('sertifikat_analisis_path_existing', formData.sertifikat_analisis_path);
+      dataPayload.append('hash_sertifikat_analisis_existing', formData.hash_sertifikat_analisis || '');
+    }
+
     if (dokumenBpomFile) {
       dataPayload.append('dokumen_bpom', dokumenBpomFile);
     }
@@ -246,7 +254,6 @@ const EditProduksi = () => {
       }
 
       showCustomAlert('Jadwal produksi berhasil diperbarui!', 'success');
-      // Navigation is handled by closePopup on success
     } catch (err) {
       showCustomAlert(err.message || 'Terjadi kesalahan saat menyimpan.', 'error');
       console.error('Error details:', err);
@@ -280,13 +287,30 @@ const EditProduksi = () => {
           }}
           username={localStorage.getItem('username')}
         />
-        <main className="flex-1 overflow-auto">
-          <div className="max-w-5xl mx-auto px-6 py-8">
-            <div className="mb-8 pt-12">
-              <h1 className="text-4xl font-bold text-slate-900 mb-2">Edit Jadwal Produksi</h1>
-              <p className="text-slate-600">Perbarui formulir di bawah untuk mengubah data produksi</p>
-            </div>
-
+        <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
+                <div className="max-w-7xl mx-auto">
+                  <div className="mb-10 relative">
+                    <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+                    <div className="absolute -top-20 -right-20 w-72 h-72 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+        
+                    <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg">
+                          <FaCogs className="text-white" size={24} />
+                        </div>
+        
+                        <div>
+                          <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-emerald-900 to-teal-900 bg-clip-text text-transparent">
+                            Edit Jadwal Produksi
+                          </h1>
+                          <p className="text-slate-600 text-lg mt-1">
+                            Perbarui formulir di bawah untuk mengubah data produksi
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+        
             {fetchError && (
               <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200 flex items-center gap-2">
                 <AlertTriangle size={18}/> <span>{fetchError}</span>
@@ -348,22 +372,26 @@ const EditProduksi = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Bentuk Sediaan</label>
-                      <select
-                        name="bentuk_sediaan"
-                        value={formData.bentuk_sediaan || ''}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-white appearance-none"
-                        required
-                      >
-                        <option value="">Pilih Bentuk Sediaan</option>
-                        <option value="Tablet">Tablet</option>
-                        <option value="Kapsul">Kapsul</option>
-                        <option value="Sirup">Sirup</option>
-                        <option value="Injeksi">Injeksi</option>
-                        <option value="Salep">Salep</option>
-                        <option value="Krim">Krim</option>
-                        <option value="Tetes">Tetes</option>
-                      </select>
+                      <div className="relative">
+                        <select
+                          name="bentuk_sediaan"
+                          value={formData.bentuk_sediaan || ''}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-2.5 pr-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition appearance-none bg-white" // Tambah pr-10 untuk space icon
+                          required
+                        >
+                          <option value="">Pilih Bentuk Sediaan</option>
+                          <option value="Tablet">Tablet</option>
+                          <option value="Kapsul">Kapsul</option>
+                          <option value="Sirup">Sirup</option>
+                          <option value="Injeksi">Injeksi</option>
+                          <option value="Salep">Salep</option>
+                          <option value="Krim">Krim</option>
+                          <option value="Tetes">Tetes</option>
+                        </select>
+                        {/* Custom dropdown arrow */}
+                        <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                      </div>
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Jumlah Produksi</label>
@@ -424,31 +452,39 @@ const EditProduksi = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Prioritas</label>
-                      <select
-                        name="prioritas"
-                        value={formData.prioritas || 'Medium'}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-white appearance-none"
-                        required
-                      >
-                        <option value="High">Tinggi</option>
-                        <option value="Medium">Sedang</option>
-                        <option value="Low">Rendah</option>
-                      </select>
+                      <div className="relative">
+                        <select
+                          name="prioritas"
+                          value={formData.prioritas || 'Medium'}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-2.5 pr-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition appearance-none bg-white" // Tambah pr-10
+                          required
+                        >
+                          <option value="High">Tinggi</option>
+                          <option value="Medium">Sedang</option>
+                          <option value="Low">Rendah</option>
+                        </select>
+                        {/* Custom dropdown arrow */}
+                        <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                      </div>
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Status</label>
-                      <select
-                        name="status"
-                        value={formData.status || 'Terjadwal'}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-white appearance-none"
-                        required
-                      >
-                        <option value="Terjadwal">Terjadwal</option>
-                        <option value="Dalam Produksi">Dalam Produksi</option>
-                        <option value="Selesai">Selesai</option>
-                      </select>
+                      <div className="relative">
+                        <select
+                          name="status"
+                          value={formData.status || 'Terjadwal'}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-2.5 pr-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition appearance-none bg-white" // Tambah pr-10
+                          required
+                        >
+                          <option value="Terjadwal">Terjadwal</option>
+                          <option value="Dalam Produksi">Dalam Produksi</option>
+                          <option value="Selesai">Selesai</option>
+                        </select>
+                        {/* Custom dropdown arrow */}
+                        <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                      </div>
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Penanggung Jawab</label>

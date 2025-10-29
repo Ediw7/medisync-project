@@ -44,6 +44,44 @@ const ManajemenProduksi = () => {
   const [sortConfig, setSortConfig] = useState({ key: 'tanggal_produksi', direction: 'desc' });
   const username = localStorage.getItem('username');
 
+  // Fungsi parse yang sama seperti di EditProduksi dan Detail: Parse full ISO sebagai UTC, ambil local components, buat local date-only
+  const parseDateAsLocal = (dateString) => {
+    if (!dateString) return null;
+    try {
+      const utcDate = new Date(dateString);
+      if (isNaN(utcDate.getTime())) {
+        console.warn('Invalid date string:', dateString);
+        return null;
+      }
+      // Ambil local year, month, date dari UTC parsed (otomatis adjust timezone)
+      const localYear = utcDate.getFullYear();
+      const localMonth = utcDate.getMonth();
+      const localDay = utcDate.getDate();
+      
+      const localDate = new Date(localYear, localMonth, localDay);
+      
+      // Debug log (hapus setelah test sukses)
+      console.log('Parsing in Table:', dateString, '-> Local date:', localDate.toLocaleDateString('id-ID'));
+      
+      return localDate;
+    } catch (error) {
+      console.error("Error parsing date in Table:", dateString, error);
+      return null;
+    }
+  };
+
+  const formatDate = (dateString) => {
+     if (!dateString) return '-';
+     try {
+        const localDate = parseDateAsLocal(dateString);
+        if (!localDate || isNaN(localDate.getTime())) return '-';
+        // Gunakan local date tanpa timeZone: 'UTC' untuk tampil local time
+        return localDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+     } catch (e) {
+         return '-';
+     }
+  };
+
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -76,6 +114,15 @@ const ManajemenProduksi = () => {
       if (!result.success) throw new Error(result.message || 'Gagal mengambil data');
       
       let data = (result.data || []).filter(item => item.status !== 'Tercatat di Blockchain');
+      
+      // Debug log untuk tanggal (hapus setelah test)
+      if (data.length > 0) {
+        console.log('Raw API dates in Table:', data.slice(0, 3).map(item => ({
+          batch_id: item.batch_id,
+          produksi: item.tanggal_produksi,
+          kadaluarsa: item.tanggal_kadaluarsa
+        })));
+      }
       
       if (searchTerm) {
         data = data.filter(item =>
@@ -163,17 +210,6 @@ const ManajemenProduksi = () => {
       default:
         return 'bg-slate-100 text-slate-800 border-slate-200';
     }
-  };
-  
-  const formatDate = (dateString) => {
-     if (!dateString) return '-';
-     try {
-        const date = new Date(dateString);
-         if (isNaN(date.getTime())) return '-';
-         return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
-     } catch (e) {
-         return '-';
-     }
   };
 
   if (isLoading && produksiData.length === 0) {

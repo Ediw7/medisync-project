@@ -4,7 +4,7 @@ import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { Upload, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Upload, Loader2, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'; // Tambah AlertTriangle
 
 const EditProduksi = () => {
   const navigate = useNavigate();
@@ -75,6 +75,43 @@ const EditProduksi = () => {
     )
   }
 
+  const parseDateAsLocal = (dateString) => {
+  if (!dateString) return null;
+  try {
+    const utcDate = new Date(dateString);
+    if (isNaN(utcDate.getTime())) {
+      console.warn('Invalid date string:', dateString);
+      return null;
+    }
+    // Ambil local year, month, date dari UTC parsed (otomatis adjust timezone)
+    const localYear = utcDate.getFullYear();
+    const localMonth = utcDate.getMonth();
+    const localDay = utcDate.getDate();
+    
+    const localDate = new Date(localYear, localMonth, localDay);
+
+    console.log('Parsing:', dateString, '-> UTC parsed:', utcDate.toISOString(), '-> Local date:', localDate.toLocaleDateString('id-ID'));
+    
+    return localDate;
+  } catch (error) {
+    console.error("Error parsing date:", dateString, error);
+    return null;
+  }
+};
+
+  const formatDateForAPI = (date) => {
+    if (!date) return null;
+    try {
+      const year = date.getFullYear();
+      const month = (date.getMonth() + 1).toString().padStart(2, '0'); 
+      const day = date.getDate().toString().padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    } catch (error) {
+      console.error("Error formatting date:", date, error);
+      return null;
+    }
+  };
+ 
 
   useEffect(() => {
     const fetchProduksi = async () => {
@@ -96,14 +133,23 @@ const EditProduksi = () => {
          if (!result.success || !result.data) throw new Error(result.message || 'Data tidak ditemukan.');
 
         const data = result.data;
+
+        // Debug log untuk tanggal (hapus setelah test)
+        console.log('Raw API dates:', {
+          produksi: data.tanggal_produksi,
+          kadaluarsa: data.tanggal_kadaluarsa
+        });
+
         setFormData({
           ...data,
-          tanggal_produksi: data.tanggal_produksi ? new Date(data.tanggal_produksi) : null,
-          tanggal_kadaluarsa: data.tanggal_kadaluarsa ? new Date(data.tanggal_kadaluarsa) : null,
+          tanggal_produksi: parseDateAsLocal(data.tanggal_produksi),
+          tanggal_kadaluarsa: parseDateAsLocal(data.tanggal_kadaluarsa),
           bentuk_sediaan: data.bentuk_sediaan || '',
           penanggung_jawab: data.penanggung_jawab || '',
           harga_per_unit: data.harga_per_unit || '',
         });
+
+
       } catch (err) {
         setFetchError(err.message);
       } finally {
@@ -112,7 +158,6 @@ const EditProduksi = () => {
     };
     fetchProduksi();
   }, [id, navigate]);
-
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -170,7 +215,7 @@ const EditProduksi = () => {
     Object.keys(formData).forEach((key) => {
       if (key === 'tanggal_produksi' || key === 'tanggal_kadaluarsa') {
         if (formData[key]) {
-          dataPayload.append(key, formData[key].toISOString().split('T')[0]);
+          dataPayload.append(key, formatDateForAPI(formData[key]));
         }
       } else if (key !== 'created_at' && key !== 'updated_at' && key !== 'id_produsen' && key !== 'id' && key !== 'dokumen_bpom_path' && key !== 'sertifikat_analisis_path' && key !== 'hash_sertifikat_analisis') { // Explicitly exclude paths and hash
         dataPayload.append(key, formData[key] || '');

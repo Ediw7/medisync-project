@@ -26,6 +26,31 @@ const DetailProduksi = () => {
   const [qrCode, setQrCode] = useState('');
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  
+  const parseDateAsLocal = (dateString) => {
+    if (!dateString) return null;
+    try {
+      const utcDate = new Date(dateString);
+      if (isNaN(utcDate.getTime())) {
+        console.warn('Invalid date string:', dateString);
+        return null;
+      }
+
+      const localYear = utcDate.getFullYear();
+      const localMonth = utcDate.getMonth();
+      const localDay = utcDate.getDate();
+      
+      const localDate = new Date(localYear, localMonth, localDay);
+
+      console.log('Parsing in Detail:', dateString, '-> Local date:', localDate.toLocaleDateString('id-ID'));
+      
+      return localDate;
+    } catch (error) {
+      console.error("Error parsing date in Detail:", dateString, error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     const fetchProduksi = async () => {
       setIsLoading(true);
@@ -50,6 +75,12 @@ const DetailProduksi = () => {
         if (data.status === 'Tercatat di Blockchain' && data.qr_code_url) {
           setQrCode(data.qr_code_url);
         }
+
+
+        console.log('Raw API dates in Detail:', {
+          produksi: data.tanggal_produksi,
+          kadaluarsa: data.tanggal_kadaluarsa
+        });
       } catch (err) {
         setError(err.message);
       } finally {
@@ -224,21 +255,19 @@ const DetailProduksi = () => {
                 <div className="p-6 grid grid-cols-2 gap-6">
                   <InfoItem 
                     label="Tanggal Produksi" 
-                    value={new Date(produksi.tanggal_produksi).toLocaleDateString('id-ID', {
+                    value={parseDateAsLocal(produksi.tanggal_produksi)?.toLocaleDateString('id-ID', {
                       day: 'numeric',
                       month: 'long',
                       year: 'numeric',
-                      timeZone: 'UTC',
-                    })} 
+                    }) || '-'} 
                   />
                   <InfoItem 
                     label="Tanggal Kadaluarsa" 
-                    value={new Date(produksi.tanggal_kadaluarsa).toLocaleDateString('id-ID', {
+                    value={parseDateAsLocal(produksi.tanggal_kadaluarsa)?.toLocaleDateString('id-ID', {
                       day: 'numeric',
                       month: 'long',
                       year: 'numeric',
-                      timeZone: 'UTC',
-                    })} 
+                    }) || '-'} 
                   />
                 </div>
               </div>

@@ -9,6 +9,19 @@ import "react-datepicker/dist/react-datepicker.css"
 import { Upload, Loader2, CheckCircle, XCircle } from "lucide-react"
 import { FaCogs } from "react-icons/fa";
 
+const formatDateForAPI = (date) => {
+  if (!date) return null;
+  try {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0'); // bulan 1-indexed
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  } catch (error) {
+    console.error("Error formatting date:", date, error);
+    return null;
+  }
+};
+
 const TambahProduksi = () => {
   const navigate = useNavigate()
   const [isCollapsed, setIsCollapsed] = useState(false)
@@ -145,7 +158,7 @@ const TambahProduksi = () => {
     Object.keys(formData).forEach((key) => {
       if (key === "tanggal_produksi" || key === "tanggal_kadaluarsa") {
         if (formData[key]) {
-          data.append(key, formData[key].toISOString().split("T")[0])
+          data.append(key, formatDateForAPI(formData[key]))
         }
       } else {
         data.append(key, formData[key])

@@ -123,15 +123,15 @@ const ProofModal = ({ show, onClose, imageUrl }) => {
 const StatusStep = ({ icon: Icon, label, timestamp, isCompleted, isCurrent, children }) => (
     <div className="relative flex flex-col items-center justify-start text-center w-40">
       <div className={`w-14 h-14 rounded-full flex items-center justify-center border-2 ${
-         isCurrent ? 'bg-indigo-100 border-indigo-500 animate-pulse' :
-         isCompleted ? 'bg-indigo-500 border-indigo-600 text-white' :
+         isCurrent ? 'bg-emerald-100 border-emerald-500 animate-pulse' :
+         isCompleted ? 'bg-emerald-500 border-emerald-600 text-white' :
          'bg-slate-100 border-slate-300 text-slate-400'
       } transition-colors duration-300 z-10`}>
         <Icon size={26} />
       </div>
       <div className="mt-3">
         <p className={`font-semibold text-sm ${
-          isCurrent ? 'text-indigo-700' :
+          isCurrent ? 'text-emerald-700' :
           isCompleted ? 'text-slate-800' :
           'text-slate-500'
         }`}>{label}</p>
@@ -603,3 +603,4 @@ const LacakPengembalian = () => {
 };
 
 export default LacakPengembalian;
+

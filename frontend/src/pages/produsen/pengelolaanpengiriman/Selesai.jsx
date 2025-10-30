@@ -254,7 +254,7 @@ const Selesai = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-mono">#{String(item.id).padStart(6, '0')}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-mono">{item.nomor_po || '-'}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <Link to={`/produsen/pesanan/detail/${item.id}/surat`} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">Lihat Surat</Link>
+                           <Link to={`/produsen/pengelolaan-pengiriman/detail/${item.id}/surat`} className="text-emerald-600 hover:underline">Lihat Surat</Link>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-700">Rp. {item.total_harga.toLocaleString('id-ID')}</td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -263,13 +263,18 @@ const Selesai = () => {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            {item.detail_pesanan?.[0]?.blockchain_asset_id ? (
-                              <Link to={`/produsen/riwayat-distribusi/lacak/${item.detail_pesanan[0].blockchain_asset_id}`} className="text-purple-600 hover:text-purple-800 font-semibold">
-                                Lacak Riwayat
-                              </Link>
-                            ) : (
-                              <span className="text-slate-400 text-xs italic">Riwayat T/A</span>
-                            )}
+                            {item.status === 'Selesai' && (
+                                                          item.detail_pesanan?.[0]?.asset_id_blockchain ? (
+                                                            <Link 
+                                                              to={`/produsen/pengelolaan-pengiriman/lihat-riwayat/${item.detail_pesanan[0].asset_id_blockchain}`} 
+                                                              className="text-emerald-600 hover:text-emerald-800 font-semibold"
+                                                            >
+                                                              Lihat Riwayat
+                                                            </Link>
+                                                          ) : (
+                                                            <span className="text-slate-400 text-xs">Riwayat tidak tersedia</span>
+                                                          )
+                                                        )}
                           </td>
                         </tr>
                       )) : (

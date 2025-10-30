@@ -272,7 +272,7 @@ const Pembatalan = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-mono">#{String(item.id).padStart(6, '0')}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-mono">{item.nomor_po || '-'}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <Link to={`/produsen/pesanan/detail/${item.id}/surat`} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">Lihat Surat</Link>
+                            <Link to={`/produsen/pengelolaan-pengiriman/detail/${item.id}/surat`} className="text-emerald-600 hover:underline">Lihat Surat</Link>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-700">Rp. {item.total_harga.toLocaleString('id-ID')}</td>
                           <td className="px-6 py-4 whitespace-nowrap">

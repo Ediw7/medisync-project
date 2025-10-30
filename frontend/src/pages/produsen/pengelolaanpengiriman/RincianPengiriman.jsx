@@ -39,7 +39,7 @@ const generateSuratJalanNumber = (orderId) => {
   const monthRoman = toRoman(month); 
   const paddedOrderId = String(orderId).padStart(6, '0'); 
 
-  return `SJ-FARMASI-${paddedOrderId}-${nomorIzin}-${monthRoman}-${year}`;
+  return `SJ-${paddedOrderId}-${nomorIzin}-${monthRoman}-${year}`;
 };
 
 const RincianPengiriman = () => {

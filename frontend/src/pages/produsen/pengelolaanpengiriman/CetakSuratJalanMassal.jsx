@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
@@ -10,6 +10,7 @@ const CetakSuratJalanMassal = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const contentRef = useRef(null);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const { pesananDetails, allDetails } = location.state || { pesananDetails: [], allDetails: {} };
 
@@ -72,7 +73,7 @@ const CetakSuratJalanMassal = () => {
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
        <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-      <div className="flex-1 flex flex-col transition-all duration-300 print:ml-0 ml-16">
+      <div className={`flex-1 flex flex-col transition-all duration-300 print:ml-0 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={() => { localStorage.clear(); navigate('/'); }} className="print:hidden" />
        
         <main className="flex-1 overflow-auto pt-[72px] p-6 print:p-0">
@@ -115,9 +116,7 @@ const CetakSuratJalanMassal = () => {
                 return (
                   <div 
                     key={pesanan.id} 
-                    className={`bg-white rounded-xl shadow-lg border border-slate-200 p-10 print:shadow-none print:border-0 print:p-4 print-break-page ${
-                      index < pesananDetails.length - 1 ? 'print:break-after-page' : ''
-                    }`}
+                    className={`bg-white rounded-xl shadow-lg border border-slate-200 p-10 print:shadow-none print:border-0 print:p-4 print-break-page ${index < pesananDetails.length - 1 ? 'print:break-after-page' : ''}`}
                   >
                     {/* Header */}
                     <header className="flex justify-between items-start mb-10 pb-6 border-b-2 border-slate-800">
@@ -130,7 +129,7 @@ const CetakSuratJalanMassal = () => {
                       </div>
                       <div className="text-right">
                         <h2 className="text-3xl font-bold text-slate-900 uppercase tracking-tight">Surat Jalan</h2>
-                        <p className="text-lg font-semibold text-slate-700 mt-1">No. {pesanan.nomorSuratJalan}</p>
+                        <p className="text-lg font-semibold text-slate-700 mt-1">No. {pesanan.nomor_surat_jalan}</p>
                         <p className="text-sm text-slate-500 mt-1">
                           Tanggal: {new Date(allDetails.tanggalPengiriman || Date.now()).toLocaleDateString('id-ID', { 
                             day: 'numeric', 
@@ -202,7 +201,7 @@ const CetakSuratJalanMassal = () => {
                     {/* Footer */}
                     <footer className="flex flex-col sm:flex-row justify-between items-start sm:items-end mt-16 pt-8 border-t border-slate-300 text-xs text-slate-600 gap-4">
                       <div>
-                        <p>No. Resi Pengiriman: <span className="font-semibold text-slate-900">{pesanan.nomorResi || '-'}</span></p>
+                        <p>No. Resi Pengiriman: <span className="font-semibold text-slate-900">{pesanan.nomor_resi || '-'}</span></p>
                         {allDetails.catatan && <p className="mt-1">Catatan Tambahan: {allDetails.catatan}</p>}
                         <p className="mt-4 print:block hidden">Dokumen ini dicetak pada: {new Date().toLocaleString('id-ID')}</p>
                       </div>

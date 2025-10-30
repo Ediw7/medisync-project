@@ -326,10 +326,17 @@ const PengelolaanPengiriman = () => {
                                 Lihat Status
                               </Link>
                             )}
-                            {item.status === 'Selesai' && item.detail_pesanan?.[0]?.blockchain_asset_id && (
-                              <Link to={`/produsen/riwayat-distribusi/lacak/${item.detail_pesanan[0].blockchain_asset_id}`} className="text-purple-600 hover:text-purple-800 font-semibold">
-                                Lacak Riwayat
-                              </Link>
+                            {item.status === 'Selesai' && (
+                              item.detail_pesanan?.[0]?.asset_id_blockchain ? (
+                                <Link 
+                                  to={`/produsen/pengelolaan-pengiriman/lihat-riwayat/${item.detail_pesanan[0].asset_id_blockchain}`} 
+                                  className="text-emerald-600 hover:text-emerald-800 font-semibold"
+                                >
+                                  Lihat Riwayat
+                                </Link>
+                              ) : (
+                                <span className="text-slate-400 text-xs">Riwayat tidak tersedia</span>
+                              )
                             )}
                             {item.status === 'Pembatalan Diajukan' && (
                               <Link to={`/produsen/pengelolaan-pengiriman/konfirmasi-pembatalan/${item.id}`} className="text-yellow-700 hover:text-yellow-800 font-semibold">

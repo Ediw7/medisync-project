@@ -8,19 +8,17 @@ import {
   ClipboardCopy,
   Package,
   Truck,
-  CheckCircle2, // Use consistent icon
+  CheckCircle2,
   AlertTriangle,
-  FileText, // For error state
+  FileText, 
   Info,
-  Calendar,
   Clock,
-  X,
-  ImageIcon // For image placeholder
+  X,          
+  ImageIcon  
 } from 'lucide-react';
-import axios from 'axios'; // Assuming axios might be preferred, revert to fetch if needed
+import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
-// --- Modal Component (Keep as is) ---
 const BuktiPenerimaanModal = ({ isOpen, onClose, imageUrl }) => {
   if (!isOpen) return null;
   const fullImageUrl = imageUrl ? (imageUrl.startsWith('http') ? imageUrl : `http://localhost:5000/${imageUrl.replace(/\\/g, '/').toLowerCase()}`) : null;
@@ -44,42 +42,37 @@ const BuktiPenerimaanModal = ({ isOpen, onClose, imageUrl }) => {
   );
 };
 
-// --- StatusStep Component (Keep as is) ---
-const StatusStep = ({ icon: Icon, label, timestamp, isCompleted, isCurrent, isLast = false, children }) => (
-    <div className={`flex items-start ${isLast ? '' : 'flex-1'}`}>
-      <div className="flex flex-col items-center mr-4">
-        <div className={`w-12 h-12 rounded-full flex items-center justify-center border-2 ${
-           isCurrent ? 'bg-emerald-100 border-emerald-500 animate-pulse' :
-           isCompleted ? 'bg-emerald-500 border-emerald-600 text-white' :
-           'bg-slate-100 border-slate-300 text-slate-400'
-        } transition-colors duration-300`}>
-          <Icon size={24} />
-        </div>
-        {!isLast && (
-           <div className={`w-0.5 h-16 mt-2 ${isCompleted ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-        )}
+const StatusStep = ({ icon: Icon, label, timestamp, isCompleted, isCurrent, children }) => (
+    <div className="relative flex flex-col items-center justify-start text-center w-40">
+      <div className={`w-14 h-14 rounded-full flex items-center justify-center border-2 ${
+         isCurrent ? 'bg-emerald-100 border-emerald-500 animate-pulse' :
+         isCompleted ? 'bg-emerald-500 border-emerald-600 text-white' :
+         'bg-slate-100 border-slate-300 text-slate-400'
+      } transition-colors duration-300 z-10`}>
+        <Icon size={26} />
       </div>
-      <div className="pt-2.5 w-28 text-center sm:text-left sm:w-auto">
+      <div className="mt-3">
         <p className={`font-semibold text-sm ${
           isCurrent ? 'text-emerald-700' :
           isCompleted ? 'text-slate-800' :
           'text-slate-500'
         }`}>{label}</p>
-        {timestamp && <p className="text-xs text-slate-500 mt-1 flex items-center gap-1 justify-center sm:justify-start"><Clock size={12}/> {timestamp}</p>}
-        <div className="mt-2">{children}</div>
+        {timestamp && <p className="text-xs text-slate-500 mt-1">{timestamp}</p>}
+        
+        {children && <div className="mt-1">{children}</div>} 
       </div>
     </div>
   );
 
-// --- Main Page Component ---
+
 const LihatRiwayat = () => {
   const navigate = useNavigate();
-  const { assetId } = useParams(); // assetId is batch_id here
+  const { assetId } = useParams();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [riwayatData, setRiwayatData] = useState(null);
+  const [riwayatData, setRiwayatData] = useState(null); 
   const [copiedResi, setCopiedResi] = useState(false);
   const username = localStorage.getItem('username');
 
@@ -97,8 +90,7 @@ const LihatRiwayat = () => {
         token = localStorage.getItem('token');
         if (!token) throw new Error('Silakan login terlebih dahulu');
 
-        // Use axios consistent with other components
-        const response = await axios.get(`http://localhost:5000/api/produsen/riwayat-distribusi/${assetId}`, {
+        const response = await axios.get(`http://localhost:5000/api/produsen/riwayat-distribusi/${assetId}`, { // <-- INI YANG BENAR
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -124,7 +116,7 @@ const LihatRiwayat = () => {
 
   const handleLogout = () => { localStorage.clear(); navigate('/'); };
 
-  const copyToClipboard = async (text, type = 'default') => {
+  const copyToClipboard = async (text, type) => {
     try {
         await navigator.clipboard.writeText(text);
         if (type === 'resi') {
@@ -132,7 +124,7 @@ const LihatRiwayat = () => {
             toast.success('Nomor Resi disalin!');
             setTimeout(() => setCopiedResi(false), 2000);
         } else {
-             toast.success('Teks disalin!');
+            toast.success('Teks disalin!');
         }
     } catch (err) {
         toast.error('Gagal menyalin teks.');
@@ -140,15 +132,18 @@ const LihatRiwayat = () => {
     }
   };
 
+  
   const formatDate = (dateString, includeTime = false) => {
       if (!dateString) return '-';
       try {
           const date = new Date(dateString);
           if (isNaN(date.getTime())) return '-';
-          const options = { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' };
+
+          const options = { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }; 
           if (includeTime) {
               options.hour = '2-digit';
               options.minute = '2-digit';
+              options.timeZone = 'Asia/Jakarta'; 
           }
           return date.toLocaleDateString('id-ID', options);
       } catch(e) {
@@ -157,21 +152,24 @@ const LihatRiwayat = () => {
       }
   };
 
+
   const formatTimestamp = (isoString) => {
        if (!isoString) return '-';
        try {
             const date = new Date(isoString);
              if (isNaN(date.getTime())) return '-';
-            return date.toLocaleString('id-ID', {
+       
+            return date.toLocaleString('id-ID', { 
                  day:'numeric', month:'short', year: 'numeric',
-                 hour: '2-digit', minute: '2-digit'
+                 hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta'
              });
        } catch(e) {
-            console.error("Error formatting timestamp:", e);
+           console.error("Error formatting timestamp:", e);
            return '-';
        }
    };
 
+ 
   if (isLoading) {
      return (
        <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
@@ -184,44 +182,57 @@ const LihatRiwayat = () => {
     );
   }
 
+
   if (error && !riwayatData) {
      return (
-       <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-red-50 p-6">
-          <div className="bg-white p-8 rounded-xl shadow-lg border border-red-200 text-center max-w-lg">
-            <AlertTriangle className="mx-auto h-12 w-12 text-red-500 mb-4" />
-            <h2 className="text-xl font-bold text-red-800 mb-2">Gagal Memuat Data</h2>
-            <p className="text-red-600 mb-6">{error}</p>
-            <button
-               onClick={() => navigate('/produsen/pengelolaan-pengiriman')} // Navigate back to list
-               className="flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition mx-auto"
-             >
-               <ArrowLeft size={18} />
-               Kembali ke Pengiriman
-             </button>
-          </div>
-       </div>
-    );
-  }
-
-  if (!riwayatData || !riwayatData.onChain || !riwayatData.offChain) {
-     return (
-       <div className="flex flex-col justify-center items-center h-screen bg-slate-50 p-6">
-        <div className="bg-white p-8 rounded-xl shadow-lg border border-slate-200 text-center max-w-lg">
-          <FileText className="mx-auto h-12 w-12 text-yellow-500 mb-4" />
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Data Riwayat Tidak Ditemukan</h2>
-          <p className="text-slate-600 mb-6">Tidak dapat menemukan detail riwayat untuk Batch ID ini.</p>
-           <button
-             onClick={() => navigate('/produsen/pengelolaan-pengiriman')}
-             className="flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition mx-auto"
-           >
-             <ArrowLeft size={18} />
-             Kembali ke Pengiriman
-           </button>
+       <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
+        <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+        <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+          <NavbarProdusen onLogout={handleLogout} username={username} />
+          <main className="flex-1 flex items-center justify-center p-6 pt-[72px]">
+            <div className="bg-white p-8 rounded-2xl shadow-lg border border-red-200 text-center max-w-md">
+              <AlertTriangle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+              <h2 className="text-xl font-bold text-red-800 mb-2">Gagal Memuat Data</h2>
+              <p className="text-red-600 mb-6">{error}</p>
+              <button
+                 onClick={() => navigate('/produsen/pengelolaan-pengiriman')} // Kembali ke list
+                 className="flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition mx-auto"
+               >
+                 <ArrowLeft size={18} />
+                 Kembali ke Pengiriman
+               </button>
+            </div>
+          </main>
         </div>
       </div>
     );
   }
 
+
+  if (!riwayatData || !riwayatData.onChain || !riwayatData.offChain) {
+     return (
+       <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
+        <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+        <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+          <NavbarProdusen onLogout={handleLogout} username={username} />
+          <main className="flex-1 flex items-center justify-center p-6 pt-[72px]">
+            <div className="bg-white p-8 rounded-2xl shadow-lg border border-slate-200 text-center max-w-md">
+              <FileText className="mx-auto h-12 w-12 text-yellow-500 mb-4" />
+              <h2 className="text-xl font-bold text-slate-800 mb-2">Data Riwayat Tidak Ditemukan</h2>
+              <p className="text-slate-600 mb-6">Tidak dapat menemukan detail riwayat untuk Aset ID ini.</p>
+               <button
+                 onClick={() => navigate('/produsen/pengelolaan-pengiriman')}
+                 className="flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition mx-auto"
+               >
+                 <ArrowLeft size={18} />
+                 Kembali ke Pengiriman
+               </button>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   const { onChain, offChain } = riwayatData;
   const dataKirim = onChain.riwayat.find(item => item.status === 'DIKIRIM_KE_PBF');
@@ -234,7 +245,9 @@ const LihatRiwayat = () => {
   const tanggalPengiriman = offChain.tanggal_pengiriman ? new Date(offChain.tanggal_pengiriman) : null;
   const estimasiSampai = new Date(tanggalPengiriman || Date.now());
   const hariTambah = offChain.opsi_pengiriman === 'ekspres' ? 1 : 3;
-  estimasiSampai.setDate((tanggalPengiriman || new Date()).getDate() + hariTambah);
+  if (tanggalPengiriman) {
+    estimasiSampai.setDate(tanggalPengiriman.getDate() + hariTambah);
+  }
 
   const getCurrentStatus = () => {
     if (dataTerima) return 'Selesai';
@@ -243,122 +256,179 @@ const LihatRiwayat = () => {
   };
   const currentStatus = getCurrentStatus();
 
+
+  const getTimestamp = (status) => {
+      if (status === 'Dipersiapkan' && offChain.tanggal_pesanan) return formatTimestamp(offChain.tanggal_pesanan);
+      if (status === 'Dikirim' && dataKirim) return formatTimestamp(dataKirim.timestamp);
+      if (status === 'Selesai') {
+          return isSelesaiCompleted 
+            ? formatTimestamp(dataTerima.timestamp) 
+            : `Estimasi: ${formatDate(estimasiSampai)}`;
+      }
+      return null;
+  };
+
+
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={handleLogout} username={username} />
 
-        <main className="flex-1 overflow-auto pt-[72px]">
-          <div className="max-w-5xl mx-auto px-6 py-8">
+        <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
+          <div className="max-w-5xl mx-auto">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => navigate('/produsen/pengelolaan-pengiriman')}
               className="mb-6 inline-flex items-center text-emerald-600 hover:text-emerald-700 transition-colors text-sm font-medium"
             >
-              <ArrowLeft size={16} className="mr-1" /> Kembali
+
+              <ArrowLeft size={16} className="mr-1" /> Kembali ke Pengelolaan Pengiriman
             </button>
 
-            <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
-              <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 px-6 py-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+   
+              <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                  <div>
-                    <h1 className="text-2xl font-bold text-emerald-900">Lacak Pengiriman</h1>
-                    <p className="text-sm text-emerald-700 mt-1">Status pengiriman untuk Batch ID: <span className="font-mono">{assetId}</span></p>
+                    <h1 className="text-2xl font-bold text-white">Lacak Riwayat Aset</h1>
+                    <p className="text-sm text-emerald-50 mt-1">Status pengiriman untuk Aset ID: <span className="font-mono">{assetId}</span></p>
                  </div>
-                 <div className={`px-4 py-2 rounded-full border text-sm font-semibold flex items-center gap-2 ${
-                     currentStatus === 'Selesai' ? 'bg-green-100 text-green-800 border-green-200' :
-                     currentStatus === 'Dikirim' ? 'bg-blue-100 text-blue-800 border-blue-200' :
-                     'bg-yellow-100 text-yellow-800 border-yellow-200'
+                  <div className={`px-4 py-2 rounded-full border-2 text-sm font-semibold flex items-center gap-2 bg-white ${
+                     currentStatus === 'Selesai' ? 'text-emerald-700 border-emerald-200' :
+                     currentStatus === 'Dikirim' ? 'text-blue-700 border-blue-200' :
+                     'text-amber-700 border-amber-200'
                  }`}>
                      {currentStatus === 'Selesai' ? <CheckCircle2 size={16} /> :
                       currentStatus === 'Dikirim' ? <Truck size={16} /> :
-                      <Package size={16} />}
+                      <Clock size={16} />}
                      Status: {currentStatus}
                  </div>
               </div>
 
-              <div className="p-6 border-b border-slate-200">
-                  <h3 className="text-lg font-semibold text-slate-800 mb-4">Detail Pengiriman</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4 text-sm">
-                      <div className="flex items-center justify-between sm:block">
-                          <span className="text-slate-500">Nomor Resi:</span>
-                          <div className="flex items-center gap-1">
-                              <span className="font-semibold text-slate-700 font-mono">{offChain.nomor_resi || '-'}</span>
-                              {offChain.nomor_resi && (
-                                <button onClick={() => copyToClipboard(offChain.nomor_resi, 'resi')} className="text-slate-400 hover:text-emerald-600 transition-colors" title="Salin No Resi">
-                                  <ClipboardCopy size={14} />
-                                </button>
-                              )}
-                              {copiedResi && <CheckCircle2 size={14} className="text-green-500" />}
+              <div className="p-8 border-b border-slate-200">
+                  <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
+                    <Package size={20} className="text-emerald-600" />
+                    Detail Pengiriman
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                      <div className="space-y-1">
+                          <span className="text-sm font-medium text-slate-500">Nomor Resi</span>
+                          <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                              <span className="font-bold text-slate-900 font-mono text-base flex-1">{offChain.nomor_resi || '-'}</span>
+                              <button onClick={() => copyToClipboard(offChain.nomor_resi, 'resi')} className="text-slate-400 hover:text-emerald-600 transition-colors p-1" title="Salin No Resi">
+                                  <ClipboardCopy size={18} />
+                              </button>
+                               {copiedResi && <CheckCircle2 size={18} className="text-emerald-500" />}
                           </div>
                       </div>
-                       <div className="flex items-center justify-between sm:block">
-                           <span className="text-slate-500">No Surat Jalan:</span>
-                           <span className="font-semibold text-slate-700 font-mono">{offChain.nomor_surat_jalan || '-'}</span>
+                  
+                      <div className="space-y-1">
+                           <span className="text-sm font-medium text-slate-500">No Surat Jalan</span>
+                           <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                             <span className="font-bold text-slate-900 font-mono text-base">{offChain.nomor_surat_jalan || '-'}</span>
+                           </div>
                        </div>
-                       <div className="flex items-center justify-between sm:block">
-                           <span className="text-slate-500">ID Pesanan Terkait:</span>
-                           <span className="font-semibold text-slate-700">#{String(offChain.id).padStart(6, '0')}</span>
+                       
+               
+                       <div className="space-y-1">
+                           <span className="text-sm font-medium text-slate-500">ID Pesanan Terkait</span>
+                           <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                             <span className="font-bold text-slate-900 text-base">#{String(offChain.id).padStart(6, '0')}</span>
+                           </div>
                        </div>
-                       <div className="flex items-center justify-between sm:block">
-                           <span className="text-slate-500">Pengirim (Produsen):</span>
-                           <span className="font-semibold text-slate-700">{offChain.nama_produsen}</span>
+            
+                       <div className="space-y-1">
+                           <span className="text-sm font-medium text-slate-500">Opsi Pengiriman</span>
+                           <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                             <span className="font-bold text-slate-900 capitalize text-base">{offChain.opsi_pengiriman || 'standar'}</span>
+                           </div>
                        </div>
-                       <div className="flex items-center justify-between sm:block">
-                           <span className="text-slate-500">Penerima (PBF):</span>
-                           <span className="font-semibold text-slate-700">{offChain.nama_pbf}</span>
+                
+                       <div className="space-y-1">
+                           <span className="text-sm font-medium text-slate-500">Pengirim (Produsen)</span>
+                           <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                             <span className="font-semibold text-slate-900 text-base">{offChain.nama_produsen}</span>
+                           </div>
                        </div>
-                       <div className="flex items-center justify-between sm:block">
-                           <span className="text-slate-500">Opsi Pengiriman:</span>
-                           <span className="font-semibold text-slate-700 capitalize">{offChain.opsi_pengiriman || 'standar'}</span>
+                  
+                       <div className="space-y-1">
+                           <span className="text-sm font-medium text-slate-500">Penerima (PBF)</span>
+                           <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                             <span className="font-semibold text-slate-900 text-base">{offChain.nama_pbf}</span>
+                           </div>
                        </div>
-                       <div className="flex items-center justify-between sm:block">
-                          <span className="text-slate-500">Tanggal Pesan:</span>
-                          <span className="font-semibold text-slate-700">{formatDate(offChain.tanggal_pesanan)}</span>
+                       
+                       <div className="space-y-1">
+                          <span className="text-sm font-medium text-slate-500">Tanggal Pesan</span>
+                          <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                            <span className="font-semibold text-slate-900 text-base">{formatDate(offChain.tanggal_pesanan)}</span>
+                          </div>
                        </div>
-                       <div className="flex items-center justify-between sm:block">
-                           <span className="text-slate-500">Tanggal Pengiriman:</span>
-                           <span className="font-semibold text-slate-700">{formatDate(offChain.tanggal_pengiriman)} {offChain.waktu_pengiriman || ''}</span>
+                       
+                      
+                       <div className="space-y-1">
+                           <span className="text-sm font-medium text-slate-500">Tanggal Pengiriman</span>
+                           <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                             <span className="font-semibold text-slate-900 text-base">{formatDate(offChain.tanggal_pengiriman)} {offChain.waktu_pengiriman || ''}</span>
+                           </div>
                        </div>
-                       <div className="flex items-center justify-between sm:block">
-                           <span className="text-slate-500">Estimasi Sampai:</span>
-                           <span className="font-semibold text-slate-700">{formatDate(estimasiSampai)}</span>
+                       
+                
+                       <div className="space-y-1 md:col-span-2">
+                           <span className="text-sm font-medium text-slate-500">Estimasi Sampai</span>
+                           <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-200">
+                             <span className="font-semibold text-emerald-700 text-base">{formatDate(estimasiSampai)}</span>
+                           </div>
                        </div>
                   </div>
               </div>
 
-              <div className="p-6 py-10 flex flex-col sm:flex-row justify-around items-start sm:items-stretch">
-                <StatusStep
-                  icon={Package}
-                  label="Dipersiapkan"
-                  timestamp={formatDate(offChain.tanggal_pesanan, true)}
-                  isCompleted={isDipersiapkanCompleted}
-                  isCurrent={currentStatus === 'Dipersiapkan'}
-                />
-                <StatusStep
-                  icon={Truck}
-                  label="Dikirim"
-                  timestamp={isDikirimCompleted ? formatTimestamp(dataKirim?.timestamp) : null}
-                  isCompleted={isDikirimCompleted}
-                  isCurrent={currentStatus === 'Dikirim'}
-                />
-                <StatusStep
-                  icon={CheckCircle2}
-                  label="Selesai Diterima"
-                  timestamp={isSelesaiCompleted ? formatTimestamp(dataTerima?.timestamp) : null}
-                  isCompleted={isSelesaiCompleted}
-                  isCurrent={currentStatus === 'Selesai'}
-                  isLast={true}
-                >
-                  {isSelesaiCompleted && offChain.buktiPenerimaUrl && (
-                    <button onClick={() => setIsModalOpen(true)} className="text-xs text-emerald-600 hover:underline mt-1 font-semibold block text-center sm:text-left">
-                      Lihat Bukti
-                    </button>
-                  )}
-                 </StatusStep>
+              <div className="p-8 py-12">
+                <h3 className="text-lg font-bold text-slate-900 mb-8 text-center">Riwayat Status Aset</h3>
+                <div className="flex items-start justify-center gap-0">
+                  <StatusStep
+                    icon={Package}
+                    label="Dipersiapkan"
+                    timestamp={getTimestamp('Dipersiapkan')}
+                    isCompleted={isDipersiapkanCompleted}
+                    isCurrent={currentStatus === 'Dipersiapkan'}
+                  />
+                  
+                  <div className="relative flex items-center h-14 w-24">
+                      <div className={`w-full h-1.5 rounded-full ${isDikirimCompleted ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                  </div>
+                  
+                  <StatusStep
+                    icon={Truck}
+                    label="Dikirim"
+                    timestamp={getTimestamp('Dikirim')}
+                    isCompleted={isDikirimCompleted}
+                    isCurrent={currentStatus === 'Dikirim'}
+                  />
+                  
+                  <div className="relative flex items-center h-14 w-24">
+                      <div className={`w-full h-1.5 rounded-full ${isSelesaiCompleted ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                  </div>
+
+                  <StatusStep
+                    icon={CheckCircle2}
+                    label="Selesai Diterima"
+                    timestamp={getTimestamp('Selesai')}
+                    isCompleted={isSelesaiCompleted}
+                    isCurrent={currentStatus === 'Selesai'}
+                  >
+                    {/* Tombol Lihat Bukti ditambahkan di sini */}
+                    {isSelesaiCompleted && offChain.buktiPenerimaUrl && (
+                        <button onClick={() => setIsModalOpen(true)} className="text-xs text-emerald-600 hover:underline mt-1 font-semibold block w-full text-center">
+                          Lihat Bukti
+                        </button>
+                    )}
+                  </StatusStep>
+                </div>
               </div>
 
-              <div className="px-6 pb-6">
-                 <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-lg p-4 text-sm flex items-start gap-3">
+              <div className="px-8 pb-8">
+                 <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-xl p-4 text-sm flex items-start gap-3">
                    <Info size={18} className="flex-shrink-0 mt-0.5"/>
                    <span>
                      Status pengiriman ini diverifikasi berdasarkan data yang tercatat di blockchain untuk memastikan transparansi dan keaslian.
@@ -370,15 +440,26 @@ const LihatRiwayat = () => {
           </div>
         </main>
       </div>
+      
+      
       <BuktiPenerimaanModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         imageUrl={offChain.buktiPenerimaUrl}
       />
-       <style jsx global>{`
-        @media print {
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .print\\:hidden { display: none !important; }
+      
+     
+      <style jsx>{`
+        @keyframes blob {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
         }
       `}</style>
     </div>

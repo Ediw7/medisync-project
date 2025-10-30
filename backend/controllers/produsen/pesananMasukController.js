@@ -21,11 +21,12 @@ async function getGateway() {
 }
 
 const pesananMasukController = {
-  // backend/controllers/produsen/pesananMasukController.js
+
 
 getAll: async (req, res) => {
     try {
       const idProdusen = req.user.id;
+   
       const sql = `
         SELECT 
           p.id,
@@ -37,11 +38,8 @@ getAll: async (req, res) => {
             0
           ) AS total_harga,
           p.status,
-          p.tanggal_pesanan,
-          (SELECT dp.id_aset_blockchain 
-           FROM detail_pesanan dp 
-           WHERE dp.id_pesanan = p.id 
-           LIMIT 1) AS id_aset_blockchain
+          p.tanggal_pesanan
+          -- KITA HAPUS 'id_aset_blockchain' DARI SINI KARENA AKAN DIAMBIL DI DETAIL
         FROM pesanan p
         JOIN users pbf ON p.id_pbf = pbf.id
         WHERE p.id_produsen = ? AND pbf.role = 'pbf'
@@ -49,9 +47,13 @@ getAll: async (req, res) => {
       `;
       const [rows] = await db.query(sql, [idProdusen]);
 
-      // --- TAMBAHAN UNTUK MENGAMBIL DETAIL SETIAP PESANAN ---
       const sqlDetail = `
-        SELECT dp.id, dp.nama_obat, dp.jumlah_pesanan, pr.batch_id
+        SELECT 
+          dp.id, 
+          dp.nama_obat, 
+          dp.jumlah_pesanan, 
+          pr.batch_id,
+          dp.id_aset_blockchain AS asset_id_blockchain -- TAMBAHKAN FIELD INI
         FROM detail_pesanan dp
         LEFT JOIN produksi pr ON dp.id_produksi = pr.id
         WHERE dp.id_pesanan = ?
@@ -59,9 +61,9 @@ getAll: async (req, res) => {
 
       for (const pesanan of rows) {
         const [detail] = await db.query(sqlDetail, [pesanan.id]);
-        pesanan.detail_pesanan = detail; // Sisipkan detail ke dalam objek pesanan
+        pesanan.detail_pesanan = detail; 
       }
-      // --- AKHIR TAMBAHAN ---
+ 
 
       res.json({ success: true, data: rows });
     } catch (error) {
@@ -69,7 +71,6 @@ getAll: async (req, res) => {
       res.status(500).json({ success: false, message: 'Kesalahan Server Internal: ' + error.message });
     }
 },
-  
 
   getPesananById: async (req, res) => {
   try {

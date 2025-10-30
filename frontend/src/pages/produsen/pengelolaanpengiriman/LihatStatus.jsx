@@ -25,6 +25,7 @@ const LihatStatus = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [copiedResi, setCopiedResi] = useState(false);
+  const username = localStorage.getItem('username');
 
   useEffect(() => {
     const fetchShippingData = async () => {
@@ -97,27 +98,22 @@ const LihatStatus = () => {
     }
   };
 
-  const StatusStep = ({ icon: Icon, label, timestamp, isCompleted, isCurrent, isLast = false }) => (
-    <div className={`flex items-start ${isLast ? '' : 'flex-1'}`}>
-      <div className="flex flex-col items-center mr-4">
-        <div className={`w-12 h-12 rounded-full flex items-center justify-center border-2 ${
-           isCurrent ? 'bg-emerald-100 border-emerald-500 animate-pulse' :
-           isCompleted ? 'bg-emerald-500 border-emerald-600 text-white' :
-           'bg-slate-100 border-slate-300 text-slate-400'
-        } transition-colors duration-300`}>
-          <Icon size={24} />
-        </div>
-        {!isLast && (
-           <div className={`w-0.5 h-16 mt-2 ${isCompleted ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-        )}
+  const StatusStep = ({ icon: Icon, label, timestamp, isCompleted, isCurrent }) => (
+    <div className="relative flex flex-col items-center justify-start text-center w-40">
+      <div className={`w-14 h-14 rounded-full flex items-center justify-center border-2 ${
+         isCurrent ? 'bg-emerald-100 border-emerald-500 animate-pulse' :
+         isCompleted ? 'bg-emerald-500 border-emerald-600 text-white' :
+         'bg-slate-100 border-slate-300 text-slate-400'
+      } transition-colors duration-300 z-10`}>
+        <Icon size={26} />
       </div>
-      <div className="pt-2.5">
-        <p className={`font-semibold ${
+      <div className="mt-3">
+        <p className={`font-semibold text-sm ${
           isCurrent ? 'text-emerald-700' :
           isCompleted ? 'text-slate-800' :
           'text-slate-500'
         }`}>{label}</p>
-        {timestamp && <p className="text-sm text-slate-500 mt-0.5">{timestamp}</p>}
+        {timestamp && <p className="text-xs text-slate-500 mt-1">{timestamp}</p>}
       </div>
     </div>
   );
@@ -136,12 +132,12 @@ const LihatStatus = () => {
 
   if (error) {
     return (
-      <div className="flex min-h-screen bg-slate-50">
+      <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
         <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
         <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
           <NavbarProdusen onLogout={() => { localStorage.clear(); navigate('/'); }} username={localStorage.getItem('username')} />
           <main className="flex-1 flex items-center justify-center p-6 pt-[72px]">
-            <div className="bg-white p-8 rounded-xl shadow-lg border border-red-200 text-center max-w-md">
+            <div className="bg-white p-8 rounded-2xl shadow-lg border border-red-200 text-center max-w-md">
               <AlertTriangle className="mx-auto h-12 w-12 text-red-500 mb-4" />
               <h2 className="text-xl font-bold text-red-800 mb-2">Oops! Terjadi Masalah</h2>
               <p className="text-red-600 mb-6">{error}</p>
@@ -176,6 +172,7 @@ const LihatStatus = () => {
       if(includeTime) {
           options.hour = '2-digit';
           options.minute = '2-digit';
+          options.timeZone = 'Asia/Jakarta';
       }
       return new Date(date).toLocaleDateString('id-ID', options);
   };
@@ -195,18 +192,22 @@ const LihatStatus = () => {
   const getTimestamp = (status) => {
       if (status === 'Dipersiapkan' && shippingData.waktuPesan) return formatDate(shippingData.waktuPesan, true);
       if (status === 'Dikirim' && shippingData.tanggalPengiriman) return `${formatDate(shippingData.tanggalPengiriman)} ${shippingData.waktuPengiriman}`;
-      if (status === 'Selesai' && shippingData.estimasiSampai) return `Estimasi: ${formatDate(shippingData.estimasiSampai)}`;
+      if (status === 'Selesai') {
+          return isSelesaiCompleted 
+            ? formatDate(new Date(), true)
+            : `Estimasi: ${formatDate(shippingData.estimasiSampai)}`;
+      }
       return null;
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={() => { localStorage.clear(); navigate('/'); }} username={localStorage.getItem('username')} />
 
-        <main className="flex-1 overflow-auto pt-[72px]">
-          <div className="max-w-5xl mx-auto px-6 py-8">
+        <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
+          <div className="max-w-5xl mx-auto">
             <button
               onClick={() => navigate('/produsen/pengelolaan-pengiriman')}
               className="mb-6 inline-flex items-center text-emerald-600 hover:text-emerald-700 transition-colors text-sm font-medium"
@@ -214,16 +215,17 @@ const LihatStatus = () => {
               <ArrowLeft size={16} className="mr-1" /> Kembali ke Pengelolaan Pengiriman
             </button>
 
-            <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
-              <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 px-6 py-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                  <div>
-                    <h1 className="text-2xl font-bold text-emerald-900">Lacak Pengiriman</h1>
-                    <p className="text-sm text-emerald-700 mt-1">Status pengiriman untuk Pesanan #{shippingData.idPesanan}</p>
+                    <h1 className="text-2xl font-bold text-white">Lacak Pengiriman</h1>
+                    <p className="text-sm text-emerald-50 mt-1">Status pengiriman untuk Pesanan #{shippingData.idPesanan}</p>
                  </div>
-                 <div className={`px-4 py-2 rounded-full border text-sm font-semibold flex items-center gap-2 ${
-                     currentStatus === 'Selesai' ? 'bg-green-100 text-green-800 border-green-200' :
-                     currentStatus === 'Dikirim' ? 'bg-blue-100 text-blue-800 border-blue-200' :
-                     'bg-yellow-100 text-yellow-800 border-yellow-200'
+                 <div className={`px-4 py-2 rounded-full border-2 text-sm font-semibold flex items-center gap-2 bg-white ${
+                     currentStatus === 'Selesai' ? 'text-emerald-700 border-emerald-200' :
+                     currentStatus === 'Dikirim' ? 'text-blue-700 border-blue-200' :
+                     'text-amber-700 border-amber-200'
                  }`}>
                      {currentStatus === 'Selesai' ? <CheckCircle2 size={16} /> :
                       currentStatus === 'Dikirim' ? <Truck size={16} /> :
@@ -232,81 +234,132 @@ const LihatStatus = () => {
                  </div>
               </div>
 
-              <div className="p-6 border-b border-slate-200">
-                  <h3 className="text-lg font-semibold text-slate-800 mb-4">Detail Pengiriman</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4 text-sm">
-                      <div className="flex items-center justify-between sm:block">
-                          <span className="text-slate-500">Nomor Resi:</span>
-                          <div className="flex items-center gap-1">
-                              <span className="font-semibold text-slate-700 font-mono">{shippingData.noResi}</span>
-                              <button onClick={() => copyToClipboard(shippingData.noResi, 'resi')} className="text-slate-400 hover:text-emerald-600 transition-colors" title="Salin No Resi">
-                                  <ClipboardCopy size={14} />
+              {/* Detail Pengiriman - Diperbaiki */}
+              <div className="p-8 border-b border-slate-200">
+                  <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
+                    <Package size={20} className="text-emerald-600" />
+                    Detail Pengiriman
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Nomor Resi */}
+                      <div className="space-y-1">
+                          <span className="text-sm font-medium text-slate-500">Nomor Resi</span>
+                          <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                              <span className="font-bold text-slate-900 font-mono text-base flex-1">{shippingData.noResi}</span>
+                              <button onClick={() => copyToClipboard(shippingData.noResi, 'resi')} className="text-slate-400 hover:text-emerald-600 transition-colors p-1" title="Salin No Resi">
+                                  <ClipboardCopy size={18} />
                               </button>
-                               {copiedResi && <CheckCircle2 size={14} className="text-green-500" />}
+                               {copiedResi && <CheckCircle2 size={18} className="text-emerald-500" />}
                           </div>
                       </div>
-                       <div className="flex items-center justify-between sm:block">
-                           <span className="text-slate-500">No Surat Jalan:</span>
-                           <span className="font-semibold text-slate-700 font-mono">{shippingData.noSuratJalan}</span>
+                      
+                      {/* No Surat Jalan */}
+                      <div className="space-y-1">
+                           <span className="text-sm font-medium text-slate-500">No Surat Jalan</span>
+                           <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                             <span className="font-bold text-slate-900 font-mono text-base">{shippingData.noSuratJalan}</span>
+                           </div>
                        </div>
-                       <div className="flex items-center justify-between sm:block">
-                           <span className="text-slate-500">ID Pesanan:</span>
-                           <span className="font-semibold text-slate-700">#{shippingData.idPesanan}</span>
+                       
+                       {/* ID Pesanan */}
+                       <div className="space-y-1">
+                           <span className="text-sm font-medium text-slate-500">ID Pesanan</span>
+                           <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                             <span className="font-bold text-slate-900 text-base">#{shippingData.idPesanan}</span>
+                           </div>
                        </div>
-                       <div className="flex items-center justify-between sm:block">
-                           <span className="text-slate-500">Pengirim:</span>
-                           <span className="font-semibold text-slate-700">{shippingData.pengirim}</span>
+                       
+                       {/* Opsi Pengiriman */}
+                       <div className="space-y-1">
+                           <span className="text-sm font-medium text-slate-500">Opsi Pengiriman</span>
+                           <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                             <span className="font-bold text-slate-900 capitalize text-base">{shippingData.opsiPengiriman}</span>
+                           </div>
                        </div>
-                       <div className="flex items-center justify-between sm:block">
-                           <span className="text-slate-500">Penerima:</span>
-                           <span className="font-semibold text-slate-700">{shippingData.penerima}</span>
+                       
+                       {/* Pengirim */}
+                       <div className="space-y-1">
+                           <span className="text-sm font-medium text-slate-500">Pengirim</span>
+                           <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                             <span className="font-semibold text-slate-900 text-base">{shippingData.pengirim}</span>
+                           </div>
                        </div>
-                       <div className="flex items-center justify-between sm:block">
-                           <span className="text-slate-500">Opsi Pengiriman:</span>
-                           <span className="font-semibold text-slate-700 capitalize">{shippingData.opsiPengiriman}</span>
+                       
+                       {/* Penerima */}
+                       <div className="space-y-1">
+                           <span className="text-sm font-medium text-slate-500">Penerima</span>
+                           <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                             <span className="font-semibold text-slate-900 text-base">{shippingData.penerima}</span>
+                           </div>
                        </div>
-                       <div className="flex items-center justify-between sm:block">
-                          <span className="text-slate-500">Tanggal Pesan:</span>
-                          <span className="font-semibold text-slate-700">{formatDate(shippingData.waktuPesan)}</span>
+                       
+                       {/* Tanggal Pesan */}
+                       <div className="space-y-1">
+                          <span className="text-sm font-medium text-slate-500">Tanggal Pesan</span>
+                          <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                            <span className="font-semibold text-slate-900 text-base">{formatDate(shippingData.waktuPesan)}</span>
+                          </div>
                        </div>
-                       <div className="flex items-center justify-between sm:block">
-                           <span className="text-slate-500">Tanggal Pengiriman:</span>
-                           <span className="font-semibold text-slate-700">{formatDate(shippingData.tanggalPengiriman)} {shippingData.waktuPengiriman}</span>
+                       
+                       {/* Tanggal Pengiriman */}
+                       <div className="space-y-1">
+                           <span className="text-sm font-medium text-slate-500">Tanggal Pengiriman</span>
+                           <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                             <span className="font-semibold text-slate-900 text-base">{formatDate(shippingData.tanggalPengiriman)} {shippingData.waktuPengiriman}</span>
+                           </div>
                        </div>
-                       <div className="flex items-center justify-between sm:block">
-                           <span className="text-slate-500">Estimasi Sampai:</span>
-                           <span className="font-semibold text-slate-700">{formatDate(shippingData.estimasiSampai)}</span>
+                       
+                       {/* Estimasi Sampai */}
+                       <div className="space-y-1 md:col-span-2">
+                           <span className="text-sm font-medium text-slate-500">Estimasi Sampai</span>
+                           <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-200">
+                             <span className="font-semibold text-emerald-700 text-base">{formatDate(shippingData.estimasiSampai)}</span>
+                           </div>
                        </div>
                   </div>
               </div>
 
-              <div className="p-6 py-10 flex flex-col sm:flex-row justify-around items-start sm:items-center">
-                <StatusStep
-                  icon={Package}
-                  label="Dipersiapkan"
-                  timestamp={getTimestamp('Dipersiapkan')}
-                  isCompleted={isDipersiapkanCompleted}
-                  isCurrent={currentStatus === 'Dipersiapkan'}
-                />
-                <StatusStep
-                  icon={Truck}
-                  label="Dikirim"
-                  timestamp={getTimestamp('Dikirim')}
-                  isCompleted={isDikirimCompleted}
-                  isCurrent={currentStatus === 'Dikirim'}
-                />
-                <StatusStep
-                  icon={CheckCircle2}
-                  label="Selesai"
-                  timestamp={getTimestamp('Selesai')}
-                  isCompleted={isSelesaiCompleted}
-                  isCurrent={currentStatus === 'Selesai'}
-                  isLast={true}
-                />
+              {/* Status Tracking - Dipisah dengan jarak lebih banyak */}
+              <div className="p-8 py-12">
+                <h3 className="text-lg font-bold text-slate-900 mb-8 text-center">Status Pengiriman</h3>
+                <div className="flex items-center justify-center gap-0">
+                  <StatusStep
+                    icon={Package}
+                    label="Dipersiapkan"
+                    timestamp={getTimestamp('Dipersiapkan')}
+                    isCompleted={isDipersiapkanCompleted}
+                    isCurrent={currentStatus === 'Dipersiapkan'}
+                  />
+                  
+                  <div className="relative flex items-center h-14 w-24">
+                      <div className={`w-full h-1.5 rounded-full ${isDikirimCompleted ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                  </div>
+                  
+                  <StatusStep
+                    icon={Truck}
+                    label="Dikirim"
+                    timestamp={getTimestamp('Dikirim')}
+                    isCompleted={isDikirimCompleted}
+                    isCurrent={currentStatus === 'Dikirim'}
+                  />
+                  
+                  <div className="relative flex items-center h-14 w-24">
+                      <div className={`w-full h-1.5 rounded-full ${isSelesaiCompleted ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                  </div>
+
+                  <StatusStep
+                    icon={CheckCircle2}
+                    label="Selesai"
+                    timestamp={getTimestamp('Selesai')}
+                    isCompleted={isSelesaiCompleted}
+                    isCurrent={currentStatus === 'Selesai'}
+                  />
+                </div>
               </div>
 
-              <div className="px-6 pb-6">
-                 <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-lg p-4 text-sm flex items-start gap-3">
+              {/* Info Note */}
+              <div className="px-8 pb-8">
+                 <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-xl p-4 text-sm flex items-start gap-3">
                    <Info size={18} className="flex-shrink-0 mt-0.5"/>
                    <span>
                      Status pengiriman akan diperbarui secara otomatis berdasarkan konfirmasi dari PBF. Estimasi sampai adalah perkiraan.
@@ -318,6 +371,20 @@ const LihatStatus = () => {
           </div>
         </main>
       </div>
+      
+      <style jsx>{`
+        @keyframes blob {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+      `}</style>
     </div>
   );
 };

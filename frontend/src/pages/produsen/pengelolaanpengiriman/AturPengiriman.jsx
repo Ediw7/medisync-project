@@ -176,18 +176,35 @@ const AturPengiriman = () => {
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? "ml-16" : "ml-64"}`}>
         <NavbarProdusen onLogout={() => { localStorage.clear(); navigate('/'); }} username={localStorage.getItem('username')} />
 
-        <main className="flex-1 overflow-auto pt-[72px]">
-          <div className="max-w-4xl mx-auto px-6 py-8">
+        <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
+          <div className="max-w-4xl mx-auto">
 
-            <div className="mb-8">
-               <button
+            <div className="mb-10 relative">
+              <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+              <div className="absolute -top-20 -right-20 w-72 h-72 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+
+              <div className="relative">
+                <button
                   onClick={() => navigate(-1)}
                   className="mb-4 inline-flex items-center text-emerald-600 hover:text-emerald-700 transition-colors text-sm font-medium"
                 >
                   <ArrowLeft size={16} className="mr-1" /> Kembali
                 </button>
-              <h1 className="text-4xl font-bold text-slate-900 mb-2">Atur Pengiriman</h1>
-              <p className="text-slate-600">Pilih tanggal dan waktu pengiriman untuk pesanan <span className="font-semibold">#{String(pesanan?.id).padStart(6, '0')}</span></p>
+                
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg">
+                    <Calendar className="text-white" size={24} />
+                  </div>
+                  <div>
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-emerald-900 to-teal-900 bg-clip-text text-transparent">
+                      Atur Pengiriman
+                    </h1>
+                  </div>
+                </div>
+                <p className="text-slate-600 text-lg flex items-center gap-2">
+                  <span>Pilih tanggal dan waktu pengiriman untuk pesanan <span className="font-semibold">#{String(pesanan?.id).padStart(6, '0')}</span></span>
+                </p>
+              </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -279,11 +296,10 @@ const AturPengiriman = () => {
                         <div>
                           <p className="text-xs font-medium text-slate-500 mb-1">Surat Pesanan</p>
                           <Link
-                            to={`/produsen/pesanan/detail/${pesanan?.id}/surat`} // Pastikan link benar
-                            target="_blank"
-                            rel="noopener noreferrer"
+                            to={`/produsen/pengelolaan-pengiriman/detail/${pesanan?.id}/surat`}
                             className="text-sm font-medium text-emerald-600 hover:underline inline-flex items-center gap-1"
                           >
+                            
                             Lihat Dokumen <ExternalLink size={14} />
                           </Link>
                         </div>

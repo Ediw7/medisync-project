@@ -1,34 +1,50 @@
-// frontend/src/pages/produsen/pengelolaanpengiriman/AturPickupMassal.jsx
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
-import { Loader2 } from 'lucide-react';
+import { 
+    Loader2, 
+    ArrowLeft, 
+    CalendarDays, 
+    Clock, 
+    Truck, 
+    FileText, 
+    AlertTriangle, 
+    Check,
+    ChevronRight
+} from 'lucide-react';
+import { toast } from 'react-hot-toast'; // Import toast for better notifications
 
 const AturPickupMassal = () => {
   const navigate = useNavigate();
-  const location = useLocation(); // Hook untuk mendapatkan data dari navigasi
-  
-  // Ambil ID yang dipilih dari state navigasi
+  const location = useLocation();
   const selectedIds = location.state?.selectedIds || [];
 
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [waktuPengiriman, setWaktuPengiriman] = useState('09:00-12:00');
+  const [waktuPengiriman, setWaktuPengiriman] = useState('09:00'); // Default to start time
   const [opsiPengiriman, setOpsiPengiriman] = useState('standar');
   const [catatan, setCatatan] = useState('');
   const [error, setError] = useState('');
-  
-  // Hitung tanggal pengiriman untuk 5 hari ke depan
+  const username = localStorage.getItem('username'); // Get username
+
   const calculateShippingDates = () => {
     const dates = [];
     const today = new Date();
-    for (let i = 1; i <= 6; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
-      const day = date.toLocaleDateString('id-ID', { weekday: 'long' });
-      const formattedDate = date.toISOString().split('T')[0];
-      dates.push({ day, date: formattedDate });
+    today.setHours(0, 0, 0, 0); // Start from today midnight
+
+    // Calculate business days, skipping weekends (Saturday=6, Sunday=0)
+    let addedDays = 0;
+    let currentDate = new Date(today);
+
+    while (addedDays < 6) { // Get next 6 business days
+      currentDate.setDate(currentDate.getDate() + 1);
+      const dayOfWeek = currentDate.getDay();
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Skip Sunday and Saturday
+        const day = currentDate.toLocaleDateString('id-ID', { weekday: 'long' });
+        const formattedDate = currentDate.toISOString().split('T')[0];
+        dates.push({ day, date: formattedDate });
+        addedDays++;
+      }
     }
     return dates;
   };
@@ -36,62 +52,83 @@ const AturPickupMassal = () => {
   const [shippingDates] = useState(calculateShippingDates());
   const [selectedDate, setSelectedDate] = useState(shippingDates[0]?.date || '');
 
-  // Redirect jika tidak ada pesanan yang dipilih
   useEffect(() => {
     if (selectedIds.length === 0) {
-      alert('Tidak ada pesanan yang dipilih. Kembali ke halaman sebelumnya.');
-      navigate(-1); // Kembali ke halaman sebelumnya
+      toast.error('Tidak ada pesanan yang dipilih. Kembali ke halaman sebelumnya.');
+      navigate(-1); 
     }
   }, [selectedIds, navigate]);
 
   const handleSubmit = (e) => {
-  e.preventDefault();
-  setError(''); // Hapus error sebelumnya
+    e.preventDefault();
+    setError(''); 
 
-  if (!selectedDate || !waktuPengiriman) {
-    setError('Tanggal dan Waktu pengiriman wajib diisi.');
-    return;
-  }
+    if (!selectedDate || !waktuPengiriman) {
+      setError('Tanggal dan Waktu pengiriman wajib diisi.');
+      toast.error('Tanggal dan Waktu pengiriman wajib diisi.'); // Use toast
+      return;
+    }
+    
+    navigate('/produsen/pengelolaan-pengiriman/konfirmasi-pengiriman-massal', {
+      state: { 
+        selectedIds, 
+        tanggalPengiriman: selectedDate, 
+        waktuPengiriman, 
+        catatan,
+        opsiPengiriman
+      },
+    });
+  };
   
-  // Arahkan ke halaman konfirmasi sambil mengirim semua data yang relevan
-  navigate('/produsen/pengelolaan-pengiriman/konfirmasi-pengiriman-massal', {
-    state: { 
-      selectedIds, 
-      tanggalPengiriman: selectedDate, 
-      waktuPengiriman, 
-      catatan,
-      opsiPengiriman
-    },
-  });
-};
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate('/');
+  };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
-        <NavbarProdusen onLogout={() => { localStorage.clear(); navigate('/'); }} />
-        <main className="flex-1 p-6 lg:p-8">
+        <NavbarProdusen onLogout={handleLogout} username={username} />
+        
+        <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
           <div className="max-w-4xl mx-auto">
-            <div className="mb-6 pt-10">
-              <h1 className="text-3xl font-bold text-gray-800">Atur Pengiriman Massal</h1>
-              <p className="text-gray-500 mt-1">Opsi Pengiriman: Kargo</p>
-            </div>
+            
+            <button
+              onClick={() => navigate(-1)} // Go back to the previous page
+              className="mb-6 inline-flex items-center text-emerald-600 hover:text-emerald-700 transition-colors text-sm font-medium"
+            >
+              <ArrowLeft size={16} className="mr-1" /> Kembali ke Pilih Pesanan
+            </button>
 
-            <div className="bg-white rounded-xl shadow-md p-8">
-              <div className="flex items-center gap-4 mb-8 pb-6 border-b border-gray-200">
-                <div className="bg-emerald-100 p-3 rounded-lg">
-                   <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <div>
-                  {/* Tampilkan jumlah pesanan yang dipilih secara dinamis */}
-                  <h2 className="text-xl font-semibold text-gray-800">Kami akan mengirimkan {selectedIds.length} Pesanan</h2>
-                  <p className="text-gray-500">Mohon lengkapi informasi dan konfirmasi</p>
-                </div>
-              </div>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
+             {/* Header Halaman */}
+             <div className="mb-8 flex items-center gap-3">
+               <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg">
+                 <CalendarDays className="text-white" size={24} />
+               </div>
+               <div>
+                 <h1 className="text-3xl font-bold text-slate-800">
+                   Atur Jadwal Pengiriman Massal
+                 </h1>
+                 <p className="text-slate-600 text-base mt-1">Pilih tanggal dan waktu untuk {selectedIds.length} pesanan terpilih.</p>
+               </div>
+             </div>
+
+            {/* Form Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+               {/* Form Header Info */}
+               <div className="bg-slate-50 px-8 py-5 border-b border-slate-200 flex items-center gap-3">
+                 <FileText size={20} className="text-emerald-600 flex-shrink-0" />
+                 <div>
+                   <h2 className="text-base font-semibold text-slate-800">Detail Pengiriman Kargo</h2>
+                   <p className="text-sm text-slate-500">Anda mengatur pengiriman untuk <span className='font-bold'>{selectedIds.length}</span> pesanan.</p>
+                 </div>
+               </div>
+
+              <form onSubmit={handleSubmit} className="p-8 space-y-6">
+                
+                {/* Tanggal Pengiriman */}
+               <div>
                   <label className="block text-base font-semibold text-gray-800 mb-3">Tanggal Pengiriman</label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                     {shippingDates.map((date, index) => (
@@ -108,59 +145,71 @@ const AturPickupMassal = () => {
                   </div>
                 </div>
                 
-                <div>
-                  <label htmlFor="waktu-pengiriman" className="block text-base font-semibold text-gray-800 mb-3">Waktu Pengiriman</label>
-                  <select
-                    id="waktu-pengiriman"
-                    value={waktuPengiriman}
-                    onChange={(e) => setWaktuPengiriman(e.target.value)}
-                    className="w-full sm:w-1/3 appearance-none bg-white border border-gray-300 rounded-lg p-3 pr-10 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  >
-                    <option value="09:00-12:00">09:00 AM - 12:00 PM</option>
-                    <option value="13:00-16:00">01:00 PM - 04:00 PM</option>
-                    <option value="16:00-19:00">04:00 PM - 07:00 PM</option>
-                  </select>
+                {/* Waktu & Opsi Pengiriman */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <div className="space-y-1">
+                     <label htmlFor="waktu-pengiriman" className="block text-sm font-medium text-slate-700">Pilih Waktu Pengiriman</label>
+                     <select
+                       id="waktu-pengiriman"
+                       value={waktuPengiriman}
+                       onChange={(e) => setWaktuPengiriman(e.target.value)}
+                       className="w-full appearance-none bg-slate-50 border border-slate-300 rounded-lg p-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                       style={{ backgroundPosition: 'right 0.7rem center', backgroundRepeat: 'no-repeat', backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")` }}
+                     >
+                       <option value="09:00">09:00</option>
+                       <option value="13:00">13:00</option>
+                       <option value="16:00">16:00</option>
+                     </select>
+                   </div>
+
+                   <div className="space-y-1">
+                     <label htmlFor="opsi-pengiriman" className="block text-sm font-medium text-slate-700">Opsi Pengiriman</label>
+                     <select
+                       id="opsi-pengiriman"
+                       value={opsiPengiriman}
+                       onChange={(e) => setOpsiPengiriman(e.target.value)}
+                       className="w-full appearance-none bg-slate-50 border border-slate-300 rounded-lg p-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        style={{ backgroundPosition: 'right 0.7rem center', backgroundRepeat: 'no-repeat', backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")` }}
+                     >
+                       <option value="standar">Standar (Estimasi 2-3 hari)</option>
+                       <option value="ekspres">Ekspres (Estimasi 1 hari)</option>
+                     </select>
+                   </div>
                 </div>
 
-                <div>
-                  <label htmlFor="opsi-pengiriman" className="block text-base font-semibold text-gray-800 mb-3">Opsi Pengiriman</label>
-                  <select
-                    id="opsi-pengiriman"
-                    value={opsiPengiriman}
-                    onChange={(e) => setOpsiPengiriman(e.target.value)}
-                    className="w-full sm:w-1/3 appearance-none bg-white border border-gray-300 rounded-lg p-3 pr-10 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  >
-                    <option value="standar">Standar (2-3 hari)</option>
-                    <option value="ekspres">Ekspres (1 hari)</option>
-                  </select>
-                </div>
-
-                <div>
-                    <label htmlFor="catatan" className="block text-base font-semibold text-gray-800 mb-3">Catatan</label>
+                {/* Catatan */}
+                <div className="space-y-1">
+                    <label htmlFor="catatan" className="block text-sm font-medium text-slate-700">Catatan Tambahan (Opsional)</label>
                     <textarea
                       id="catatan"
                       value={catatan}
                       onChange={(e) => setCatatan(e.target.value)}
-                      className="w-full bg-gray-50 border border-gray-300 rounded-lg p-3 h-32 resize-none"
-                      placeholder="Mohon masukan catatan ..."
+                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-3 h-24 resize-none text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      placeholder="Masukkan catatan jika ada instruksi khusus..."
                     />
                 </div>
 
-                {error && <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">{error}</div>}
+                {/* Error Message */}
+                {error && (
+                    <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm flex items-center gap-2">
+                        <AlertTriangle size={16}/> {error}
+                    </div>
+                )}
 
-                <div className="flex justify-end gap-4 pt-4 border-t">
+                {/* Tombol Aksi */}
+                <div className="flex justify-end items-center gap-3 pt-4 border-t border-slate-200">
                   <button
                     type="button"
-                    onClick={() => navigate(-1)} // Kembali ke halaman Pengiriman Massal
-                    className="py-2 px-6 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300"
+                    onClick={() => navigate(-1)} 
+                    className="py-2 px-5 bg-slate-100 text-slate-700 font-medium rounded-lg hover:bg-slate-200 transition text-sm"
                   >
                     Kembali
                   </button>
                   <button
                     type="submit"
-                    className="py-2 px-6 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700"
+                    className="py-2 px-5 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 transition flex items-center gap-1.5 text-sm"
                   >
-                    Konfirmasi
+                    Lanjutkan <ChevronRight size={16} />
                   </button>
                 </div>
               </form>
@@ -168,8 +217,34 @@ const AturPickupMassal = () => {
           </div>
         </main>
       </div>
+       {/* STYLE BLOB */}
+       <style jsx>{`
+        @keyframes blob {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+      `}</style>
     </div>
   );
 };
 
 export default AturPickupMassal;
+
+
+                
+
+
+
+
+
+
+
+
+

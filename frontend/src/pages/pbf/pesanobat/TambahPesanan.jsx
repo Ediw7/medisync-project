@@ -1,19 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import SidebarPbf from '../../../components/SidebarPbf';
 import NavbarPbf from '../../../components/NavbarPbf';
-import { Plus, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Loader2, CheckCircle, XCircle, Upload } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
+import { FaClipboardList } from "react-icons/fa";
 
 const TambahPesanan = () => {
   const navigate = useNavigate();
   const { idProdusen } = useParams();
   const sigCanvas = useRef({});
-
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [stokObat, setStokObat] = useState([]);
   const [infoPemesanan, setInfoPemesanan] = useState({
-    // nomor_po: '', // Dihapus
     nama_pbf: '',
     alamat_pbf: '',
     nomor_siup: '',
@@ -40,6 +39,63 @@ const TambahPesanan = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupMessage, setPopupMessage] = useState('');
+  const [popupType, setPopupType] = useState('success');
+
+  const showCustomAlert = (message, type) => {
+    setPopupMessage(message);
+    setPopupType(type);
+    setShowPopup(true);
+  };
+
+  const closePopup = () => {
+    setShowPopup(false);
+    if (popupType === 'success') {
+      navigate('/pbf/pesan-obat');
+    }
+    setPopupMessage('');
+    setPopupType('success');
+  };
+
+  const renderPopup = () => {
+    if (!showPopup) return null;
+    return (
+      <div
+        className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        onClick={closePopup}
+      >
+        <div
+          className="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full mx-auto animate-in fade-in zoom-in-95 duration-200 border border-slate-200"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div
+            className={`flex items-center gap-3 mb-4 ${popupType === 'success' ? 'text-emerald-600' : 'text-red-600'}`}
+          >
+            {popupType === 'success' ? (
+              <CheckCircle size={28} className="flex-shrink-0" />
+            ) : (
+              <XCircle size={28} className="flex-shrink-0" />
+            )}
+            <h3 className="font-bold text-lg">{popupType === 'success' ? 'Sukses' : 'Error'}</h3>
+          </div>
+          <p className="text-slate-700 mb-6 leading-relaxed">{popupMessage}</p>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={closePopup}
+              className={`px-6 py-2.5 font-medium rounded-lg transition ${
+                popupType === 'success'
+                  ? 'bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800'
+                  : 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800'
+              }`}
+            >
+              Oke
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // Fetch profil PBF
   useEffect(() => {
@@ -286,307 +342,342 @@ const TambahPesanan = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex min-h-screen bg-slate-50">
+      {renderPopup()}
       <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
-        <NavbarPbf onLogout={() => { localStorage.clear(); navigate('/'); }} />
-        <main className="flex-1 pt-16 p-6">
-          <form onSubmit={handleSubmit} className="space-y-6 max-w-5xl mx-auto">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-800">Buat Pesanan Obat</h1>
-                <p className="text-gray-500 mt-1">Isi detail pesanan sesuai regulasi BPOM/Kemenkes.</p>
+
+      <div
+        className={`flex-1 flex flex-col transition-all duration-300 ${
+          isCollapsed ? "ml-16" : "ml-64"
+        }`}
+      >
+        <NavbarPbf
+          onLogout={() => {
+            localStorage.clear();
+            navigate("/");
+          }}
+        />
+
+        <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="mb-10 relative">
+              <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+              <div className="absolute -top-20 -right-20 w-72 h-72 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+
+              <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg">
+                    <FaClipboardList className="text-white" size={24} />
+                  </div>
+
+                  <div>
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-emerald-900 to-teal-900 bg-clip-text text-transparent">
+                      Buat Pesanan Obat
+                    </h1>
+                    <p className="text-slate-600 text-lg mt-1">
+                      Isi detail pesanan sesuai regulasi BPOM/Kemenkes.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
             {error && (
-              <div className="p-4 bg-red-100 text-red-700 rounded-lg flex items-center gap-2">
+              <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200 flex items-center gap-2">
                 <span>{error}</span>
               </div>
             )}
 
-            {/* Informasi Pemesanan */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h2 className="text-lg font-semibold text-emerald-700 mb-4">Informasi Pemesanan</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                
-                {/* Blok Nomor PO Dihapus */}
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Nama PBF</label>
-                  <input
-                    name="nama_pbf"
-                    value={infoPemesanan.nama_pbf}
-                    onChange={handleInfoChange}
-                    placeholder="Masukkan nama PBF"
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    required
-                  />
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Informasi Pemesanan */}
+              <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 px-6 py-4 border-b border-slate-200">
+                  <h2 className="text-lg font-semibold text-emerald-900">Informasi Pemesanan</h2>
+                  <p className="text-sm text-emerald-700 mt-1">Detail pemesan dan pesanan</p>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Alamat PBF</label>
-                  <input
-                    name="alamat_pbf"
-                    value={infoPemesanan.alamat_pbf}
-                    onChange={handleInfoChange}
-                    placeholder="Masukkan alamat PBF"
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Nomor SIUP/Izin PBF</label>
-                  <input
-                    name="nomor_siup"
-                    value={infoPemesanan.nomor_siup}
-                    onChange={handleInfoChange}
-                    placeholder="Masukkan nomor SIUP"
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Nomor SIA/SIKA</label>
-                  <input
-                    name="nomor_sia_sika"
-                    value={infoPemesanan.nomor_sia_sika}
-                    onChange={handleInfoChange}
-                    placeholder="Masukkan nomor SIA/SIKA"
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Nama Apoteker</label>
-                  <input
-                    name="nama_apoteker"
-                    value={infoPemesanan.nama_apoteker}
-                    onChange={handleInfoChange}
-                    placeholder="Masukkan nama apoteker"
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Nomor SIPA</label>
-                  <input
-                    name="nomor_sipa"
-                    value={infoPemesanan.nomor_sipa}
-                    onChange={handleInfoChange}
-                    placeholder="Masukkan nomor SIPA"
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Kontak Telepon</label>
-                  <input
-                    name="kontak_telepon"
-                    value={infoPemesanan.kontak_telepon}
-                    onChange={handleInfoChange}
-                    placeholder="Masukkan nomor telepon"
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Kontak Email</label>
-                  <input
-                    name="kontak_email"
-                    value={infoPemesanan.kontak_email}
-                    onChange={handleInfoChange}
-                    placeholder="Masukkan email"
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Tanggal Pesanan</label>
-                  <input
-                    name="tanggal_pesanan"
-                    type="date"
-                    value={infoPemesanan.tanggal_pesanan}
-                    onChange={handleInfoChange}
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    required
-                  />
-                </div>
-                
-                {/* <-- PERUBAHAN 2: Input Tujuan Distribusi diubah ke readOnly */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700">Tujuan Distribusi (Otomatis dari Alamat PBF)</label>
-                  <input
-                    name="tujuan_distribusi"
-                    value={infoPemesanan.tujuan_distribusi}
-                    placeholder="Otomatis terisi dari alamat PBF"
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 bg-gray-100"
-                    readOnly // Dibuat read-only
-                    // onChange tidak diperlukan lagi, tapi bisa dibiarkan
-                  />
-                </div>
-                {/* <-- AKHIR PERUBAHAN 2 */}
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700">Catatan Khusus (Opsional)</label>
-                  <textarea
-                    name="catatan_khusus"
-                    value={infoPemesanan.catatan_khusus}
-                    onChange={handleInfoChange}
-                    placeholder="Masukkan catatan khusus"
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    rows="4"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Detail Pemesanan Obat */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h2 className="text-lg font-semibold text-emerald-700 mb-4">Detail Pemesanan Obat</h2>
-              {detailObat.length > 0 && (
-                <div className="overflow-x-auto mb-6">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-gray-50">
-                        <th className="p-3 text-sm font-semibold text-gray-700">Nama Obat</th>
-                        <th className="p-3 text-sm font-semibold text-gray-700">Bentuk Sediaan</th>
-                        <th className="p-3 text-sm font-semibold text-gray-700">Dosis</th>
-                        <th className="p-3 text-sm font-semibold text-gray-700">Jumlah</th>
-                        <th className="p-3 text-sm font-semibold text-gray-700">Harga Satuan</th>
-                        <th className="p-3 text-sm font-semibold text-gray-700">Total</th>
-                        <th className="p-3 text-sm font-semibold text-gray-700">Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {detailObat.map((item, index) => (
-                        <tr key={index} className="border-t">
-                          <td className="p-3 text-gray-800">{item.nama_obat}</td>
-                          <td className="p-3 text-gray-800">{item.bentuk_sediaan}</td>
-                          <td className="p-3 text-gray-800">{item.dosis || '-'}</td>
-                          <td className="p-3 text-gray-800">{item.jumlah_pesanan}</td>
-                          <td className="p-3 text-gray-800">Rp {Number(item.harga_per_unit).toLocaleString('id-ID')}</td>
-                          <td className="p-3 text-gray-800 font-semibold">Rp {Number(item.total_harga).toLocaleString('id-ID')}</td>
-                          <td className="p-3">
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveItem(index)}
-                              className="text-red-500 hover:text-red-700 transition"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr className="bg-gray-50 font-semibold">
-                        <td colSpan="5" className="p-3 text-right">Total Harga:</td>
-                        <td className="p-3">Rp {infoPemesanan.total_harga.toLocaleString('id-ID')}</td>
-                        <td className="p-3"></td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end pt-4 border-t">
-                <div className="md:col-span-3">
-                  <label className="block text-sm font-medium text-gray-700">Pilih Obat</label>
-                  <select
-                    onChange={handleItemSelect}
-                    value={itemObat.id_produksi}
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                  >
-                    <option value="">-- Pilih Obat --</option>
-                    {isLoading ? (
-                      <option>Loading...</option>
-                    ) : (
-                      stokObat.map((o) => (
-                        <option key={o.id} value={o.id}>
-                          {o.nama_obat} (Stok: {o.jumlah}, {o.bentuk_sediaan})
-                        </option>
-                      ))
-                    )}
-                  </select>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700">Jumlah</label>
-                  <input
-                    name="jumlah_pesanan"
-                    type="number"
-                    min="1"
-                    value={itemObat.jumlah_pesanan}
-                    onChange={handleItemChange}
-                    placeholder="Jumlah"
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700">Harga Satuan</label>
-                  <input
-                    name="harga_per_unit"
-                    type="number"
-                    value={itemObat.harga_per_unit}
-                    onChange={handleItemChange}
-                    placeholder="Harga satuan"
-                    className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
-                    readOnly // Harga diambil dari stok
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <button
-                    type="button"
-                    onClick={handleAddItem}
-                    className="mt-6 w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition flex items-center justify-center gap-2"
-                    disabled={!itemObat.id_produksi || !itemObat.jumlah_pesanan || Number(itemObat.jumlah_pesanan) <= 0}
-                  >
-                    <Plus size={18} /> Tambah
-                  </button>
+                <div className="p-6 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Nama PBF</label>
+                      <input
+                        name="nama_pbf"
+                        value={infoPemesanan.nama_pbf}
+                        onChange={handleInfoChange}
+                        placeholder="Masukkan nama PBF"
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Alamat PBF</label>
+                      <input
+                        name="alamat_pbf"
+                        value={infoPemesanan.alamat_pbf}
+                        onChange={handleInfoChange}
+                        placeholder="Masukkan alamat PBF"
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Nomor SIUP/Izin PBF</label>
+                      <input
+                        name="nomor_siup"
+                        value={infoPemesanan.nomor_siup}
+                        onChange={handleInfoChange}
+                        placeholder="Masukkan nomor SIUP"
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Nomor SIA/SIKA</label>
+                      <input
+                        name="nomor_sia_sika"
+                        value={infoPemesanan.nomor_sia_sika}
+                        onChange={handleInfoChange}
+                        placeholder="Masukkan nomor SIA/SIKA"
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Nama Apoteker</label>
+                      <input
+                        name="nama_apoteker"
+                        value={infoPemesanan.nama_apoteker}
+                        onChange={handleInfoChange}
+                        placeholder="Masukkan nama apoteker"
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Nomor SIPA</label>
+                      <input
+                        name="nomor_sipa"
+                        value={infoPemesanan.nomor_sipa}
+                        onChange={handleInfoChange}
+                        placeholder="Masukkan nomor SIPA"
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Kontak Telepon</label>
+                      <input
+                        name="kontak_telepon"
+                        value={infoPemesanan.kontak_telepon}
+                        onChange={handleInfoChange}
+                        placeholder="Masukkan nomor telepon"
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Kontak Email</label>
+                      <input
+                        name="kontak_email"
+                        value={infoPemesanan.kontak_email}
+                        onChange={handleInfoChange}
+                        placeholder="Masukkan email"
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Tanggal Pesanan</label>
+                      <input
+                        name="tanggal_pesanan"
+                        type="date"
+                        value={infoPemesanan.tanggal_pesanan}
+                        onChange={handleInfoChange}
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                        required
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Tujuan Distribusi (Otomatis dari Alamat PBF)</label>
+                      <input
+                        name="tujuan_distribusi"
+                        value={infoPemesanan.tujuan_distribusi}
+                        placeholder="Otomatis terisi dari alamat PBF"
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-slate-100 cursor-not-allowed"
+                        readOnly // Dibuat read-only
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Catatan Khusus (Opsional)</label>
+                      <textarea
+                        name="catatan_khusus"
+                        value={infoPemesanan.catatan_khusus}
+                        onChange={handleInfoChange}
+                        placeholder="Masukkan catatan khusus"
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition resize-none"
+                        rows="4"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Tanda Tangan Apoteker */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h2 className="text-lg font-semibold text-emerald-700 mb-4">Tanda Tangan Apoteker</h2>
-              <p className="text-sm text-gray-500 mb-2">Silakan tanda tangan untuk konfirmasi pesanan:</p>
-              <div className="w-full h-48 bg-gray-50 border border-gray-300 rounded-lg overflow-hidden">
-                <SignatureCanvas
-                  ref={sigCanvas}
-                  penColor="black"
-                  canvasProps={{ className: 'w-full h-full' }}
-                />
+              {/* Detail Pemesanan Obat */}
+              <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 px-6 py-4 border-b border-slate-200">
+                  <h2 className="text-lg font-semibold text-emerald-900">Detail Pemesanan Obat</h2>
+                  <p className="text-sm text-emerald-700 mt-1">Tambahkan item obat yang dipesan</p>
+                </div>
+                <div className="p-6 space-y-4">
+                  {detailObat.length > 0 && (
+                    <div className="overflow-x-auto mb-6">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-slate-50">
+                            <th className="p-3 text-sm font-semibold text-slate-700">Nama Obat</th>
+                            <th className="p-3 text-sm font-semibold text-slate-700">Bentuk Sediaan</th>
+                            <th className="p-3 text-sm font-semibold text-slate-700">Dosis</th>
+                            <th className="p-3 text-sm font-semibold text-slate-700">Jumlah</th>
+                            <th className="p-3 text-sm font-semibold text-slate-700">Harga Satuan</th>
+                            <th className="p-3 text-sm font-semibold text-slate-700">Total</th>
+                            <th className="p-3 text-sm font-semibold text-slate-700">Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {detailObat.map((item, index) => (
+                            <tr key={index} className="border-t">
+                              <td className="p-3 text-slate-800">{item.nama_obat}</td>
+                              <td className="p-3 text-slate-800">{item.bentuk_sediaan}</td>
+                              <td className="p-3 text-slate-800">{item.dosis || '-'}</td>
+                              <td className="p-3 text-slate-800">{item.jumlah_pesanan}</td>
+                              <td className="p-3 text-slate-800">Rp {Number(item.harga_per_unit).toLocaleString('id-ID')}</td>
+                              <td className="p-3 text-slate-800 font-semibold">Rp {Number(item.total_harga).toLocaleString('id-ID')}</td>
+                              <td className="p-3">
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveItem(index)}
+                                  className="text-red-500 hover:text-red-700 transition"
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr className="bg-slate-50 font-semibold">
+                            <td colSpan="5" className="p-3 text-right">Total Harga:</td>
+                            <td className="p-3">Rp {infoPemesanan.total_harga.toLocaleString('id-ID')}</td>
+                            <td className="p-3"></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end pt-4 border-t">
+                    <div className="md:col-span-3">
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Pilih Obat</label>
+                      <select
+                        onChange={handleItemSelect}
+                        value={itemObat.id_produksi}
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition appearance-none bg-white"
+                      >
+                        <option value="">Pilih Obat</option>
+                        {isLoading ? (
+                          <option>Loading...</option>
+                        ) : (
+                          stokObat.map((o) => (
+                            <option key={o.id} value={o.id}>
+                              {o.nama_obat} (Stok: {o.jumlah}, {o.bentuk_sediaan})
+                            </option>
+                          ))
+                        )}
+                      </select>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Jumlah</label>
+                      <input
+                        name="jumlah_pesanan"
+                        type="number"
+                        min="1"
+                        value={itemObat.jumlah_pesanan}
+                        onChange={handleItemChange}
+                        placeholder="Jumlah"
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Harga Satuan</label>
+                      <input
+                        name="harga_per_unit"
+                        type="number"
+                        value={itemObat.harga_per_unit}
+                        onChange={handleItemChange}
+                        placeholder="Harga satuan"
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-slate-100 cursor-not-allowed"
+                        readOnly // Harga diambil dari stok
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <button
+                        type="button"
+                        onClick={handleAddItem}
+                        className="w-full px-6 py-2.5 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 transition flex items-center justify-center gap-2 disabled:bg-slate-400 disabled:cursor-not-allowed"
+                        disabled={!itemObat.id_produksi || !itemObat.jumlah_pesanan || Number(itemObat.jumlah_pesanan) <= 0}
+                      >
+                        <Plus size={18} /> Tambah
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="flex justify-end mt-4">
+
+              {/* Tanda Tangan Apoteker */}
+              <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 px-6 py-4 border-b border-slate-200">
+                  <h2 className="text-lg font-semibold text-emerald-900">Tanda Tangan Apoteker</h2>
+                  <p className="text-sm text-emerald-700 mt-1">Tanda tangan untuk konfirmasi pesanan</p>
+                </div>
+                <div className="p-6 space-y-4">
+                  <div className="w-full h-48 bg-slate-50 border border-slate-300 rounded-lg overflow-hidden">
+                    <SignatureCanvas
+                      ref={sigCanvas}
+                      penColor="black"
+                      canvasProps={{ className: 'w-full h-full' }}
+                    />
+                  </div>
+                  <div className="flex justify-end mt-4">
+                    <button
+                      type="button"
+                      onClick={clearSignature}
+                      className="px-6 py-2.5 text-red-700 font-medium rounded-lg hover:text-red-800 transition flex items-center gap-2"
+                    >
+                      <XCircle size={18} /> Hapus Tanda Tangan
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tombol-tombol */}
+              <div className="flex justify-end gap-3 pt-4">
                 <button
                   type="button"
-                  onClick={clearSignature}
-                  className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition"
+                  onClick={() => navigate('/pbf/pesan-obat')}
+                  className="px-6 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition"
                 >
-                  Hapus Tanda Tangan
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-6 py-2.5 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 transition disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isSubmitting && <Loader2 className="animate-spin" size={18} />}
+                  {isSubmitting ? 'Menyimpan...' : 'Simpan Pesanan'}
                 </button>
               </div>
-            </div>
-
-            {/* Tombol-tombol */}
-            <div className="flex justify-end gap-4 mt-6">
-              <button
-                type="button"
-                onClick={() => navigate('/pbf/pesan-obat')}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
-              >
-                Kembali
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:bg-gray-400 flex items-center gap-2"
-              >
-                {isSubmitting && <Loader2 className="animate-spin" size={18} />}
-                {isSubmitting ? 'Menyimpan...' : 'Simpan Pesanan'}
-              </button>
-            </div>
-          </form>
+            </form>
+          </div>
         </main>
       </div>
     </div>

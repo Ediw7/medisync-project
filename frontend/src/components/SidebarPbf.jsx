@@ -92,7 +92,7 @@ const SidebarPbf = ({
             className={`flex items-center ${
               isCollapsed ? "justify-center" : "justify-between"
             } ${
-              isCollapsed ? "p-4" : "px-6 py-5"
+              isCollapsed ? "p-4" : "px-6 py-1"
             } pt-16 transition-all duration-300`}
           >
             {!isCollapsed && (

@@ -2,7 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
-import { Loader2, ArrowLeft, AlertCircle, HelpCircle, FileText, DollarSign, User, Calendar, XCircle, CheckCircle, ExternalLink, Image as ImageIcon } from 'lucide-react';
+import { 
+  Loader2, 
+  ArrowLeft, 
+  AlertCircle, 
+  HelpCircle, 
+  FileText, 
+  DollarSign, 
+  User, 
+  Calendar, 
+  XCircle, 
+  CheckCircle, 
+  ExternalLink, 
+  Image as ImageIcon,
+  Package,
+  Info
+} from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
@@ -17,6 +32,8 @@ const KonfirmasiPengembalian = () => {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const username = localStorage.getItem('username');
 
+  const cleanedId = id.replace(':', '');
+
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -26,7 +43,6 @@ const KonfirmasiPengembalian = () => {
         token = localStorage.getItem('token');
         if (!token) throw new Error('Silakan login terlebih dahulu');
 
-        const cleanedId = id.replace(':', '');
         console.log('Fetching return request for ID:', cleanedId);
 
         const response = await axios.get(`http://localhost:5000/api/produsen/pesanan-masuk/pengembalian/${cleanedId}`, {
@@ -40,8 +56,16 @@ const KonfirmasiPengembalian = () => {
         if (response.data.data.status !== 'Pengembalian Diajukan') {
               console.warn(`Status pesanan saat ini "${response.data.data.status || 'Tidak Diketahui'}".`);
         }
+        
+        const responseData = response.data.data;
+        
+        const totalHargaKeseluruhan = (responseData.detail_pesanan || []).reduce((acc, item) => acc + (Number(item.total_harga) || 0), 0);
 
-        setData(response.data.data);
+        setData({
+            ...responseData,
+            total_harga_awal_calculasi: totalHargaKeseluruhan || responseData.total_harga || 0
+        });
+
       } catch (err) {
         console.error('Error fetching return request:', err);
         setError(err.response?.data?.message || err.message);
@@ -56,11 +80,10 @@ const KonfirmasiPengembalian = () => {
       }
     };
     fetchData();
-  }, [id, navigate]);
+  }, [cleanedId, navigate]);
 
    const handleAction = async (approve = true) => {
     const action = approve ? 'menyetujui' : 'menolak';
-    const newStatus = approve ? 'Pengembalian Disetujui' : 'Pengembalian Ditolak';
     setIsActionLoading(true);
     setError(null);
     toast.dismiss();
@@ -69,10 +92,10 @@ const KonfirmasiPengembalian = () => {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Sesi tidak valid.');
 
-      const endpoint = `http://localhost:5000/api/produsen/pesanan-masuk/pengembalian/${id}/${approve ? 'approve' : 'reject'}`;
+      const endpoint = `http://localhost:5000/api/produsen/pesanan-masuk/pengembalian/${cleanedId}/${approve ? 'approve' : 'reject'}`;
 
       const response = await axios.put(endpoint,
-        approve ? {} : { alasan_penolakan: 'Contoh alasan penolakan' },
+        approve ? {} : { alasan_penolakan: 'Ditolak oleh produsen' },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -129,65 +152,72 @@ const KonfirmasiPengembalian = () => {
 
   if (error && !data) {
      return (
-       <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-red-50 p-6">
-          <div className="bg-white p-8 rounded-xl shadow-lg border border-red-200 text-center max-w-lg">
-            <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
-            <h2 className="text-xl font-bold text-red-800 mb-2">Gagal Memuat Data</h2>
-            <p className="text-red-600 mb-6">{error}</p>
-            <button
-               onClick={() => navigate('/produsen/pengelolaan-pengiriman/pengembalian')}
-               className="flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition mx-auto"
-             >
-               <ArrowLeft size={18} />
-               Kembali ke Daftar Pengembalian
-             </button>
-          </div>
-       </div>
+       <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
+        <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+        <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+          <NavbarProdusen onLogout={handleLogout} username={username} />
+          <main className="flex-1 flex items-center justify-center p-6 pt-[72px]">
+            <div className="bg-white p-8 rounded-2xl shadow-lg border border-red-200 text-center max-w-md">
+              <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+              <h2 className="text-xl font-bold text-red-800 mb-2">Gagal Memuat Data</h2>
+              <p className="text-red-600 mb-6">{error}</p>
+              <button
+                 onClick={() => navigate('/produsen/pengelolaan-pengiriman/pengembalian')}
+                 className="flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition mx-auto"
+               >
+                 <ArrowLeft size={18} />
+                 Kembali ke Daftar Pengembalian
+               </button>
+            </div>
+          </main>
+        </div>
+      </div>
     );
   }
 
   if (!data) {
      return (
-       <div className="flex flex-col justify-center items-center h-screen bg-slate-50 p-6">
-        <div className="bg-white p-8 rounded-xl shadow-lg border border-slate-200 text-center max-w-lg">
-          <FileText className="mx-auto h-12 w-12 text-yellow-500 mb-4" />
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Data Pengembalian Tidak Ditemukan</h2>
-          <p className="text-slate-600 mb-6">Tidak dapat menemukan detail pengembalian untuk pesanan ini.</p>
-           <button
-             onClick={() => navigate('/produsen/pengelolaan-pengiriman/pengembalian')}
-             className="flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition mx-auto"
-           >
-             <ArrowLeft size={18} />
-             Kembali ke Daftar Pengembalian
-           </button>
+       <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
+        <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+        <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+          <NavbarProdusen onLogout={handleLogout} username={username} />
+          <main className="flex-1 flex items-center justify-center p-6 pt-[72px]">
+            <div className="bg-white p-8 rounded-2xl shadow-lg border border-slate-200 text-center max-w-md">
+              <FileText className="mx-auto h-12 w-12 text-yellow-500 mb-4" />
+              <h2 className="text-xl font-bold text-slate-800 mb-2">Data Pengembalian Tidak Ditemukan</h2>
+              <p className="text-slate-600 mb-6">Tidak dapat menemukan detail pengembalian untuk pesanan ini.</p>
+               <button
+                 onClick={() => navigate('/produsen/pengelolaan-pengiriman/pengembalian')}
+                 className="flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition mx-auto"
+               >
+                 <ArrowLeft size={18} />
+                 Kembali ke Daftar Pengembalian
+               </button>
+            </div>
+          </main>
         </div>
       </div>
     );
   }
 
   const info = data;
-  const detail = data.detail_pesanan || [];
-  const totalHargaKeseluruhan = detail.reduce((acc, item) => acc + (Number(item.total_harga) || 0), 0);
   const canTakeAction = info.status === 'Pengembalian Diajukan';
 
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <NavbarProdusen onLogout={handleLogout} username={username} />
 
-        <main className="flex-1 overflow-auto pt-[72px]">
-          <div className="max-w-4xl mx-auto px-6 py-8">
-            <div className="mb-2">
-               <button
-                  onClick={() => navigate('/produsen/pengelolaan-pengiriman/pengembalian')}
-                  className="mb-4 inline-flex items-center text-emerald-600 hover:text-emerald-700 transition-colors text-sm font-medium"
-               >
-                 <ArrowLeft size={16} className="mr-1" /> Kembali ke Daftar Pengembalian
-               </button>
-              
-            </div>
+        <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
+          <div className="max-w-5xl mx-auto">
+            <button
+              onClick={() => navigate('/produsen/pengelolaan-pengiriman/pengembalian')}
+              className="mb-6 inline-flex items-center text-emerald-600 hover:text-emerald-700 transition-colors text-sm font-medium"
+            >
+              <ArrowLeft size={16} className="mr-1" /> Kembali ke Daftar Pengembalian
+            </button>
 
             {error && !isLoading && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3">
@@ -196,71 +226,113 @@ const KonfirmasiPengembalian = () => {
               </div>
             )}
 
-            <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
-               <div className="bg-gradient-to-r from-indigo-50 to-purple-100 px-6 py-5 border-b border-indigo-200">
-                  <h2 className="text-lg font-semibold text-indigo-900 flex items-center gap-2">
-                     <AlertCircle size={20} /> Detail Pengajuan Pengembalian
-                  </h2>
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+               <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <div>
+                    <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+                       <AlertCircle size={24} />
+                       Konfirmasi Pengajuan Pengembalian
+                    </h1>
+                    <p className="text-sm text-emerald-50 mt-1">Pesanan ID: <span className="font-mono">#{String(info.id).padStart(6, '0')}</span></p>
+                  </div>
+                   {!canTakeAction && (
+                        <div className={`px-4 py-2 rounded-full border-2 text-sm font-semibold flex items-center gap-2 bg-white ${
+                             info.status === 'Pengembalian Disetujui' || info.status === 'Dikembalikan' ? 'text-emerald-700 border-emerald-200' :
+                             info.status === 'Pengembalian Ditolak' ? 'text-red-700 border-red-200' :
+                             'text-slate-700 border-slate-200'
+                         }`}>
+                           {info.status === 'Pengembalian Disetujui' || info.status === 'Dikembalikan' ? <CheckCircle size={16} /> :
+                            info.status === 'Pengembalian Ditolak' ? <XCircle size={16} /> : null}
+                           Status: {info.status}
+                        </div>
+                   )}
                </div>
 
-               <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5 text-sm">
-                   <InfoItem label="Status Saat Ini" value={info.status || '-'} highlightColor="text-indigo-700" highlight/>
-                   <InfoItem label="Dana Pengembalian" value={`Rp. ${(info.total_harga || 0).toLocaleString('id-ID')}`} highlight />
-                   <InfoItem label="Diajukan oleh" value={info.nama_pbf} />
-                   <InfoItem label="Tanggal Pengajuan" value={formatDate(info.tanggal_pengajuan_pengembalian)} />
-                   <div className="md:col-span-3">
-                      <InfoItem label="Alasan Pengembalian" value={info.alasan_pengembalian || '-'} />
-                   </div>
-                   <div className="md:col-span-3">
-                       <dt className="text-xs font-medium text-slate-500 mb-2 uppercase tracking-wider">Bukti Foto dari PBF</dt>
-                       <dd className="mt-1">
-                          {info.bukti_foto ? (
-                             <img
-                                src={`http://localhost:5000/${info.bukti_foto.replace(/\\/g, '/')}`}
-                                alt="Bukti Pengembalian"
-                                className="w-full max-w-sm h-auto object-contain rounded-lg border border-slate-200 bg-slate-50 p-2"
-                             />
-                          ) : (
-                             <div className="p-4 bg-slate-100 text-slate-500 rounded-lg border border-slate-200 text-center">
-                                <ImageIcon size={24} className="mx-auto mb-2 opacity-50"/>
+               <div className="p-8 border-b border-slate-200">
+                  <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
+                    <FileText size={20} className="text-emerald-600" />
+                    Detail Pengajuan
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      
+                      <div className="space-y-1">
+                          <span className="text-sm font-medium text-slate-500">Status Saat Ini</span>
+                          <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-200">
+                              <span className="font-bold text-indigo-700 text-base">{info.status || '-'}</span>
+                          </div>
+                      </div>
+                      
+                      <div className="space-y-1">
+                           <span className="text-sm font-medium text-slate-500">Dana Pengembalian</span>
+                           <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-200">
+                             <span className="font-bold text-emerald-700 text-base">Rp. {(info.total_harga || 0).toLocaleString('id-ID')}</span>
+                           </div>
+                       </div>
+                       
+                       <div className="space-y-1">
+                           <span className="text-sm font-medium text-slate-500">Diajukan oleh (PBF)</span>
+                           <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                             <span className="font-semibold text-slate-900 text-base">{info.nama_pbf}</span>
+                           </div>
+                       </div>
+                       
+                       <div className="space-y-1">
+                           <span className="text-sm font-medium text-slate-500">Tanggal Pengajuan</span>
+                           <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                             <span className="font-semibold text-slate-900 text-base">{formatDate(info.tanggal_pengajuan_pengembalian || info.tanggal_pesanan)}</span>
+                           </div>
+                       </div>
+                       
+                       <div className="space-y-1">
+                           <span className="text-sm font-medium text-slate-500">ID Pesanan Awal</span>
+                           <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                             <span className="font-bold text-slate-900 font-mono text-base">#{String(info.id).padStart(6, '0')}</span>
+                           </div>
+                       </div>
+                       
+                       <div className="space-y-1">
+                           <span className="text-sm font-medium text-slate-500">Surat Pesanan Awal</span>
+                           <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
+                             <span className="font-semibold text-slate-900 text-base">{info.nomor_po || `Pesanan #${String(info.id).padStart(6, '0')}`}</span>
+                             <Link
+                                to={`/produsen/pengelolaan-pengiriman/detail/${info.id}/surat`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm font-medium text-emerald-600 hover:underline inline-flex items-center gap-1"
+                              >
+                                Lihat Dokumen <ExternalLink size={14} />
+                              </Link>
+                           </div>
+                       </div>
+
+                       <div className="space-y-1 md:col-span-2">
+                          <span className="text-sm font-medium text-slate-500">Alasan Pengembalian</span>
+                          <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                             <p className="text-slate-900 text-base whitespace-pre-wrap">{info.alasan_pengembalian || '-'}</p>
+                          </div>
+                       </div>
+
+                       <div className="space-y-1 md:col-span-2">
+                           <span className="text-sm font-medium text-slate-500">Bukti Foto dari PBF</span>
+                           {info.bukti_foto ? (
+                             <div className="bg-slate-50 p-2 rounded-lg border border-slate-200 w-full max-w-sm">
+                               <img
+                                  src={`http://localhost:5000/${info.bukti_foto.replace(/\\/g, '/')}`}
+                                  alt="Bukti Pengembalian"
+                                  className="w-full h-auto object-contain rounded-md"
+                               />
+                             </div>
+                           ) : (
+                             <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-slate-500 flex items-center gap-2 text-sm">
+                                <ImageIcon size={18} className="flex-shrink-0"/>
                                 <span>Tidak ada bukti foto yang diunggah.</span>
                              </div>
                           )}
-                       </dd>
-                   </div>
-
+                       </div>
+                  </div>
                </div>
 
-               <div className="border-t border-slate-200 px-6 pt-6 pb-2">
-                   <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                      <FileText size={20} /> Ringkasan Pesanan Awal
-                   </h3>
-                   <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div>
-                          <p className="text-xs font-medium text-slate-500 mb-1">ID Pesanan</p>
-                          <p className="text-base font-bold text-slate-800">#{String(info.id).padStart(6, '0')}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium text-slate-500 mb-1">Surat Pesanan</p>
-                          <Link
-                            to={`/produsen/pesanan/detail/${info.id}/surat`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm font-medium text-emerald-600 hover:underline inline-flex items-center gap-1"
-                          >
-                            Lihat Dokumen <ExternalLink size={14} />
-                          </Link>
-                        </div>
-                        <div className="text-left sm:text-right">
-                          <p className="text-xs font-medium text-slate-500 mb-1">Total Harga Awal</p>
-                          <p className="text-base font-bold text-emerald-700">
-                            Rp. {(totalHargaKeseluruhan || 0).toLocaleString('id-ID')}
-                          </p>
-                        </div>
-                   </div>
-               </div>
-
-               <div className="p-6 flex flex-col sm:flex-row justify-end items-center gap-3 border-t border-slate-200 mt-6">
+               <div className="p-6 flex flex-col sm:flex-row justify-end items-center gap-3 border-t border-slate-200">
                  {canTakeAction ? (
                    <>
                      <p className="text-sm text-slate-600 mr-auto">Tindakan Anda bersifat final.</p>
@@ -277,20 +349,12 @@ const KonfirmasiPengembalian = () => {
                        className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 transition disabled:bg-slate-400 flex items-center justify-center gap-2"
                        disabled={isActionLoading}
                      >
-                       <CheckCircle size={18} />
+                       {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle size={18} />}
                        Setujui Pengembalian
                      </button>
                    </>
                  ) : (
-                    <span className={`px-4 py-2 rounded-full border text-sm font-semibold flex items-center gap-2 ${
-                         info.status === 'Pengembalian Disetujui' ? 'bg-green-100 text-green-800 border-green-200' :
-                         info.status === 'Pengembalian Ditolak' ? 'bg-red-100 text-red-800 border-red-200' :
-                         'bg-slate-100 text-slate-800 border-slate-200'
-                     }`}>
-                       {info.status === 'Pengembalian Disetujui' ? <CheckCircle size={16} /> :
-                        info.status === 'Pengembalian Ditolak' ? <XCircle size={16} /> : null}
-                       Status: {info.status}
-                    </span>
+                    <p className="text-sm text-slate-600 mr-auto">Tindakan telah diambil untuk pengajuan ini.</p>
                  )}
                </div>
             </div>
@@ -299,14 +363,14 @@ const KonfirmasiPengembalian = () => {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center">
             <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-emerald-100 mb-4">
               <HelpCircle className="h-10 w-10 text-emerald-600" />
             </div>
             <h3 className="text-xl font-bold text-gray-900">Setujui Pengajuan Pengembalian?</h3>
             <p className="text-gray-500 mt-2 text-sm">
-              Anda akan menyetujui pengajuan pengembalian untuk pesanan ini. Pengiriman retur akan dijadwalkan. Dana akan dikembalikan setelah barang diterima.
+              Anda akan menyetujui pengajuan pengembalian untuk pesanan ini. Pengiriman retur akan dijadwalkwkan. Dana akan dikembalikan setelah barang diterima.
             </p>
             <div className="mt-8 flex justify-center gap-4">
               <button
@@ -328,15 +392,22 @@ const KonfirmasiPengembalian = () => {
           </div>
         </div>
       )}
+
+      <style jsx>{`
+        @keyframes blob {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+      `}</style>
     </div>
   );
 };
-
-const InfoItem = ({ label, value, highlight = false, highlightColor = 'text-emerald-700' }) => (
-  <div>
-    <p className="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">{label}</p>
-    <p className={`text-base font-semibold ${highlight ? highlightColor : 'text-slate-800'}`}>{value || '-'}</p>
-  </div>
-);
 
 export default KonfirmasiPengembalian;

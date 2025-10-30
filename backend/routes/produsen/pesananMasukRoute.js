@@ -36,7 +36,10 @@ router.put('/:id/status', pesananMasukController.updateStatusWithDetails);
 
 router.get('/pengembalian/:id', pesananMasukController.getDetailPengembalian);
 router.put('/pengembalian/:id/approve', pesananMasukController.approvePengembalian);
+router.put('/pengembalian/:id/reject', pesananMasukController.rejectPengembalian);
 router.get('/lacak-pengembalian/:id', pesananMasukController.getLacakPengembalian);
+
+
 
 router.put(
   '/lacak-pengembalian/:id/konfirmasi', 

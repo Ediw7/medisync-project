@@ -267,6 +267,51 @@ getAll: async (req, res) => {
     }
   },
 
+  rejectPengembalian: async (req, res) => {
+    const { id } = req.params; // ID Pesanan
+    const { alasan_penolakan } = req.body; // Ambil alasan dari body
+    const idProdusen = req.user.id;
+    let dbConnection;
+
+    try {
+      dbConnection = await db.getConnection();
+      await dbConnection.beginTransaction();
+
+      // 1. Validasi alasan
+      if (!alasan_penolakan || alasan_penolakan.trim() === '') {
+        throw new Error('Alasan penolakan wajib diisi.');
+      }
+
+      // 2. Cek pesanan
+      const [pesanan] = await dbConnection.query(
+        "SELECT id, catatan_khusus FROM pesanan WHERE id = ? AND id_produsen = ? AND status = 'Pengembalian Diajukan'",
+        [id, idProdusen]
+      );
+
+      if (pesanan.length === 0) {
+        throw new Error('Pesanan tidak ditemukan atau tidak dalam status pengajuan pengembalian.');
+      }
+
+      // 3. Update status dan tambahkan alasan ke catatan
+      const catatanBaru = (pesanan[0].catatan_khusus || '') + `\n[PENOLAKAN]: ${alasan_penolakan}`;
+      
+      await dbConnection.query(
+        "UPDATE pesanan SET status = 'Pengembalian Ditolak', catatan_khusus = ? WHERE id = ?",
+        [catatanBaru, id]
+      );
+
+      await dbConnection.commit();
+      res.json({ success: true, message: 'Pengajuan pengembalian telah ditolak.' });
+
+    } catch (error) {
+      if (dbConnection) await dbConnection.rollback();
+      console.error('Error in rejectPengembalian:', error);
+      res.status(500).json({ success: false, message: error.message || 'Kesalahan Server Internal' });
+    } finally {
+      if (dbConnection) dbConnection.release();
+    }
+  },
+
   // --- FUNGSI BARU 2: Mendapatkan Data Lacak Pengembalian ---
   getLacakPengembalian: async (req, res) => {
     const { id } = req.params;
@@ -298,6 +343,8 @@ getAll: async (req, res) => {
       res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
     }
   },
+
+  
 
   confirmReturnReceipt: async (req, res) => {
     const { id } = req.params; // ID Pesanan

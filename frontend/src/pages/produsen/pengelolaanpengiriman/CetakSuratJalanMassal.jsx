@@ -71,7 +71,7 @@ const CetakSuratJalanMassal = () => {
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
-      <SidebarProdusen isCollapsed={true} setIsCollapsed={() => {}} className="print:hidden" />
+       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className="flex-1 flex flex-col transition-all duration-300 print:ml-0 ml-16">
         <NavbarProdusen onLogout={() => { localStorage.clear(); navigate('/'); }} className="print:hidden" />
        

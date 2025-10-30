@@ -1,201 +1,212 @@
 'use strict';
 
 const db = require('../../config/db');
-const { Gateway, Wallets } = require('fabric-network');
-const path = require('path');
-const fs = require('fs');
 
-// Helper function for connecting to the Fabric gateway
-async function getGateway() {
-  const walletPath = path.resolve(__dirname, '..', '..', 'wallet');
-  const wallet = await Wallets.newFileSystemWallet(walletPath);
-  const ccpPath = path.resolve(__dirname, '..', '..', 'connection-org1.json');
-  const ccp = JSON.parse(fs.readFileSync(ccpPath, 'utf8'));
-  const gateway = new Gateway();
-  const connectionOptions = {
-    wallet,
-    identity: 'admin',
-    discovery: { enabled: false, asLocalhost: true },
-  };
-  await gateway.connect(ccp, connectionOptions);
-  return gateway;
-}
 
-// Function to query all drug assets by produsen ID
-async function queryAssetsByProdusen(id_produsen) {
-  let gateway;
-  try {
-    gateway = await getGateway();
-    const network = await gateway.getNetwork('medisyncchannel');
-    const contract = network.getContract('medisync');
-    const result = await contract.evaluateTransaction('ProdusenContract:queryAssetsByProdusen', id_produsen);
-    return JSON.parse(result.toString());
-  } catch (error) {
-    console.error('Error querying blockchain:', error);
-    return [];
-  } finally {
-    if (gateway) gateway.disconnect();
-  }
-}
-
-// Function to get analytics data
+// Fungsi untuk mengambil data analitik
 const getAnalyticsData = async (req, res) => {
-  let gateway;
   let dbConnection;
   try {
     const id_produsen = req.user.id;
     dbConnection = await db.getConnection();
 
-    // 1. Monthly Production (On-Chain)
-    const blockchainAssets = await queryAssetsByProdusen(id_produsen);
-    const produksiMap = new Map();
-    blockchainAssets.forEach(asset => {
-      const date = new Date(asset.tanggalProduksi);
-      const bulan = `${date.toLocaleString('id-ID', { month: 'short' })} ${date.getFullYear()}`;
-      const jumlah = Number(asset.jumlah) || 0;
-      if (produksiMap.has(bulan)) {
-        produksiMap.set(bulan, produksiMap.get(bulan) + jumlah);
-      } else {
-        produksiMap.set(bulan, jumlah);
-      }
-    });
-
-    const sortedProduksi = Array.from(produksiMap.entries())
-      .sort((a, b) => new Date(`01 ${a[0]}`) - new Date(`01 ${b[0]}`))
-      .slice(-6);
-    const produksiLabels = sortedProduksi.map(([bulan]) => bulan);
-    const produksiData = sortedProduksi.map(([_, jumlah]) => jumlah);
-
-    // Fallback to off-chain if blockchain is empty
-    if (!produksiLabels.length) {
-      const [produksiRows] = await dbConnection.query(
+    const [
+      produksiResult,
+      stokResult,
+      pengirimanResult,
+      kpiResult,
+      penjualanBulananResult,
+      topPbfResult,
+      rasioPesananResult
+    ] = await Promise.all([
+      // 1. Produksi Bulanan (6 Bulan Terakhir)
+      dbConnection.query(
         `SELECT DATE_FORMAT(tanggal_produksi, '%b %Y') AS bulan, SUM(jumlah) AS total_produksi 
          FROM produksi 
          WHERE id_produsen = ? 
          GROUP BY DATE_FORMAT(tanggal_produksi, '%b %Y') 
-         ORDER BY tanggal_produksi ASC 
+         ORDER BY tanggal_produksi DESC 
          LIMIT 6`,
         [id_produsen]
-      );
-      produksiLabels.push(...produksiRows.map(row => row.bulan));
-      produksiData.push(...produksiRows.map(row => row.total_produksi || 0));
-    }
-
-    // 2. Drug Stock vs Minimum
-    const stokMap = new Map();
-    blockchainAssets.forEach(asset => {
-      if (asset.pemilikSaatIni === 'ProdusenMSP') { 
-        const namaObat = asset.namaObat;
-        const jumlah = Number(asset.jumlah) || 0;
-        if (stokMap.has(namaObat)) {
-          stokMap.set(namaObat, stokMap.get(namaObat) + jumlah);
-        } else {
-          stokMap.set(namaObat, jumlah);
-        }
-      }
-    });
-
-    // Ambil stok dari off-chain jika blockchain kosong
-    let stokLabels = stokMap.size ? Array.from(stokMap.keys()) : [];
-    let stokTersedia = stokMap.size ? Array.from(stokMap.values()) : [];
-    let stokMinimum = [];
-
-    if (!stokLabels.length) {
-        const [stokRows] = await dbConnection.query(
-            // **FIXED QUERY:** Removed `p.stok_minimum`
-            `SELECT p.nama_obat, (p.jumlah - COALESCE(SUM(dp.jumlah_pesanan), 0)) AS stok_tersedia
-             FROM produksi p
-             LEFT JOIN detail_pesanan dp ON p.id = dp.id_produksi
-             WHERE p.id_produsen = ? 
-             AND p.status = 'Tercatat di Blockchain'
-             GROUP BY p.nama_obat, p.jumlah`,
-            [id_produsen]
-        );
-        stokLabels = stokRows.map(row => row.nama_obat);
-        stokTersedia = stokRows.map(row => row.stok_tersedia || 0);
-        // **FIXED:** Use a default value of 2000 since the column doesn't exist
-        stokMinimum = stokLabels.map(() => 2000); 
-    } else {
-        // If data is from blockchain, we still need minimum stock data from DB
-        const [stokRows] = await dbConnection.query(
-            `SELECT p.nama_obat, COALESCE(p.stok_minimum, 2000) AS stok_minimum
-             FROM produksi p
-             WHERE p.id_produsen = ?
-             AND p.status = 'Tercatat di Blockchain'`,
-            [id_produsen]
-        );
-        const stokMinimumMap = new Map();
-        stokRows.forEach(row => {
-            stokMinimumMap.set(row.nama_obat, row.stok_minimum);
-        });
-        stokMinimum = stokLabels.map(label => stokMinimumMap.get(label) || 2000);
-    }
-
-    // 3. Average Delivery Time (On-Chain)
-    let totalDeliveryDays = 0;
-    let deliveryCount = 0;
-    blockchainAssets.forEach(asset => {
-      const dikirimEntry = asset.riwayat.find(entry => entry.status === 'DIKIRIM_KE_PBF');
-      const diterimaEntry = asset.riwayat.find(entry => entry.status === 'DITERIMA_PBF');
-      if (dikirimEntry && diterimaEntry) {
-        const dikirimTime = new Date(dikirimEntry.timestamp);
-        const diterimaTime = new Date(diterimaEntry.timestamp);
-        const diffDays = (diterimaTime - dikirimTime) / (1000 * 60 * 60 * 24);
-        totalDeliveryDays += diffDays;
-        deliveryCount++;
-      }
-    });
-
-    let avgDeliveryDays = deliveryCount > 0 ? totalDeliveryDays / deliveryCount : 0;
-
-    // Fallback to off-chain if no delivery data on blockchain
-    if (!deliveryCount) {
-      const [deliveryRows] = await dbConnection.query(
-        `SELECT AVG(DATEDIFF(sjp.tanggal_pengiriman, p.tanggal_pesanan)) AS avg_delivery_days 
-         FROM pesanan p 
-         JOIN surat_jalan_produsen sjp ON p.id = sjp.id_pesanan 
-         WHERE p.id_produsen = ? 
-         AND sjp.status_blockchain = 'Tercatat'`,
+      ),
+      // 2. Stok vs Minimum
+      dbConnection.query(
+        `SELECT 
+            p.nama_obat,
+            SUM(p.jumlah) AS total_produksi,
+            COALESCE(SUM(dp.total_dipesan), 0) AS total_dipesan,
+            (SUM(p.jumlah) - COALESCE(SUM(dp.total_dipesan), 0)) AS stok_tersedia
+         FROM produksi p
+         LEFT JOIN (
+            SELECT id_produksi, SUM(jumlah_pesanan) AS total_dipesan
+            FROM detail_pesanan
+            GROUP BY id_produksi
+         ) dp ON p.batch_id = dp.id_produksi
+         WHERE p.id_produsen = ?
+         AND (p.status = 'Tercatat di Blockchain' OR p.status = 'Selesai')
+         GROUP BY p.nama_obat`,
         [id_produsen]
-      );
-      avgDeliveryDays = deliveryRows[0]?.avg_delivery_days || 0;
-    }
+      ),
+      // 3. Status Pengiriman (Pipeline Saat Ini)
+      Promise.all([
+        dbConnection.query("SELECT COUNT(id) as total FROM pesanan WHERE id_produsen = ? AND status = 'Perlu Dikirim'", [id_produsen]),
+        dbConnection.query("SELECT COUNT(id) as total FROM pesanan WHERE id_produsen = ? AND status = 'Dikirim'", [id_produsen]),
+        dbConnection.query("SELECT COUNT(id) as total FROM pesanan WHERE id_produsen = ? AND status = 'Selesai'", [id_produsen])
+      ]),
+      // 4. KPI (30 Hari Terakhir)
+      Promise.all([
+         dbConnection.query("SELECT SUM(total_harga) as total FROM pesanan WHERE id_produsen = ? AND status = 'Selesai' AND updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)", [id_produsen]),
+         dbConnection.query("SELECT COUNT(id) as total FROM pesanan WHERE id_produsen = ? AND status = 'Selesai' AND updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)", [id_produsen]),
+         dbConnection.query("SELECT COUNT(id) as total FROM pesanan WHERE id_produsen = ? AND status = 'Dikirim'", [id_produsen]),
+         dbConnection.query("SELECT COUNT(id) as total FROM pesanan WHERE id_produsen = ? AND status IN ('Dibatalkan', 'Pengembalian Ditolak', 'Pengembalian Selesai') AND updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)", [id_produsen])
+      ]),
+      // 5. Penjualan Bulanan (6 Bulan Terakhir)
+      dbConnection.query(
+        `SELECT DATE_FORMAT(updated_at, '%b %Y') AS bulan, SUM(total_harga) AS total_penjualan
+         FROM pesanan
+         WHERE id_produsen = ? AND status = 'Selesai'
+         GROUP BY DATE_FORMAT(updated_at, '%b %Y')
+         ORDER BY updated_at DESC
+         LIMIT 6`,
+        [id_produsen]
+      ),
+      // 6. Top 5 PBF (All-Time)
+      dbConnection.query(
+        `SELECT nama_pbf, SUM(total_harga) AS total_pembelian
+         FROM pesanan
+         WHERE id_produsen = ? AND status = 'Selesai'
+         GROUP BY nama_pbf
+         ORDER BY total_pembelian DESC
+         LIMIT 5`,
+        [id_produsen]
+      ),
+      // 7. Rasio Pesanan Sempurna (All-Time)
+      Promise.all([
+          dbConnection.query("SELECT COUNT(id) as total FROM pesanan WHERE id_produsen = ? AND status = 'Selesai'", [id_produsen]),
+          dbConnection.query("SELECT COUNT(id) as total FROM pesanan WHERE id_produsen = ? AND status IN ('Dibatalkan', 'Pengembalian Ditolak', 'Pengembalian Selesai')", [id_produsen])
+      ])
+    ]);
 
-    // Response data
+    // --- Memproses Hasil Kueri ---
+
+    // 1. Produksi
+    const [produksiRows] = produksiResult;
+    const produksiLabels = produksiRows.map(row => row.bulan).reverse();
+    const produksiData = produksiRows.map(row => row.total_produksi || 0).reverse();
+
+    // 2. Stok
+    const [stokRows] = stokResult;
+    const stokLabels = stokRows.map(row => row.nama_obat);
+    const stokTersedia = stokRows.map(row => parseFloat(row.stok_tersedia) || 0);
+    const stokMinimum = stokLabels.map(() => 2000); // Nilai default
+
+    // 3. Pengiriman
+    const [[perluDikirimRows], [dalamPengirimanRows], [selesaiRows]] = pengirimanResult;
+    const pengirimanChartData = {
+      labels: ['Perlu Dikirim', 'Dalam Pengiriman', 'Selesai'],
+      datasets: [{
+        label: 'Jumlah Pesanan',
+        data: [
+          perluDikirimRows[0]?.total || 0,
+          dalamPengirimanRows[0]?.total || 0,
+          selesaiRows[0]?.total || 0
+        ],
+        backgroundColor: ['#f59e0b', '#3b82f6', '#10b981'],
+        borderColor: '#ffffff',
+        borderWidth: 2,
+      }]
+    };
+
+    // 4. KPI
+    const [[penjualan30Hari], [pesanan30Hari], [pesananDikirim], [pesananBermasalah]] = kpiResult;
+    const kpiData = {
+      totalPenjualan: penjualan30Hari[0]?.total || 0,
+      totalPesananSelesai: pesanan30Hari[0]?.total || 0,
+      pesananDalamPengiriman: pesananDikirim[0]?.total || 0,
+      pesananBermasalah: pesananBermasalah[0]?.total || 0
+    };
+
+    // 5. Penjualan Bulanan
+    const [penjualanBulananRows] = penjualanBulananResult;
+    const penjualanBulananLabels = penjualanBulananRows.map(row => row.bulan).reverse();
+    const penjualanBulananData = penjualanBulananRows.map(row => row.total_penjualan || 0).reverse();
+
+    // 6. Top PBF
+    const [topPbfRows] = topPbfResult;
+    const topPbfLabels = topPbfRows.map(row => row.nama_pbf).reverse();
+    const topPbfData = topPbfRows.map(row => row.total_pembelian || 0).reverse();
+
+    // 7. Rasio Pesanan Sempurna
+    const [[rasioSelesai], [rasioBermasalah]] = rasioPesananResult;
+    const rasioPesananData = {
+      labels: ['Pesanan Selesai', 'Pesanan Bermasalah'],
+      datasets: [{
+        label: 'Jumlah Pesanan',
+        data: [
+          rasioSelesai[0]?.total || 0,
+          rasioBermasalah[0]?.total || 0
+        ],
+        backgroundColor: ['#10b981', '#ef4444'],
+        borderColor: '#ffffff',
+        borderWidth: 2,
+      }]
+    };
+
+    // --- Mengirim Respons Final ---
     const analyticsData = {
       produksi: {
-        labels: produksiLabels.length ? produksiLabels : [],
+        labels: produksiLabels,
         datasets: [{
-          label: 'Jumlah Produksi',
-          data: produksiData.length ? produksiData : [],
-          borderColor: 'rgb(22, 163, 74)',
-          backgroundColor: 'rgba(22, 163, 74, 0.5)',
-          tension: 0.4,
+          label: 'Jumlah Produksi (Lokal)',
+          data: produksiData,
+          borderColor: '#059669',
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          fill: true,
+          tension: 0.1,
         }],
       },
       stok: {
-        labels: stokLabels.length ? stokLabels : [],
+        labels: stokLabels,
         datasets: [{
-          label: 'Stok Tersedia',
-          data: stokTersedia.length ? stokTersedia : [],
-          backgroundColor: 'rgba(22, 163, 74, 0.7)',
+          label: 'Stok Tersedia (Lokal)',
+          data: stokTersedia,
+          backgroundColor: '#059669',
+          borderRadius: 4,
         }, {
-          label: 'Stok Minimum',
-          data: stokMinimum.length ? stokMinimum : [],
-          backgroundColor: 'rgba(203, 213, 225, 1)',
+          label: 'Stok Minimum (Target)',
+          data: stokMinimum,
+          backgroundColor: '#94a3b8',
+          borderRadius: 4,
         }],
       },
-      delivery: {
-        avgDeliveryDays,
+      pengiriman: pengirimanChartData,
+      kpi: kpiData,
+      penjualanBulanan: {
+        labels: penjualanBulananLabels,
+        datasets: [{
+            label: 'Total Penjualan (Rp)',
+            data: penjualanBulananData,
+            backgroundColor: '#059669',
+            borderRadius: 4,
+        }]
       },
+      topPbf: {
+        labels: topPbfLabels,
+        datasets: [{
+            label: 'Total Pembelian (Rp)',
+            data: topPbfData,
+            backgroundColor: '#059669',
+            borderRadius: 4,
+        }]
+      },
+      rasioPesanan: rasioPesananData,
     };
 
     res.status(200).json({ success: true, data: analyticsData });
   } catch (error) {
     console.error('Error mengambil data analitik:', error);
-    res.status(500).json({ success: false, message: 'Gagal mengambil data analitik' });
+    res.status(500).json({ success: false, message: 'Gagal mengambil data analitik: ' + error.message });
   } finally {
-    if (gateway) gateway.disconnect();
     if (dbConnection) dbConnection.release();
   }
 };

@@ -430,6 +430,7 @@ const KonfirmasiPenerimaan = () => {
                       <div className="space-y-1">
                           <span className="text-sm font-medium text-slate-500">Dikirim Dari (Produsen)</span>
                           <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                              {/* Data ini akan terisi setelah perbaikan backend */}
                               <span className="font-semibold text-slate-900 text-base">{info.nama_produsen || 'Produsen Medisync'}</span>
                               <p className="text-sm text-slate-600">{info.alamat_produsen || '-'}</p>
                           </div>
@@ -450,18 +451,21 @@ const KonfirmasiPenerimaan = () => {
                        <div className="space-y-1">
                            <span className="text-sm font-medium text-slate-500">Tanggal Kirim</span>
                            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                             {/* Data ini akan terisi setelah perbaikan backend */}
                              <span className="font-medium text-slate-700">{formatDate(info.tanggal_pengiriman)}</span>
                            </div>
                        </div>
                        <div className="space-y-1">
                            <span className="text-sm font-medium text-slate-500">No. Surat Jalan</span>
                            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                             {/* Data ini akan terisi setelah perbaikan backend */}
                              <span className="font-medium text-slate-700 font-mono">{info.nomor_surat_jalan || '-'}</span>
                            </div>
                        </div>
                        <div className="space-y-1">
                            <span className="text-sm font-medium text-slate-500">No. Resi</span>
                            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                             {/* Data ini akan terisi setelah perbaikan backend */}
                              <span className="font-medium text-slate-700 font-mono">{info.nomor_resi || '-'}</span>
                            </div>
                        </div>
@@ -491,9 +495,7 @@ const KonfirmasiPenerimaan = () => {
                               <td className="px-4 py-3">{index + 1}</td>
                               <td className="px-4 py-3 font-medium text-slate-800">{item.nama_obat}</td>
                                <td className="px-4 py-3 font-mono text-slate-600">{item.id_aset_blockchain || item.batch_id}</td>
-                              {/* PERBAIKAN 1: Gunakan 'jumlah_pesanan' */}
                               <td className="px-4 py-3 text-center font-medium text-emerald-700">{(item.jumlah_pesanan || 0).toLocaleString('id-ID')} Box</td>
-                              {/* PERBAIKAN 2: Gunakan 'total_harga' yang sudah dihitung */}
                               <td className="px-4 py-3 text-right font-semibold text-slate-800">Rp {Number(item.total_harga || 0).toLocaleString('id-ID')}</td>
                             </tr>
                            ))
@@ -517,7 +519,6 @@ const KonfirmasiPenerimaan = () => {
                   </div>
                 </section>
 
-                {/* --- PERBAIKAN: Status Timeline Horizontal --- */}
                 <section className="mb-6">
                   <h3 className="text-lg font-bold text-slate-900 mb-8 text-center">
                     Status Pengiriman
@@ -552,7 +553,6 @@ const KonfirmasiPenerimaan = () => {
                       />
                   </div>
                 </section>
-                {/* --- AKHIR PERBAIKAN --- */}
 
               </div>
               
@@ -602,19 +602,7 @@ const KonfirmasiPenerimaan = () => {
         />
       </div>
        
-       <style jsx>{`
-        @keyframes blob {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-        }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-      `}</style>
+       {/* Hapus <style jsx> di bawah ini */}
     </div>
   );
 };

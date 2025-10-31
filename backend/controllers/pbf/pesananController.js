@@ -158,6 +158,7 @@ const pesananController = {
   WHERE p.id_pbf = ? 
   ORDER BY p.tanggal_pesanan DESC
 `;
+
       const [rows] = await db.query(sql, [req.user.id]);
       res.json({ success: true, data: rows });
     } catch (error) {
@@ -172,9 +173,16 @@ const pesananController = {
     try {
       const { id } = req.params;
       const sqlPesanan = `
-        SELECT p.*, u.nama_resmi AS nama_produsen
+        SELECT 
+          p.*, 
+          u.nama_resmi AS nama_produsen,
+          u.alamat AS alamat_produsen,          -- 1. Tambahkan alamat produsen
+          sjp.nomor_resi,                     -- 2. Tambahkan nomor resi
+          sjp.nomor_surat_jalan,            -- 3. Tambahkan nomor surat jalan
+          sjp.tanggal_pengiriman            -- 4. Tambahkan tanggal pengiriman
         FROM pesanan p
         JOIN users u ON p.id_produsen = u.id
+        LEFT JOIN surat_jalan_produsen sjp ON p.id = sjp.id_pesanan -- 5. Tambahkan LEFT JOIN
         WHERE p.id = ? AND p.id_pbf = ?
       `;
       const [pesanan] = await db.query(sqlPesanan, [id, req.user.id]);

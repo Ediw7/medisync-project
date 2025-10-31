@@ -594,6 +594,36 @@ const pesananController = {
             if (dbConnection) dbConnection.release();
         }
     },
+
+    acknowledgeRejection: async (req, res) => {
+    const { id } = req.params;
+    const idPbf = req.user.id;
+
+    try {
+      // 1. Pastikan pesanan ada dan statusnya 'Pembatalan Ditolak'
+      const [pesanan] = await db.query(
+        "SELECT id FROM pesanan WHERE id = ? AND id_pbf = ? AND status = 'Pembatalan Ditolak'",
+        [id, idPbf]
+      );
+
+      if (pesanan.length === 0) {
+        return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan atau statusnya tidak valid.' });
+      }
+
+      // 2. PERUBAHAN UTAMA: Ubah status menjadi 'Dibatalkan', bukan 'Perlu Dikirim'
+      await db.query(
+        "UPDATE pesanan SET status = 'Dibatalkan' WHERE id = ?",
+        [id]
+      );
+
+      // 3. Ubah pesan sukses
+      res.json({ success: true, message: 'Pesanan lama telah dibatalkan.' });
+
+    } catch (error) {
+      console.error('Error in acknowledgeRejection:', error);
+      res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+    }
+  },
   
 
   

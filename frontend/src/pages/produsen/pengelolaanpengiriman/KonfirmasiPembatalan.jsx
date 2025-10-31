@@ -17,9 +17,9 @@ import {
   Info
 } from 'lucide-react';
 import axios from 'axios';
-import { toast } from 'react-hot-toast'; // Menggunakan toast untuk notifikasi
+import { toast } from 'react-hot-toast'; 
 
-// --- Modal Konfirmasi ---
+// --- Modal Konfirmasi (Setuju) ---
 const ConfirmationModal = ({ show, onClose, onConfirm, isSubmitting }) => {
   if (!show) return null;
   return (
@@ -54,6 +54,7 @@ const ConfirmationModal = ({ show, onClose, onConfirm, isSubmitting }) => {
   );
 };
 
+// --- Modal BARU untuk Penolakan ---
 const RejectModal = ({ show, onClose, onConfirm, isSubmitting }) => {
   const [alasan, setAlasan] = useState('');
 
@@ -64,7 +65,7 @@ const RejectModal = ({ show, onClose, onConfirm, isSubmitting }) => {
       toast.error('Alasan penolakan tidak boleh kosong.');
       return;
     }
-    onConfirm('Perlu Dikirim', alasan); // Kirim status 'Perlu Dikirim' dan alasannya
+    onConfirm('Pembatalan Ditolak', alasan); // Kirim status 'Pembatalan Ditolak' dan alasannya
   };
 
   return (
@@ -75,7 +76,7 @@ const RejectModal = ({ show, onClose, onConfirm, isSubmitting }) => {
         </div>
         <h3 className="text-xl font-bold text-gray-900 text-center">Tolak Pengajuan Pembatalan?</h3>
         <p className="text-gray-500 mt-2 text-sm text-center">
-          Pesanan akan dikembalikan ke status 'Perlu Dikirim'. Masukkan alasan penolakan.
+          Pesanan akan ditandai sebagai 'Pembatalan Ditolak'. Masukkan alasan penolakan.
         </p>
         <div className="mt-6">
           <label htmlFor="alasan_penolakan" className="block text-sm font-medium text-gray-700 mb-1">
@@ -112,6 +113,7 @@ const RejectModal = ({ show, onClose, onConfirm, isSubmitting }) => {
   );
 };
 
+
 const KonfirmasiPembatalan = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -121,10 +123,10 @@ const KonfirmasiPembatalan = () => {
   const [pesanan, setPesanan] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false); // State baru
   const username = localStorage.getItem('username');
 
-  // --- LOGIKA FETCH DATA (TIDAK DIUBAH) ---
+  // --- LOGIKA FETCH DATA ---
   useEffect(() => {
     const fetchPesananData = async () => {
       setIsLoading(true);
@@ -133,7 +135,7 @@ const KonfirmasiPembatalan = () => {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('Silakan login terlebih dahulu');
 
-        const cleanedId = id.replace(':', ''); // Membersihkan ID jika perlu
+        const cleanedId = id.replace(':', ''); 
         
         const response = await axios.get(`http://localhost:5000/api/produsen/pesanan-masuk/${cleanedId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -151,8 +153,7 @@ const KonfirmasiPembatalan = () => {
       } catch (err) {
         const errorMsg = err.response?.data?.message || err.message || 'Gagal memuat data.';
         setError(errorMsg);
-        toast.error(errorMsg); // Gunakan toast untuk error
-        // Redirect logic
+        toast.error(errorMsg); 
         if ((err.message.includes('401') || err.message.includes('403') || err.message.includes('login')) && localStorage.getItem('token')) {
             navigate('/login/produsen');
         } else if (!localStorage.getItem('token')) {
@@ -163,9 +164,9 @@ const KonfirmasiPembatalan = () => {
       }
     };
     fetchPesananData();
-  }, [id, navigate]); // Dependensi tetap
+  }, [id, navigate]); 
 
-  // --- LOGIKA AKSI (TIDAK DIUBAH, HANYA ALERT -> TOAST) ---
+  // --- LOGIKA AKSI (Sudah diubah untuk modal baru) ---
   const handleAction = async (newStatus, alasan_penolakan = null) => {
     setIsSubmitting(true);
     setError(null);
@@ -178,14 +179,13 @@ const KonfirmasiPembatalan = () => {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Sesi tidak valid.');
 
-      // Kirim data yang sesuai
       const payload = { 
         status: newStatus, 
-        ...(alasan_penolakan && { alasan_penolakan }) // Tambahkan alasan jika ada
+        ...(alasan_penolakan && { alasan_penolakan }) 
       };
 
       const response = await axios.put(`http://localhost:5000/api/produsen/pembatalan/${cleanedId}/konfirmasi-pembatalan`,
-        payload, // Kirim payload
+        payload, 
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
 
@@ -206,7 +206,7 @@ const KonfirmasiPembatalan = () => {
     }
   };
 
-  // --- FORMAT TANGGAL (TIDAK DIUBAH) ---
+  // --- FORMAT TANGGAL ---
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     try {
@@ -214,7 +214,7 @@ const KonfirmasiPembatalan = () => {
         if(isNaN(date.getTime())) return '-';
         return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' });
     } catch(e) {
-        return '-'; // Return '-' jika error format
+        return '-'; 
     }
   };
   
@@ -223,7 +223,7 @@ const KonfirmasiPembatalan = () => {
     navigate('/');
   };
 
-  // --- RENDER LOADING (DESAIN BARU) ---
+  // --- RENDER LOADING ---
   if (isLoading) {
      return (
        <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
@@ -236,7 +236,7 @@ const KonfirmasiPembatalan = () => {
     );
   }
 
-  // --- RENDER ERROR UTAMA (DESAIN BARU) ---
+  // --- RENDER ERROR UTAMA ---
   if (error && !pesanan) {
      return (
        <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
@@ -262,7 +262,7 @@ const KonfirmasiPembatalan = () => {
     );
   }
 
-  // --- RENDER DATA TIDAK DITEMUKAN (DESAIN BARU) ---
+  // --- RENDER DATA TIDAK DITEMUKAN ---
   if (!pesanan) {
      return (
         <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
@@ -288,14 +288,14 @@ const KonfirmasiPembatalan = () => {
      );
   }
   
-  // --- HITUNG DEADLINE & STATUS (TIDAK DIUBAH) ---
+  // --- HITUNG DEADLINE & STATUS ---
   const deadlineDate = pesanan.tanggal_pengajuan_pembatalan
     ? new Date(new Date(pesanan.tanggal_pengajuan_pembatalan).getTime() + 2 * 24 * 60 * 60 * 1000)
     : null;
   const deadlineFormatted = deadlineDate ? formatDate(deadlineDate) : 'N/A';
   const canTakeAction = pesanan.status === 'Pembatalan Diajukan';
 
-  // --- RENDER UTAMA (DESAIN BARU) ---
+  // --- RENDER UTAMA ---
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
@@ -311,7 +311,7 @@ const KonfirmasiPembatalan = () => {
               <ArrowLeft size={16} className="mr-1" /> Kembali ke Daftar Pembatalan
             </button>
             
-            {error && !isLoading && !isSubmitting && ( // Tampilkan error aksi jika ada
+            {error && !isLoading && !isSubmitting && ( 
               <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3">
                 <AlertCircle size={20} />
                 <span>Terjadi kesalahan saat memproses: {error}</span>
@@ -405,13 +405,13 @@ const KonfirmasiPembatalan = () => {
                   </div>
                </div>
 
-               {/* FOOTER AKSI */}
+               {/* FOOTER AKSI (Sudah diubah) */}
                <div className="p-6 flex flex-col sm:flex-row justify-end items-center gap-3 border-t border-slate-200">
                  {canTakeAction ? (
                    <>
                      <p className="text-sm text-slate-600 mr-auto">Mohon konfirmasi sebelum batas waktu.</p>
                      <button
-                       onClick={() => handleAction('Perlu Dikirim')} // Kembalikan ke status awal jika ditolak
+                       onClick={() => setShowRejectModal(true)} // Tampilkan modal tolak
                        className="w-full sm:w-auto px-6 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition flex items-center justify-center gap-2"
                        disabled={isSubmitting}
                      >
@@ -440,24 +440,19 @@ const KonfirmasiPembatalan = () => {
       <ConfirmationModal
         show={showConfirmModal}
         onClose={() => setShowConfirmModal(false)}
-        onConfirm={handleAction} // handleAction akan dipanggil dgn 'Dibatalkan'
+        onConfirm={handleAction} 
+        isSubmitting={isSubmitting}
+      />
+      
+      {/* MODAL BARU */}
+      <RejectModal
+        show={showRejectModal}
+        onClose={() => setShowRejectModal(false)}
+        onConfirm={handleAction}
         isSubmitting={isSubmitting}
       />
 
-      {/* STYLE BLOB (JIKA DIPERLUKAN) */}
-      <style jsx>{`
-        @keyframes blob {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-        }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-      `}</style>
+      {/* Hapus <style jsx> */}
     </div>
   );
 };

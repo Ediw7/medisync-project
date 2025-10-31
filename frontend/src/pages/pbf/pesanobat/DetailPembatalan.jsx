@@ -12,15 +12,16 @@ import {
   XCircle,
   DollarSign,
   User,
-  MessageSquare
+  MessageSquare,
+  RefreshCw,
+  Edit
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
-// ... (Komponen StatusTimeline dan InfoCard tidak berubah) ...
-// Komponen untuk timeline status
+// --- Komponen StatusTimeline (TIDAK BERUBAH) ---
 const StatusTimeline = ({ pesanan, alasanPenolakan }) => {
-  const { status } = pesanan; // Ambil status dari objek pesanan
+  const { status } = pesanan; 
   const steps = [
     { name: 'Pengajuan Dibuat', status: 'completed' },
     { name: 'Menunggu Konfirmasi Produsen', status: 'pending' },
@@ -34,8 +35,7 @@ const StatusTimeline = ({ pesanan, alasanPenolakan }) => {
     steps[1].status = 'completed';
     steps[2].name = 'Pembatalan Berhasil';
     steps[2].status = 'completed';
-  } else if (status === 'Perlu Dikirim' && pesanan.alasan_penolakan && pesanan.alasan_penolakan !== '-') { 
-    // MODIFIKASI: Cek status 'Perlu Dikirim' DAN adanya alasan penolakan
+} else if (status === 'Pembatalan Ditolak') {
     steps[1].name = 'Ditolak Produsen';
     steps[1].status = 'rejected';
     steps[2].name = 'Pembatalan Gagal';
@@ -46,7 +46,7 @@ const StatusTimeline = ({ pesanan, alasanPenolakan }) => {
     <nav aria-label="Progress" className="mt-6 mb-8">
       <ol role="list" className="flex items-center justify-center space-x-4">
         {steps.map((step, index) => (
-          <li key={step.name} className="flex-1 relative"> {/* Tambahkan relative */}
+          <li key={step.name} className="flex-1 relative">
             {step.status === 'completed' ? (
               <div className="group flex flex-col items-center text-center">
                 <span className="flex items-center">
@@ -84,8 +84,6 @@ const StatusTimeline = ({ pesanan, alasanPenolakan }) => {
                 <span className="mt-2 text-sm font-medium text-gray-500">{step.name}</span>
               </div>
             )}
-
-            {/* Garis penghubung, tidak ditampilkan setelah step terakhir */}
             {index < steps.length - 1 && (
               <div className={`absolute top-5 left-1/2 w-full -ml-px ${
                 step.status === 'completed' ? 'bg-emerald-600' : 'bg-gray-300'
@@ -94,8 +92,7 @@ const StatusTimeline = ({ pesanan, alasanPenolakan }) => {
           </li>
         ))}
       </ol>
-       {/* Menampilkan Alasan Penolakan jika ada */}
-       {status === 'Perlu Dikirim' && alasanPenolakan && alasanPenolakan !== '-' && ( // Cek status 'Perlu Dikirim'
+       {status === 'Pembatalan Ditolak' && alasanPenolakan && alasanPenolakan !== '-' && (
         <div className="mt-8 p-4 bg-red-50 border border-red-200 rounded-lg text-center">
           <h4 className="font-semibold text-red-800">Alasan Penolakan dari Produsen:</h4>
           <p className="text-red-700 mt-1 italic">"{alasanPenolakan}"</p>
@@ -105,7 +102,7 @@ const StatusTimeline = ({ pesanan, alasanPenolakan }) => {
   );
 };
 
-// Komponen untuk Card Info
+// --- Komponen InfoCard (TIDAK BERUBAH) ---
 const InfoCard = ({ status, pesanan }) => {
   const formatDate = (dateString) => {
     if (!dateString) return '-';
@@ -132,22 +129,12 @@ const InfoCard = ({ status, pesanan }) => {
           color: "emerald",
           message: "Produsen telah menyetujui pembatalan. Dana akan dikembalikan sesuai kebijakan."
         };
-      case 'Perlu Dikirim':
-        // Cek apakah ini penolakan atau pesanan baru
-        if (pesanan.alasan_penolakan && pesanan.alasan_penolakan !== '-') {
-          return {
-            icon: <XCircle size={24} />,
-            title: "Pengajuan Ditolak",
-            color: "red",
-            message: "Produsen menolak pengajuan pembatalan Anda. Pesanan akan kembali ke status 'Perlu Dikirim'."
-          };
-        }
-        // Fallback jika statusnya 'Perlu Dikirim' tapi BUKAN penolakan
+        case 'Pembatalan Ditolak':
         return {
-          icon: <AlertCircle size={24} />,
-          title: "Status Pesanan Aktif",
-          color: "gray",
-          message: "Pesanan ini berstatus 'Perlu Dikirim' dan tidak sedang dalam proses pembatalan."
+          icon: <XCircle size={24} />,
+          title: "Pengajuan Ditolak",
+          color: "red",
+          message: "Produsen menolak pengajuan pembatalan Anda. Harap tinjau alasan dan perbaiki pesanan."
         };
       default:
         return {
@@ -179,9 +166,7 @@ const InfoCard = ({ status, pesanan }) => {
           <p className={`mt-1 text-base ${c.text}`}>{card.message}</p>
         </div>
       </div>
-
       <div className="mt-6 border-t border-slate-200 pt-6 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-        {/* Alasan Pembatalan */}
         <div className="flex items-start gap-3">
           <MessageSquare className="w-5 h-5 text-slate-500 mt-0.5 flex-shrink-0" />
           <div>
@@ -189,7 +174,6 @@ const InfoCard = ({ status, pesanan }) => {
             <p className="text-sm font-semibold text-slate-900">{pesanan.alasan_pembatalan || '-'}</p>
           </div>
         </div>
-        {/* Status Pengembalian Dana */}
         {status === 'Dibatalkan' && (
           <div className="flex items-start gap-3">
             <DollarSign className="w-5 h-5 text-emerald-600 mt-0.5 flex-shrink-0" />
@@ -199,7 +183,6 @@ const InfoCard = ({ status, pesanan }) => {
             </div>
           </div>
         )}
-        {/* Produsen */}
         <div className="flex items-start gap-3">
           <User className="w-5 h-5 text-slate-500 mt-0.5 flex-shrink-0" />
           <div>
@@ -207,7 +190,6 @@ const InfoCard = ({ status, pesanan }) => {
             <p className="text-sm font-semibold text-slate-900">{pesanan.nama_produsen || '-'}</p>
           </div>
         </div>
-        {/* Nomor PO */}
         <div className="flex items-start gap-3">
           <FileText className="w-5 h-5 text-slate-500 mt-0.5 flex-shrink-0" />
           <div>
@@ -228,6 +210,7 @@ const DetailPembatalan = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [data, setData] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const username = localStorage.getItem('username');
 
   useEffect(() => {
@@ -243,9 +226,9 @@ const DetailPembatalan = () => {
         });
         
         if (response.data.success && response.data.data) {
-          const { status, catatan_khusus } = response.data.data.pesanan;
-          const isRejectedCancellation = status === 'Perlu Dikirim' && catatan_khusus && catatan_khusus.includes('[PENOLAKAN]:');
-          if (status !== 'Pembatalan Diajukan' && status !== 'Dibatalkan' && !isRejectedCancellation) {
+          const { status } = response.data.data.pesanan;
+          // Logika pengecekan status sudah benar
+          if (status !== 'Pembatalan Diajukan' && status !== 'Dibatalkan' && status !== 'Pembatalan Ditolak') {
              toast.warn(`Membuka detail pembatalan untuk pesanan yang berstatus "${status}".`);
           }
           setData(response.data.data);
@@ -271,7 +254,44 @@ const DetailPembatalan = () => {
     navigate('/');
   };
 
-  // --- RENDER LOADING (UTAMAKAN INI) ---
+  // --- Fungsi 'handleCancelAndClone' (TIDAK BERUBAH) ---
+  const handleCancelAndClone = async () => {
+    setIsSubmitting(true);
+    toast.loading('Membatalkan pesanan lama...');
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('Sesi tidak valid.');
+
+      const response = await axios.put(`http://localhost:5000/api/pbf/pesanan/${id}/acknowledge-rejection`, 
+        {}, 
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        toast.dismiss();
+        toast.success('Pesanan lama dibatalkan. Arahkan untuk perbaikan...');
+
+        const cloneData = {
+            pesanan: data.pesanan,
+            detail_pesanan: data.detail_pesanan
+        };
+        sessionStorage.setItem('cloneOrderData', JSON.stringify(cloneData));
+
+        navigate(`/pbf/pesan-obat/tambah/${data.pesanan.id_produsen}`);
+
+      } else {
+        throw new Error(response.data.message || 'Gagal membatalkan pesanan lama.');
+      }
+    } catch (err) {
+      toast.dismiss();
+      const errorMsg = err.response?.data?.message || err.message;
+      toast.error(errorMsg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // --- (Render Loading, Error, Data Tidak Ditemukan - TIDAK BERUBAH) ---
   if (isLoading) {
      return (
        <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
@@ -280,8 +300,6 @@ const DetailPembatalan = () => {
       </div>
     );
   }
-
-  // --- RENDER ERROR (KEDUA) ---
   if (error) {
      return (
        <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
@@ -306,8 +324,6 @@ const DetailPembatalan = () => {
       </div>
     );
   }
-
-  // --- RENDER DATA TIDAK DITEMUKAN (KETIGA) ---
   if (!data || !data.pesanan) {
     return (
        <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
@@ -333,8 +349,66 @@ const DetailPembatalan = () => {
      );
   }
   
-  // --- AMAN UNTUK RENDER ---
   const { pesanan, detail_pesanan } = data;
+
+  // --- FUNGSI BARU: RenderFooterAction ---
+  // Fungsi ini akan membedakan footer berdasarkan status
+  const RenderFooterAction = () => {
+    switch (pesanan.status) {
+      // SCENARIO 1: DITOLAK
+      case 'Pembatalan Ditolak':
+        return (
+          <div className="mt-8 p-6 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-slate-600">
+              Perbaiki kesalahan pesanan Anda dengan membatalkan pesanan ini dan membuat yang baru.
+            </p>
+            <button
+              onClick={handleCancelAndClone}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 transition disabled:bg-slate-400 flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Edit size={16} />}
+              Perbaiki & Buat Ulang Pesanan
+            </button>
+          </div>
+        );
+      
+      // SCENARIO 2: DITERIMA / DIBATALKAN
+      case 'Dibatalkan':
+        return (
+          <div className="mt-8 p-6 bg-white rounded-2xl shadow-sm border border-emerald-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="w-6 h-6 text-emerald-600" />
+              <p className="text-sm font-medium text-emerald-800">
+                Pesanan ini telah berhasil dibatalkan oleh Produsen.
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/pbf/pesan-obat')}
+              className="w-full sm:w-auto px-6 py-2.5 bg-slate-100 text-slate-700 font-medium rounded-lg hover:bg-slate-200 transition"
+            >
+              Kembali ke Daftar
+            </button>
+          </div>
+        );
+
+      // SCENARIO 3: MASIH MENUNGGU
+      case 'Pembatalan Diajukan':
+        return (
+          <div className="mt-8 p-6 bg-white rounded-2xl shadow-sm border border-yellow-200 flex items-center justify-center gap-3">
+            <Clock className="w-5 h-5 text-yellow-600" />
+            <p className="text-sm font-medium text-yellow-800">
+              Menunggu konfirmasi dari Produsen...
+            </p>
+          </div>
+        );
+
+      default:
+        return null; // Tidak menampilkan footer untuk status lain
+    }
+  };
+  // --- AKHIR FUNGSI BARU ---
+
 
   return (
     <div className="flex min-h-screen bg-slate-50">
@@ -398,6 +472,10 @@ const DetailPembatalan = () => {
                   </table>
                </div>
             </div>
+
+            {/* --- PERUBAHAN DISINI: Memanggil fungsi RenderFooterAction --- */}
+            <RenderFooterAction />
+            {/* --- AKHIR PERUBAHAN --- */}
             
           </div>
         </main>

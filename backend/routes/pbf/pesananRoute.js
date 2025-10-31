@@ -23,6 +23,6 @@ router.get('/:id/lacak-pengembalian', pesananController.getLacakPengembalianPbf)
 // Gunakan middleware yang sesuai untuk setiap rute unggah file
 router.put('/:id/konfirmasi', uploadPenerimaanMiddleware.single('buktiFoto'), pesananController.konfirmasiPenerimaan);
 router.post('/:id/ajukan-pengembalian', uploadPengembalianMiddleware.single('buktiFoto'), pesananController.ajukanPengembalian);
-
+router.put('/:id/acknowledge-rejection', pesananController.acknowledgeRejection);
 module.exports = router;
 

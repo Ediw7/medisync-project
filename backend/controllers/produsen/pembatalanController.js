@@ -6,7 +6,7 @@ const pembatalanController = {
   konfirmasiPembatalan: async (req, res) => {
     console.log(`Received request for /pesanan/${req.params.id}/konfirmasi-pembatalan`);
     const { id } = req.params;
-    const { status } = req.body; // 'Dibatalkan' atau 'Perlu Dikirim'
+    const { status, alasan_penolakan } = req.body;// 'Dibatalkan' atau 'Perlu Dikirim'
     const idProdusen = req.user.id;
 
     let dbConnection;
@@ -15,7 +15,7 @@ const pembatalanController = {
       await dbConnection.beginTransaction();
 
       const [currentPesanan] = await dbConnection.query(
-        "SELECT status FROM pesanan WHERE id = ? AND id_produsen = ?",
+        "SELECT status, catatan_khusus FROM pesanan WHERE id = ? AND id_produsen = ?",
         [id, idProdusen]
       );
 
@@ -32,23 +32,20 @@ const pembatalanController = {
         for (const item of items) {
           await dbConnection.query("UPDATE produksi SET jumlah = jumlah + ? WHERE id = ?", [item.jumlah_pesanan, item.id_produksi]);
         }
-        // Jika Dibatalkan, update status
         await dbConnection.query(`UPDATE pesanan SET status = ? WHERE id = ?`, [status, id]);
 
-      } else if (status === 'Perlu Dikirim') {
-        // JIKA DITOLAK (status kembali ke Perlu Dikirim)
-        if (!alasan_penolakan || alasan_penolakan.trim() === '') {
+      } else if (status === 'Pembatalan Ditolak') { 
+        // JIKA DITOLAK
+        if (!alasan_penolakan || alasan_penolakan.trim() === '') { // <-- Baris 40 sekarang aman
             throw new Error('Alasan penolakan wajib diisi saat menolak pembatalan.');
         }
-        // Tambahkan alasan penolakan ke catatan
         const catatanBaru = (currentPesanan[0].catatan_khusus || '') + `\n[PENOLAKAN]: ${alasan_penolakan}`;
         await dbConnection.query(`UPDATE pesanan SET status = ?, catatan_khusus = ? WHERE id = ?`, [status, catatanBaru, id]);
 
       } else {
-        throw new Error("Status hanya bisa 'Dibatalkan' atau 'Perlu Dikirim'.");
+        throw new Error("Status hanya bisa 'Dibatalkan' atau 'Pembatalan Ditolak'.");
       }
 
-     
       await dbConnection.commit();
 
       res.json({ success: true, message: `Status pesanan berhasil diubah menjadi ${status}.` });

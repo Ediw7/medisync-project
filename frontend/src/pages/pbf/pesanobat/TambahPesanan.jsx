@@ -5,6 +5,7 @@ import NavbarPbf from '../../../components/NavbarPbf';
 import { Plus, Trash2, Loader2, CheckCircle, XCircle, Upload } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
 import { FaClipboardList } from "react-icons/fa";
+import { toast } from 'react-hot-toast'; // <-- 1. TAMBAHKAN IMPORT INI
 
 const TambahPesanan = () => {
   const navigate = useNavigate();
@@ -35,7 +36,7 @@ const TambahPesanan = () => {
     harga_per_unit: '',
     total_harga: '',
   });
-  const [detailObat, setDetailObat] = useState([]);
+  const [detailObat, setDetailObat] = useState([]); // Ini adalah 'cart' Anda
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,6 +44,7 @@ const TambahPesanan = () => {
   const [popupMessage, setPopupMessage] = useState('');
   const [popupType, setPopupType] = useState('success');
 
+  // ... (fungsi showCustomAlert, closePopup, renderPopup tidak berubah) ...
   const showCustomAlert = (message, type) => {
     setPopupMessage(message);
     setPopupType(type);
@@ -97,8 +99,64 @@ const TambahPesanan = () => {
     );
   };
 
+  // --- BLOK LOGIKA KLONING YANG DIPERBAIKI ---
+  useEffect(() => {
+    // Cek apakah ada data kloning di sessionStorage
+    const cloneDataString = sessionStorage.getItem('cloneOrderData');
+    
+    if (cloneDataString) {
+      try {
+        const cloneData = JSON.parse(cloneDataString);
+        
+        // 1. Isi keranjang (cart) Anda
+        const clonedItems = cloneData.detail_pesanan.map(item => ({
+          id_produksi: item.batch_id || item.id_produksi, // Gunakan batch_id
+          nama_obat: item.nama_obat,
+          bentuk_sediaan: item.bentuk_sediaan,
+          dosis: item.dosis,
+          jumlah_pesanan: item.jumlah_pesanan,
+          harga_per_unit: item.harga_per_unit,
+          total_harga: item.total_harga,
+        }));
+        setDetailObat(clonedItems); // <-- 2. GANTI DARI setCart ke setDetailObat
+
+        // 2. Isi data form lainnya (jika ada)
+        setInfoPemesanan(prevData => ({ // <-- 3. GANTI DARI setFormData ke setInfoPemesanan
+            ...prevData,
+            nama_pbf: cloneData.pesanan.nama_pbf,
+            alamat_pbf: cloneData.pesanan.alamat_pbf,
+            nomor_siup: cloneData.pesanan.nomor_siup,
+            nomor_sia_sika: cloneData.pesanan.nomor_sia_sika,
+            nama_apoteker: cloneData.pesanan.nama_apoteker,
+            nomor_sipa: cloneData.pesanan.nomor_sipa,
+            kontak_telepon: cloneData.pesanan.kontak_telepon,
+            kontak_email: cloneData.pesanan.kontak_email,
+            tujuan_distribusi: cloneData.pesanan.tujuan_distribusi,
+            catatan_khusus: cloneData.pesanan.catatan_khusus,
+            // Tanggal pesanan biarkan hari ini
+        }));
+
+        // 3. Beri notifikasi
+        toast.success('Data pesanan lama telah dimuat. Silakan perbaiki dan kirim ulang.');
+
+        // 4. Hapus data dari sessionStorage agar tidak dipakai lagi
+        sessionStorage.removeItem('cloneOrderData');
+
+      } catch (error) {
+        console.error("Gagal memuat data kloning:", error);
+        toast.error("Gagal memuat data pesanan lama.");
+        sessionStorage.removeItem('cloneOrderData'); // Hapus juga jika error
+      }
+    }
+  }, []); // [] berarti hanya dijalankan sekali saat komponen dimuat
+  // --- AKHIR BLOK PERBAIKAN ---
+
   // Fetch profil PBF
   useEffect(() => {
+    // Cek jika data sudah diisi oleh kloning, jangan fetch profil
+    const cloneDataString = sessionStorage.getItem('cloneOrderData');
+    if (cloneDataString) return; // Lewati fetch profil jika sedang kloning
+
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -117,7 +175,6 @@ const TambahPesanan = () => {
             alamat_pbf: result.data.alamat,
             kontak_email: result.data.email,
             nomor_siup: result.data.nomor_izin,
-            // <-- PERUBAHAN 1: Set tujuan_distribusi dari alamat profil
             tujuan_distribusi: result.data.alamat, 
           }));
         } else {
@@ -219,15 +276,37 @@ const TambahPesanan = () => {
     if (Number(itemObat.harga_per_unit) === 0) {
       console.warn('Harga satuan 0 dari produksi, lanjutkan dengan hati-hati.');
     }
-    setDetailObat([...detailObat, {
-      id_produksi: String(itemObat.id_produksi),
-      nama_obat: itemObat.nama_obat,
-      bentuk_sediaan: itemObat.bentuk_sediaan,
-      dosis: itemObat.dosis,
-      jumlah_pesanan: Number(itemObat.jumlah_pesanan),
-      harga_per_unit: Number(itemObat.harga_per_unit),
-      total_harga: Number(itemObat.total_harga),
-    }]);
+    
+    // Cek apakah item sudah ada di keranjang
+    const existingItemIndex = detailObat.findIndex(item => item.id_produksi === itemObat.id_produksi);
+    
+    if (existingItemIndex > -1) {
+      // Jika sudah ada, update jumlahnya
+      const updatedDetailObat = [...detailObat];
+      const newJumlah = updatedDetailObat[existingItemIndex].jumlah_pesanan + Number(itemObat.jumlah_pesanan);
+      
+      if (newJumlah > selectedObat.jumlah) {
+         setError(`Jumlah total (${newJumlah}) melebihi stok tersedia (${selectedObat.jumlah}).`);
+         return;
+      }
+      
+      updatedDetailObat[existingItemIndex].jumlah_pesanan = newJumlah;
+      updatedDetailObat[existingItemIndex].total_harga = newJumlah * updatedDetailObat[existingItemIndex].harga_per_unit;
+      setDetailObat(updatedDetailObat);
+      
+    } else {
+      // Jika belum ada, tambahkan item baru
+      setDetailObat([...detailObat, {
+        id_produksi: String(itemObat.id_produksi),
+        nama_obat: itemObat.nama_obat,
+        bentuk_sediaan: itemObat.bentuk_sediaan,
+        dosis: itemObat.dosis,
+        jumlah_pesanan: Number(itemObat.jumlah_pesanan),
+        harga_per_unit: Number(itemObat.harga_per_unit),
+        total_harga: Number(itemObat.total_harga),
+      }]);
+    }
+    
     setItemObat({
       id_produksi: '',
       nama_obat: '',
@@ -239,6 +318,7 @@ const TambahPesanan = () => {
     });
     setError('');
   };
+
 
   // Handler untuk hapus item
   const handleRemoveItem = (index) => {
@@ -333,9 +413,11 @@ const TambahPesanan = () => {
       if (!response.ok) throw new Error(result.message || 'Gagal membuat pesanan');
 
       console.log('Pesanan berhasil dibuat!');
-      navigate('/pbf/pesan-obat');
+      showCustomAlert(`Pesanan baru (No. PO: ${result.nomorPo}) berhasil dibuat.`, 'success');
+      // navigate('/pbf/pesan-obat'); // Pindah ke 'closePopup'
     } catch (err) {
       setError(err.message);
+      showCustomAlert(err.message, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -409,7 +491,7 @@ const TambahPesanan = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Alamat PBF</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Alamat PBF </label>
                       <input
                         name="alamat_pbf"
                         value={infoPemesanan.alamat_pbf}

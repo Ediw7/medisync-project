@@ -120,6 +120,7 @@ const PesanObat = () => {
       case 'Selesai': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
       case 'Ditolak': return 'bg-red-50 text-red-700 border-red-200';
       case 'Dibatalkan': return 'bg-red-50 text-red-700 border-red-200';
+      case 'Pembatalan Ditolak': return 'bg-pink-50 text-pink-700 border-pink-200';
       case 'Pengembalian Diajukan': return 'bg-orange-50 text-orange-700 border-orange-200';
       case 'Dikembalikan': return 'bg-purple-50 text-purple-700 border-purple-200';
       default: return 'bg-slate-50 text-slate-700 border-slate-200';
@@ -225,6 +226,7 @@ const PesanObat = () => {
                     />
                   </div>
                   
+                  {/* --- PERBAIKAN DROPDOWN --- */}
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
@@ -234,9 +236,11 @@ const PesanObat = () => {
                     <option>Perlu Dikirim</option>
                     <option>Dikirim</option>
                     <option>Selesai</option>
-                    <option>Ditolak</option>
+                    <option>Pembatalan Ditolak</option> {/* <-- Diubah dari 'Ditolak' */}
+                    <option>Dibatalkan</option> {/* <-- Ditambahkan */}
                     <option>Dikembalikan</option>
                   </select>
+                  {/* --- AKHIR PERBAIKAN --- */}
                   
                   {/* Filter Tanggal */}
                   <div className="relative">
@@ -389,7 +393,7 @@ const PesanObat = () => {
 
                                   case 'Pembatalan Diajukan':
                                   case 'Dibatalkan':
-                                  case 'Pengembalian Ditolak': // Status ini juga relevan
+                                  case 'Pembatalan Ditolak': // <-- Logika ini sudah benar
                                     return (
                                       <Link to={`/pbf/pesanan/${item.id}/detail-pembatalan`} className="text-yellow-700 hover:text-yellow-800 font-medium">
                                         Lihat Detail 
@@ -447,21 +451,10 @@ const PesanObat = () => {
         />
       </div>
       
-      <style jsx>{`
-        @keyframes blob {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-        }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-      `}</style>
+      {/* Hapus blok <style jsx> di bawah ini */}
     </div>
   );
 };
 
 export default PesanObat;
+

@@ -1,13 +1,74 @@
 // backend/controllers/pbf/laporanController.js
 'use strict';
 const db = require('../../config/db');
+const nano = require('nano')(`http://${process.env.COUCHDB_USER}:${process.env.COUCHDB_PASSWORD}@127.0.0.1:5984`);
+
+async function getStokGudangFromCouchDB(idPbf) {
+  try {
+    const dbName = process.env.COUCHDB_DB || 'medisyncchannel_medisync';
+    const dbInstance = nano.use(dbName);
+    
+    // Query CouchDB untuk aset yang dimiliki oleh PBFMSP
+    // Asumsi: idPbf yang login di SQL = PBFMSP di CouchDB
+    const result = await dbInstance.find({
+      selector: {
+        docType: 'obat',
+        pemilikSaatIni: 'PBFMSP' // Mengambil semua stok yang dimiliki PBF
+      },
+      fields: ['jumlah'] // Kita hanya perlu field 'jumlah'
+    });
+
+    // Jumlahkan total 'jumlah' dari semua dokumen yang ditemukan
+    const totalStok = result.docs.reduce((sum, doc) => sum + (Number(doc.jumlah) || 0), 0);
+    return totalStok;
+
+  } catch (error) {
+    console.error('Error fetching stok from CouchDB:', error.message);
+    // Kembalikan 0 jika CouchDB error agar tidak crash
+    return 0; 
+  }
+}
 
 const LaporanController = {
-  // --- LAPORAN UNTUK PRODUSEN ---
+  
+   getKpiData: async (req, res) => {
+    const idPbf = req.user.id;
+    let connection;
+    try {
+      connection = await db.getConnection();
 
-  /**
-   * @description Mengambil data pemesanan bulanan ke Produsen untuk Bar Chart
-   */
+      // 1. Total Pembelian (dari Produsen, status Selesai atau Pengembalian Selesai)
+      const [pembelianRows] = await connection.query(
+        "SELECT SUM(total_harga) as totalPembelian FROM pesanan WHERE id_pbf = ? AND (status = 'Selesai' OR status = 'Pengembalian Selesai')",
+        [idPbf]
+      );
+
+      // 2. Total Pesanan Selesai (dari Produsen) - SESUAI PERMINTAAN
+      const [pesananRows] = await connection.query(
+        "SELECT COUNT(id) as totalPesananProdusenSelesai FROM pesanan WHERE id_pbf = ? AND (status = 'Selesai' OR status = 'Pengembalian Selesai')",
+        [idPbf]
+      );
+
+      // 3. Total Stok Gudang (diambil dari CouchDB) - SESUAI PERMINTAAN
+      const totalStokGudang = await getStokGudangFromCouchDB(idPbf);
+
+      res.json({
+        success: true,
+        data: {
+          totalPembelian: pembelianRows[0].totalPembelian || 0,
+          totalPesananProdusenSelesai: pesananRows[0].totalPesananProdusenSelesai || 0,
+          totalStokGudang: totalStokGudang || 0,
+        }
+      });
+
+    } catch (error) {
+      console.error('Error in getKpiData:', error);
+      res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+    } finally {
+      if (connection) connection.release();
+    }
+  },
+  
   getPemesananBulananProdusen: async (req, res) => {
     const idPbf = req.user.id;
     const { filter } = req.query; // '12bulan' or '6bulan'

@@ -11,7 +11,7 @@ router.use(authenticateToken, authorizeRole('pbf'));
 router.get('/pemesanan-bulanan-produsen', laporanController.getPemesananBulananProdusen);
 router.get('/transaksi-per-produsen', laporanController.getTransaksiPerProdusen);
 router.get('/riwayat-produsen', laporanController.getRiwayatProdusen);
-
+router.get('/kpi-data', laporanController.getKpiData);
 // --- RUTE LAPORAN APOTEK ---
 router.get('/distribusi-bulanan-apotek', laporanController.getDistribusiBulananApotek);
 router.get('/transaksi-per-apotek', laporanController.getTransaksiPerApotek);

@@ -79,6 +79,7 @@ import TrackingPengiriman from './pages/pbf/trackingpengiriman/TrackingPengirima
 
 
 import LaporanAnalitikPbf from './pages/pbf/laporananalitikpbf/LaporanAnalitikPbf';
+import LaporanAnalitikkeApotek from './pages/pbf/laporananalitikpbf/LaporanAnalitikkeApotek';
 
 import ApotekDashboard from './pages/apotek/ApotekDashboard';
 import StokObat from './pages/apotek/stokobat/StokObat';
@@ -186,7 +187,8 @@ function App() {
 
 
       <Route path="/pbf/laporan-analitik" element={<LaporanAnalitikPbf />} />
-     
+      <Route path="/pbf/laporan-analitik-ke-apotek" element={<LaporanAnalitikkeApotek />} />
+
       <Route path="/apotek/dashboard" element={<ApotekDashboard />} />
        <Route path="/apotek/stok-obat" element={<StokObat />} />
          <Route path="/apotek/pesan-obat/tambah" element={<PilihPbf />} />

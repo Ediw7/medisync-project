@@ -575,24 +575,35 @@ const TambahPesanan = () => {
                   )}
 
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end pt-4 border-t">
-                    <div className="md:col-span-3">
+                   <div className="md:col-span-3">
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Pilih Obat</label>
-                      <select
-                        onChange={handleItemSelect}
-                        value={itemObat.id_produksi}
-                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition appearance-none bg-white"
-                      >
-                        <option value="">Pilih Obat</option>
-                        {isLoading ? (
-                          <option>Loading...</option>
-                        ) : (
-                          stokObat.map((o) => (
-                            <option key={o.id} value={o.id}>
-                              {o.nama_obat} (Stok: {o.jumlah}, {o.bentuk_sediaan})
-                            </option>
-                          ))
-                        )}
-                      </select>
+                   
+                      <div className="relative">
+                        <select
+                          onChange={handleItemSelect}
+                          value={itemObat.id_produksi}
+                          
+                          className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition appearance-none bg-white pr-10"
+                        >
+                          <option value="">Pilih Obat</option>
+                          {isLoading ? (
+                            <option disabled>Loading...</option>
+                          ) : (
+                            stokObat.map((o) => (
+                              <option key={o.id} value={o.id}>
+                                {o.nama_obat} (Stok: {o.jumlah}, {o.bentuk_sediaan})
+                              </option>
+                            ))
+                          )}
+                        </select>
+                     
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+                          <svg className="h-5 w-5 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                            <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                          </svg>
+                        </div>
+                      </div>
+                    
                     </div>
                     <div className="md:col-span-2">
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Jumlah</label>

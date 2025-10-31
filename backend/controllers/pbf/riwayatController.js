@@ -5,24 +5,26 @@ const { Gateway, Wallets } = require('fabric-network');
 const fs = require('fs').promises;
 const db = require('../../config/db');
 
-// Reusable function to connect to the gateway
+// Fungsi getGateway() Anda sudah benar (tidak saya ubah)
 async function getGateway() {
     try {
         const walletPath = path.join(process.cwd(), 'wallet');
         const wallet = await Wallets.newFileSystemWallet(walletPath);
 
-        const identity = await wallet.get('pbfAdmin');
+        // Pastikan 'pbfAdmin' atau identitas PBF Anda sudah terdaftar
+        const identity = await wallet.get('pbfAdmin'); 
         if (!identity) {
             throw new Error('Identitas "pbfAdmin" tidak ditemukan di dalam wallet. Jalankan enrollAdminPbf.js terlebih dahulu.');
         }
 
-        const ccpPath = path.resolve(__dirname, '..', '..', 'connection-org2.json');
+        // Pastikan ini adalah file koneksi JSON untuk Org 2 (PBF)
+        const ccpPath = path.resolve(__dirname, '..', '..', 'connection-org2.json'); 
         const ccp = JSON.parse(await fs.readFile(ccpPath, 'utf8'));
 
         const gateway = new Gateway();
         await gateway.connect(ccp, {
             wallet,
-            identity: 'pbfAdmin',
+            identity: 'pbfAdmin', // Gunakan identitas PBF
             discovery: { enabled: true, asLocalhost: true }
         });
 
@@ -35,62 +37,79 @@ async function getGateway() {
 
 const riwayatController = {
     getRiwayatPengiriman: async (req, res) => {
-        const { pesananId } = req.params; // Menggunakan pesananId dari URL
+        const { pesananId } = req.params;
         let gateway;
         try {
-            // 1. Dapatkan id_aset_blockchain dari database berdasarkan pesananId
+            // 1. Dapatkan id_aset_blockchain DARI KUERI YANG BENAR (menggunakan tabel 'users')
             const [rows] = await db.query(
-              'SELECT dp.id_aset_blockchain, p.no_resi, p.surat_jalan, pr.nama as nama_produsen, pbf.nama as nama_pbf FROM detail_pesanan dp JOIN pesanan p ON dp.id_pesanan = p.id JOIN produsen pr ON p.id_produsen = pr.id JOIN pbf ON p.id_pbf = pbf.id WHERE p.id = ? LIMIT 1',
-              [pesananId]
+              `SELECT 
+                 dp.id_aset_blockchain, 
+                 p.nomor_po, 
+                 sjp.nomor_resi, 
+                 sjp.nomor_surat_jalan, 
+                 produsen.nama_resmi as nama_produsen, 
+                 pbf.nama_resmi as nama_pbf
+               FROM detail_pesanan dp 
+               JOIN pesanan p ON dp.id_pesanan = p.id
+               JOIN surat_jalan_produsen sjp ON p.id = sjp.id_pesanan
+               JOIN users produsen ON p.id_produsen = produsen.id
+               JOIN users pbf ON p.id_pbf = pbf.id
+               WHERE p.id = ? AND p.id_pbf = ? 
+               LIMIT 1`,
+              [pesananId, req.user.id] // Validasi bahwa PBF ini yang memesan
             );
 
-            if (rows.length === 0 || !rows[0].id_aset_blockchain) {
-                return res.status(404).json({ success: false, message: 'Aset blockchain untuk pesanan ini tidak ditemukan.' });
+            if (rows.length === 0) {
+                 return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan atau Anda tidak memiliki akses.' });
             }
+            if (!rows[0].id_aset_blockchain) {
+                return res.status(404).json({ success: false, message: 'Aset blockchain untuk pesanan ini belum dibuat (mungkin belum dikirim).' });
+            }
+            
             const assetId = rows[0].id_aset_blockchain;
             const pesananInfo = {
-                noResi: rows[0].no_resi,
-                suratJalan: rows[0].surat_jalan,
+                noResi: rows[0].nomor_resi,
+                suratJalan: rows[0].nomor_surat_jalan,
                 pengirim: rows[0].nama_produsen,
                 tujuan: rows[0].nama_pbf,
                 idPesanan: pesananId,
+                nomorPo: rows[0].nomor_po,
             };
-
 
             // 2. Koneksi ke Fabric
             gateway = await getGateway();
             const network = await gateway.getNetwork('medisyncchannel');
-            const contract = network.getContract('medisync', 'PbfContract');
+            // Panggil kontrak 'medisync', BUKAN 'PbfContract'
+            // Fungsi 'readObat' bersifat umum dan ada di kontrak utama
+            const contract = network.getContract('medisync');
 
-            // 3. Panggil chaincode untuk mendapatkan riwayat aset
-            const resultBytes = await contract.evaluateTransaction('queryHistory', assetId);
-            const resultJson = JSON.parse(resultBytes.toString());
+            // 3. Panggil 'readObat' (BUKAN 'queryHistory')
+            const resultBytes = await contract.evaluateTransaction('readObat', assetId);
+            
+            // 4. Format hasil (hasilnya adalah 1 OBJEK, BUKAN array)
+            if (!resultBytes || resultBytes.length === 0) {
+                throw new Error(`Aset ${assetId} tidak ditemukan di blockchain.`);
+            }
+            
+            const asset = JSON.parse(resultBytes.toString());
+            const onChainHistory = asset.riwayat || []; // Ambil array 'riwayat' dari dalam aset
 
-            // 4. Format hasil untuk frontend
-            const riwayat = resultJson.map(tx => {
-                const status = tx.Value.statusSaatIni;
-                // Ambil timestamp dari 'riwayat' terakhir jika ada, jika tidak, dari timestamp transaksi
-                const latestHistory = tx.Value.riwayat && tx.Value.riwayat.length > 0 ? tx.Value.riwayat[tx.Value.riwayat.length - 1] : null;
-                const timestamp = latestHistory ? latestHistory.timestamp : tx.Timestamp;
-
+            const riwayat = onChainHistory.map(tx => {
                 return {
-                    status: formatStatus(status),
-                    tanggal: new Date(timestamp).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-'),
-                    waktu: new Date(timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                    // Gunakan 'status' dari dalam array riwayat
+                    status: formatStatus(tx.status), 
+                    detail: tx.detail || '',
+                    timestamp: tx.timestamp, // Timestamp sudah ada di 'riwayat'
                 };
-            }).filter((item, index, self) =>
-                index === self.findIndex((t) => (
-                    t.status === item.status
-                ))
-            ); // Hapus duplikat status
-
-             // Menambahkan estimasi sampai (jika diperlukan)
-            const waktuPesan = resultJson.length > 0 ? new Date(resultJson[0].Timestamp) : new Date();
-            const estimasiSampai = new Date(waktuPesan);
-            estimasiSampai.setDate(waktuPesan.getDate() + 2); // Contoh estimasi 2 hari
-            pesananInfo.waktuPesan = waktuPesan.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
-            pesananInfo.estimasiSampai = estimasiSampai.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
-
+            });
+            
+            // Ambil data dari riwayat untuk Waktu Pesan dan Estimasi
+            const waktuKirim = riwayat.find(r => r.status === 'Dikirim')?.timestamp;
+            pesananInfo.waktuPesan = waktuKirim ? new Date(waktuKirim).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
+            
+            const estimasiSampai = waktuKirim ? new Date(waktuKirim) : new Date();
+            estimasiSampai.setDate(estimasiSampai.getDate() + 2); // Estimasi 2 hari dari pengiriman
+            pesananInfo.estimasiSampai = estimasiSampai.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
 
             res.json({ success: true, data: { ...pesananInfo, riwayat } });
 
@@ -105,14 +124,19 @@ const riwayatController = {
     }
 };
 
+// Sesuaikan status ini dengan STATUS di dalam array 'riwayat' chaincode Anda
 function formatStatus(status) {
     switch (status) {
-        case 'DIBUAT':
+        case 'DIPRODUKSI':
             return 'Dipesan';
         case 'DIKIRIM_KE_PBF':
             return 'Dikirim';
         case 'DITERIMA_PBF':
-            return 'Selesai';
+            return 'Diterima PBF';
+        case 'DIKIRIM_KE_APOTEK':
+            return 'Dikirim ke Apotek';
+        case 'DITERIMA_APOTEK':
+            return 'Diterima Apotek';
         default:
             return status;
     }

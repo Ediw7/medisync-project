@@ -13,7 +13,7 @@ import {
   X,
   FileText,
   AlertTriangle,
-  CheckCircle2, // Ensure CheckCircle2 is imported
+  CheckCircle2, 
   Info,
   Calendar,
   Clock,
@@ -23,6 +23,7 @@ import html2pdf from 'html2pdf.js';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
+// --- Modal Konfirmasi Penerimaan (Tetap Sama) ---
 const ConfirmationModal = ({ show, onClose, onConfirm, isSubmitting, orderId, onFileChange, buktiFoto }) => {
   if (!show) return null;
 
@@ -94,30 +95,28 @@ const ConfirmationModal = ({ show, onClose, onConfirm, isSubmitting, orderId, on
   );
 };
 
-const StatusStep = ({ icon: Icon, label, timestamp, isCompleted, isCurrent, isLast = false }) => (
-    <div className={`flex items-start ${isLast ? '' : 'flex-1'}`}>
-      <div className="flex flex-col items-center mr-4">
-        <div className={`w-12 h-12 rounded-full flex items-center justify-center border-2 ${
-           isCurrent ? 'bg-emerald-100 border-emerald-500 animate-pulse' :
-           isCompleted ? 'bg-emerald-500 border-emerald-600 text-white' :
-           'bg-slate-100 border-slate-300 text-slate-400'
-        } transition-colors duration-300`}>
-          <Icon size={24} />
-        </div>
-        {!isLast && (
-           <div className={`w-0.5 h-16 mt-2 ${isCompleted ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-        )}
+// --- StatusStep (Horizontal - Diambil dari LihatRiwayat) ---
+const StatusStep = ({ icon: Icon, label, timestamp, isCompleted, isCurrent, children }) => (
+    <div className="relative flex flex-col items-center justify-start text-center w-40">
+      <div className={`w-14 h-14 rounded-full flex items-center justify-center border-2 ${
+         isCurrent ? 'bg-emerald-100 border-emerald-500 animate-pulse' :
+         isCompleted ? 'bg-emerald-500 border-emerald-600 text-white' :
+         'bg-slate-100 border-slate-300 text-slate-400'
+      } transition-colors duration-300 z-10`}>
+        <Icon size={26} />
       </div>
-      <div className="pt-2.5">
-        <p className={`font-semibold ${
+      <div className="mt-3">
+        <p className={`font-semibold text-sm ${
           isCurrent ? 'text-emerald-700' :
           isCompleted ? 'text-slate-800' :
           'text-slate-500'
         }`}>{label}</p>
-        {timestamp && <p className="text-sm text-slate-500 mt-0.5">{timestamp}</p>}
+        {timestamp && <p className="text-xs text-slate-500 mt-1">{timestamp}</p>}
+        {children && <div className="mt-1">{children}</div>} 
       </div>
     </div>
   );
+
 
 const KonfirmasiPenerimaan = () => {
   const { id } = useParams();
@@ -132,6 +131,7 @@ const KonfirmasiPenerimaan = () => {
   const contentRef = useRef(null);
   const username = localStorage.getItem('username');
 
+  // --- Logika Fetch Data (Tidak Diubah) ---
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -168,6 +168,7 @@ const KonfirmasiPenerimaan = () => {
     fetchData();
   }, [id, navigate]);
 
+  // --- Semua Logika Handler (Tidak Diubah) ---
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -249,24 +250,41 @@ const KonfirmasiPenerimaan = () => {
     };
     html2pdf().from(element).set(opt).save();
   };
+  
+  // Format Timestamp (digunakan oleh getTimestamp)
+  const formatTimestamp = (dateString) => {
+       if (!dateString) return null;
+       try {
+            const date = new Date(dateString);
+             if (isNaN(date.getTime())) return null;
+            return date.toLocaleString('id-ID', { 
+                 day:'numeric', month:'short', year: 'numeric',
+                 hour: '2-digit', minute: '2-digit'
+             });
+       } catch(e) {
+           return null;
+       }
+   };
 
-  const formatDate = (dateString, includeTime = false) => {
-    if (!dateString) return '-';
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     try {
         const date = new Date(dateString);
-        if (isNaN(date.getTime())) return '-';
+        if (isNaN(date.getTime())) return 'N/A';
         const options = { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' };
-        if (includeTime) {
-             options.hour = '2-digit';
-             options.minute = '2-digit';
-        }
         return date.toLocaleDateString('id-ID', options);
     } catch (e) {
         console.error("Error formatting date:", e);
-        return '-';
+        return 'N/A';
     }
   };
+  
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate('/');
+  };
 
+  // --- RENDER LOADING ---
   if (isLoading) {
      return (
        <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
@@ -279,39 +297,53 @@ const KonfirmasiPenerimaan = () => {
     );
   }
 
+  // --- RENDER ERROR ---
   if (error && !pesanan) {
      return (
-       <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-red-50 p-6">
-          <div className="bg-white p-8 rounded-xl shadow-lg border border-red-200 text-center max-w-lg">
-            <AlertTriangle className="mx-auto h-12 w-12 text-red-500 mb-4" />
-            <h2 className="text-xl font-bold text-red-800 mb-2">Gagal Memuat Data</h2>
-            <p className="text-red-600 mb-6">{error}</p>
-            <button
-               onClick={() => navigate('/pbf/pesan-obat')}
-               className="flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition mx-auto"
-             >
-               <ArrowLeft size={18} />
-               Kembali ke Pesanan
-             </button>
-          </div>
-       </div>
+       <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
+        <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+        <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+          <NavbarPbf onLogout={handleLogout} username={username} />
+          <main className="flex-1 flex items-center justify-center p-6 pt-[72px]">
+            <div className="bg-white p-8 rounded-2xl shadow-lg border border-red-200 text-center max-w-lg">
+              <AlertTriangle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+              <h2 className="text-xl font-bold text-red-800 mb-2">Gagal Memuat Data</h2>
+              <p className="text-red-600 mb-6">{error}</p>
+              <button
+                 onClick={() => navigate('/pbf/pesan-obat')}
+                 className="flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition mx-auto"
+               >
+                 <ArrowLeft size={18} />
+                 Kembali ke Pesanan
+               </button>
+            </div>
+          </main>
+        </div>
+      </div>
     );
   }
 
+  // --- RENDER DATA TIDAK DITEMUKAN ---
   if (!pesanan || !pesanan.pesanan) {
      return (
-       <div className="flex flex-col justify-center items-center h-screen bg-slate-50 p-6">
-        <div className="bg-white p-8 rounded-xl shadow-lg border border-slate-200 text-center max-w-lg">
-          <FileText className="mx-auto h-12 w-12 text-yellow-500 mb-4" />
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Data Pesanan Tidak Ditemukan</h2>
-          <p className="text-slate-600 mb-6">Tidak dapat menemukan detail untuk konfirmasi penerimaan ini.</p>
-           <button
-             onClick={() => navigate('/pbf/pesan-obat')}
-             className="flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition mx-auto"
-           >
-             <ArrowLeft size={18} />
-             Kembali ke Pesanan
-           </button>
+       <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
+        <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+        <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+          <NavbarPbf onLogout={handleLogout} username={username} />
+          <main className="flex-1 flex items-center justify-center p-6 pt-[72px]">
+            <div className="bg-white p-8 rounded-2xl shadow-lg border border-slate-200 text-center max-w-lg">
+              <FileText className="mx-auto h-12 w-12 text-yellow-500 mb-4" />
+              <h2 className="text-xl font-bold text-slate-800 mb-2">Data Pesanan Tidak Ditemukan</h2>
+              <p className="text-slate-600 mb-6">Tidak dapat menemukan detail untuk konfirmasi penerimaan ini.</p>
+               <button
+                 onClick={() => navigate('/pbf/pesan-obat')}
+                 className="flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition mx-auto"
+               >
+                 <ArrowLeft size={18} />
+                 Kembali ke Pesanan
+               </button>
+            </div>
+          </main>
         </div>
       </div>
     );
@@ -325,164 +357,217 @@ const KonfirmasiPenerimaan = () => {
   const isSelesaiCompleted = info.status === 'Selesai';
   const currentStatusStep = isSelesaiCompleted ? 'Selesai' : (isDikirimCompleted ? 'Dikirim' : 'Dipersiapkan');
   const tanggalPengiriman = info.tanggal_pengiriman ? new Date(info.tanggal_pengiriman) : null;
-  const estimasiSampai = isSelesaiCompleted ? (info.updated_at ? new Date(info.updated_at) : null) : null;
+  const tanggalTerima = isSelesaiCompleted ? (info.updated_at ? new Date(info.updated_at) : null) : null;
 
    const getTimestamp = (status) => {
-      if (status === 'Dipersiapkan' && info.tanggal_pesanan) return formatDate(info.tanggal_pesanan, true);
-      if (status === 'Dikirim' && tanggalPengiriman) return formatDate(tanggalPengiriman, true);
-      if (status === 'Selesai' && estimasiSampai) return formatDate(estimasiSampai, true);
+      if (status === 'Dipersiapkan' && info.tanggal_pesanan) return formatTimestamp(info.tanggal_pesanan);
+      if (status === 'Dikirim' && tanggalPengiriman) return formatTimestamp(tanggalPengiriman);
+      if (status === 'Selesai' && tanggalTerima) return formatTimestamp(tanggalTerima);
       return null;
   };
 
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
       <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
-        <NavbarPbf onLogout={() => { localStorage.clear(); navigate('/'); }} username={username} />
+        <NavbarPbf onLogout={handleLogout} username={username} />
 
-        <main className="flex-1 overflow-auto pt-[72px]">
-          <div className="max-w-4xl mx-auto px-6 py-8">
+        <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
+          <div className="max-w-5xl mx-auto">
+            
             <div className="print:hidden flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
               <button
                  onClick={() => navigate('/pbf/pesan-obat')}
-                 className="inline-flex items-center text-emerald-600 hover:text-emerald-700 transition-colors text-sm font-medium"
+                 className="inline-flex items-center text-emerald-600 hover:text-emerald-700 transition-colors text-sm font-medium relative z-20"
                >
                  <ArrowLeft size={16} className="mr-1" /> Kembali ke Daftar Pesanan
                </button>
-              <div className="flex flex-wrap items-center gap-3">
-                 <button onClick={handleDownloadPDF} className="inline-flex items-center px-4 py-2.5 bg-slate-700 text-white font-medium rounded-lg hover:bg-slate-800 transition">
+              <div className="flex flex-wrap items-center gap-3 relative z-20">
+                 <button onClick={handleDownloadPDF} className="inline-flex items-center px-4 py-2 bg-slate-700 text-white font-medium rounded-lg hover:bg-slate-800 transition text-sm">
                    <Download className="w-4 h-4 mr-2" /> Unduh PDF
                  </button>
                </div>
             </div>
 
-            {error && !isLoading && ( // Show inline error if fetch succeeded but there's a status issue etc.
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3">
+            <div className="mb-10 relative">
+              <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+              <div className="absolute -top-20 -right-20 w-72 h-72 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+              <div className="relative flex items-center gap-3">
+                <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg">
+                  <CheckCircle2 className="text-white" size={24} />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-emerald-900 to-teal-900 bg-clip-text text-transparent">
+                    Konfirmasi Penerimaan
+                  </h1>
+                  <p className="text-slate-600 text-lg mt-1">Nomor PO: <span className="font-medium text-slate-700">{info.nomor_po}</span></p>
+                </div>
+              </div>
+            </div>
+
+            {error && !isLoading && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-2 text-sm">
                 <AlertTriangle size={20} />
                 <span>{error}</span>
               </div>
             )}
 
-            <div ref={contentRef} className="bg-white rounded-xl shadow-lg border border-slate-200 p-8 md:p-10 print:shadow-none print:border-0 print:p-4">
-              <header className="text-center mb-10 pb-6 border-b border-slate-200">
-                <h1 className="text-3xl font-bold text-slate-800">Konfirmasi Penerimaan Barang</h1>
-                <p className="text-slate-500 mt-1">Nomor PO: {info.nomor_po}</p>
-              </header>
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              
+              <div ref={contentRef} className="p-8">
+                <header className="text-center mb-10 pb-6 border-b border-slate-200 print:hidden">
+                  <h1 className="text-3xl font-bold text-slate-800">Bukti Penerimaan Barang</h1>
+                  <p className="text-slate-500 mt-1">Nomor PO: {info.nomor_po}</p>
+                </header>
+                
+                <section className="mb-10">
+                   <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
+                    <Package size={20} className="text-emerald-600" />
+                    Detail Pengiriman
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-1">
+                          <span className="text-sm font-medium text-slate-500">Dikirim Dari (Produsen)</span>
+                          <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                              <span className="font-semibold text-slate-900 text-base">{info.nama_produsen || 'Produsen Medisync'}</span>
+                              <p className="text-sm text-slate-600">{info.alamat_produsen || '-'}</p>
+                          </div>
+                      </div>
+                      <div className="space-y-1">
+                          <span className="text-sm font-medium text-slate-500">Diterima Oleh (PBF)</span>
+                           <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                              <span className="font-semibold text-slate-900 text-base">{info.nama_pbf}</span>
+                              <p className="text-sm text-slate-600">{info.alamat_pbf}</p>
+                          </div>
+                      </div>
+                      <div className="space-y-1">
+                           <span className="text-sm font-medium text-slate-500">Tanggal Pesan</span>
+                           <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                             <span className="font-medium text-slate-700">{formatDate(info.tanggal_pesanan)}</span>
+                           </div>
+                       </div>
+                       <div className="space-y-1">
+                           <span className="text-sm font-medium text-slate-500">Tanggal Kirim</span>
+                           <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                             <span className="font-medium text-slate-700">{formatDate(info.tanggal_pengiriman)}</span>
+                           </div>
+                       </div>
+                       <div className="space-y-1">
+                           <span className="text-sm font-medium text-slate-500">No. Surat Jalan</span>
+                           <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                             <span className="font-medium text-slate-700 font-mono">{info.nomor_surat_jalan || '-'}</span>
+                           </div>
+                       </div>
+                       <div className="space-y-1">
+                           <span className="text-sm font-medium text-slate-500">No. Resi</span>
+                           <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                             <span className="font-medium text-slate-700 font-mono">{info.nomor_resi || '-'}</span>
+                           </div>
+                       </div>
+                  </div>
+                </section>
 
-              <section className="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-10 text-sm">
-                  <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                      <h3 className="font-bold text-slate-800 mb-2 uppercase text-xs tracking-wider">Dikirim Dari</h3>
-                      <p className="font-semibold text-slate-700">{info.nama_produsen || 'Produsen Medisync'}</p>
-                      <p className="text-slate-600">{info.alamat_produsen || '-'}</p>
-                  </div>
-                  <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                      <h3 className="font-bold text-slate-800 mb-2 uppercase text-xs tracking-wider">Diterima Oleh</h3>
-                      <p className="font-semibold text-slate-700">{info.nama_pbf}</p>
-                      <p className="text-slate-600">{info.alamat_pbf}</p>
-                  </div>
-                   <div className="sm:col-span-2 bg-slate-50 p-4 rounded-lg border border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                       <div>
-                           <p className="text-xs text-slate-500">Tanggal Pesan</p>
-                           <p className="font-medium text-slate-700">{formatDate(info.tanggal_pesanan)}</p>
-                       </div>
-                       <div>
-                           <p className="text-xs text-slate-500">Tanggal Kirim</p>
-                           <p className="font-medium text-slate-700">{formatDate(info.tanggal_pengiriman)}</p>
-                       </div>
-                       <div>
-                           <p className="text-xs text-slate-500">No. Surat Jalan</p>
-                           <p className="font-medium text-slate-700 font-mono">{info.nomor_surat_jalan || '-'}</p>
-                       </div>
-                       <div>
-                           <p className="text-xs text-slate-500">No. Resi</p>
-                           <p className="font-medium text-slate-700 font-mono">{info.nomor_resi || '-'}</p>
-                       </div>
-                  </div>
-              </section>
-
-              <section className="mb-10">
-                <h3 className="font-bold text-slate-800 mb-4 uppercase text-sm tracking-wider">Detail Barang Diterima</h3>
-                <div className="overflow-x-auto border border-slate-200 rounded-lg">
-                  <table className="w-full text-sm">
-                    <thead className="bg-slate-100 text-slate-700">
-                      <tr>
-                        <th className="px-4 py-3 text-left font-semibold border-b border-slate-200">No.</th>
-                        <th className="px-4 py-3 text-left font-semibold border-b border-slate-200">Nama Obat</th>
-                        <th className="px-4 py-3 text-left font-semibold border-b border-slate-200">Batch ID</th>
-                        <th className="px-4 py-3 text-center font-semibold border-b border-slate-200">Jumlah Diterima</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {detail && detail.length > 0 ? (
-                         detail.map((item, index) => (
-                          <tr key={item.id || index} className="hover:bg-slate-50">
-                            <td className="px-4 py-3 border-r border-slate-200">{index + 1}</td>
-                            <td className="px-4 py-3 border-r border-slate-200 font-medium text-slate-800">{item.nama_obat}</td>
-                             <td className="px-4 py-3 border-r border-slate-200 font-mono text-slate-600">{item.batch_id}</td>
-                            <td className="px-4 py-3 text-center font-medium text-emerald-700">{item.jumlah_pesanan.toLocaleString('id-ID')} Box</td>
+                <section className="mb-10">
+                  <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
+                    <FileText size={20} className="text-emerald-600" />
+                    Detail Barang Diterima
+                  </h3>
+                  <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-50 text-slate-700">
+                        <tr>
+                          <th className="px-4 py-3 text-left font-semibold border-b border-slate-200">No.</th>
+                          <th className="px-4 py-3 text-left font-semibold border-b border-slate-200">Nama Obat</th>
+                          <th className="px-4 py-3 text-left font-semibold border-b border-slate-200">Batch ID</th>
+                          <th className="px-4 py-3 text-center font-semibold border-b border-slate-200">Jumlah Diterima</th>
+                          <th className="px-4 py-3 text-right font-semibold border-b border-slate-200">Total Harga</th>
+                        </tr>
+                      </thead>
+                     <tbody className="divide-y divide-slate-100">
+                        {detail && detail.length > 0 ? (
+                           detail.map((item, index) => (
+                            <tr key={item.id || index} className="hover:bg-slate-50">
+                              <td className="px-4 py-3">{index + 1}</td>
+                              <td className="px-4 py-3 font-medium text-slate-800">{item.nama_obat}</td>
+                               <td className="px-4 py-3 font-mono text-slate-600">{item.id_aset_blockchain || item.batch_id}</td>
+                              {/* PERBAIKAN 1: Gunakan 'jumlah_pesanan' */}
+                              <td className="px-4 py-3 text-center font-medium text-emerald-700">{(item.jumlah_pesanan || 0).toLocaleString('id-ID')} Box</td>
+                              {/* PERBAIKAN 2: Gunakan 'total_harga' yang sudah dihitung */}
+                              <td className="px-4 py-3 text-right font-semibold text-slate-800">Rp {Number(item.total_harga || 0).toLocaleString('id-ID')}</td>
+                            </tr>
+                           ))
+                         ) : (
+                           <tr>
+                             <td colSpan="5" className="text-center py-6 text-slate-500 border-t border-slate-200">
+                               Tidak ada detail barang.
+                             </td>
+                           </tr>
+                         )}
+                      </tbody>
+                       <tfoot className="bg-slate-50 font-semibold">
+                          <tr>
+                            <td colSpan="4" className="px-4 py-3 text-right text-slate-800">Total Keseluruhan</td>
+                            <td className="px-4 py-3 text-right text-xl text-emerald-700">
+                              Rp {totalHargaKeseluruhan.toLocaleString('id-ID')}
+                            </td>
                           </tr>
-                         ))
-                       ) : (
-                         <tr>
-                           <td colSpan="4" className="text-center py-6 text-slate-500 border-t border-slate-200">
-                             Tidak ada detail barang.
-                           </td>
-                         </tr>
-                       )}
-                    </tbody>
-                  </table>
-                </div>
-                 <div className="flex justify-end mt-4">
-                  <div className="text-right">
-                    <p className="text-sm text-slate-500">Total Harga</p>
-                    <p className="text-xl font-bold text-slate-800">
-                      Rp {totalHargaKeseluruhan.toLocaleString('id-ID')}
-                    </p>
+                       </tfoot>
+                    </table>
                   </div>
-                </div>
-              </section>
+                </section>
 
-              <section className="mb-10">
-                <h3 className="font-bold text-slate-800 mb-6 uppercase text-sm tracking-wider text-center">Status Pengiriman</h3>
-                <div className="flex flex-col sm:flex-row justify-center items-start sm:items-stretch">
-                    <StatusStep
-                      icon={Package}
-                      label="Dipersiapkan"
-                      timestamp={getTimestamp('Dipersiapkan')}
-                      isCompleted={isDipersiapkanCompleted}
-                      isCurrent={currentStatusStep === 'Dipersiapkan'}
-                    />
-                    <StatusStep
-                      icon={Truck}
-                      label="Dikirim"
-                      timestamp={getTimestamp('Dikirim')}
-                      isCompleted={isDikirimCompleted}
-                      isCurrent={currentStatusStep === 'Dikirim'}
-                    />
-                    <StatusStep
-                      icon={CheckCircle2}
-                      label="Diterima"
-                      timestamp={getTimestamp('Selesai')}
-                      isCompleted={isSelesaiCompleted}
-                      isCurrent={currentStatusStep === 'Selesai'}
-                      isLast={true}
-                    />
-                </div>
-              </section>
+                {/* --- PERBAIKAN: Status Timeline Horizontal --- */}
+                <section className="mb-6">
+                  <h3 className="text-lg font-bold text-slate-900 mb-8 text-center">
+                    Status Pengiriman
+                  </h3>
+                  <div className="flex items-start justify-center gap-0">
+                      <StatusStep
+                        icon={Package}
+                        label="Dipersiapkan"
+                        timestamp={getTimestamp('Dipersiapkan')}
+                        isCompleted={isDipersiapkanCompleted}
+                        isCurrent={currentStatusStep === 'Dipersiapkan'}
+                      />
+                      <div className="relative flex items-center h-14 w-24">
+                         <div className={`w-full h-1.5 rounded-full ${isDikirimCompleted ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                      </div>
+                      <StatusStep
+                        icon={Truck}
+                        label="Dikirim"
+                        timestamp={getTimestamp('Dikirim')}
+                        isCompleted={isDikirimCompleted}
+                        isCurrent={currentStatusStep === 'Dikirim'}
+                      />
+                       <div className="relative flex items-center h-14 w-24">
+                         <div className={`w-full h-1.5 rounded-full ${isSelesaiCompleted ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                      </div>
+                      <StatusStep
+                        icon={CheckCircle2}
+                        label="Diterima"
+                        timestamp={getTimestamp('Selesai')}
+                        isCompleted={isSelesaiCompleted}
+                        isCurrent={currentStatusStep === 'Selesai'}
+                      />
+                  </div>
+                </section>
+                {/* --- AKHIR PERBAIKAN --- */}
 
-              <footer className="flex flex-col sm:flex-row justify-end items-center gap-4 pt-6 border-t border-slate-200 mt-8 print:hidden">
+              </div>
+              
+              <footer className="flex flex-col sm:flex-row justify-end items-center gap-4 p-6 border-t border-slate-200 bg-slate-50 print:hidden">
                     {info.status === 'Dikirim' && !error && (
                        <>
                          <Link
                            to={`/pbf/pesanan/${id}/ajukan-pengembalian`}
-                           className="w-full sm:w-auto py-2.5 px-6 bg-red-100 text-red-700 font-semibold rounded-lg hover:bg-red-200 border border-red-200 transition active:scale-95 text-center"
+                           className="w-full sm:w-auto py-2.5 px-6 bg-red-100 text-red-700 font-medium rounded-lg hover:bg-red-200 border border-red-200 transition active:scale-95 text-center text-sm"
                          >
                            Ajukan Pengembalian
                          </Link>
                          <button
                            onClick={handleOpenConfirmModal}
-                           className="w-full sm:w-auto py-2.5 px-6 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 flex items-center justify-center gap-2 transition active:scale-95 disabled:bg-emerald-300"
+                           className="w-full sm:w-auto py-2.5 px-6 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 flex items-center justify-center gap-2 transition active:scale-95 disabled:bg-emerald-300 text-sm"
                            disabled={isSubmitting}
                          >
                            <CheckCircle2 size={18} />
@@ -516,6 +601,20 @@ const KonfirmasiPenerimaan = () => {
           buktiFoto={buktiFoto}
         />
       </div>
+       
+       <style jsx>{`
+        @keyframes blob {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+      `}</style>
     </div>
   );
 };

@@ -74,7 +74,7 @@ const PilihProdusen = () => {
                     <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-emerald-900 to-teal-900 bg-clip-text text-transparent">
                       Pesan Obat ke Produsen
                     </h1>
-                    <p className="text-slate-600 text-lg mt-1">Langkah 1: Pilih produsen yang dituju</p>
+                    <p className="text-slate-600 text-lg mt-1">Pilih produsen yang dituju</p>
                   </div>
                 </div>
               </div>

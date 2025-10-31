@@ -21,6 +21,67 @@ import {
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
+// --- MODAL BARU: REJECT RETURN MODAL ---
+const RejectReturnModal = ({ show, onClose, onConfirm, isSubmitting }) => {
+  const [alasan, setAlasan] = useState('');
+
+  if (!show) return null;
+
+  const handleSubmit = () => {
+    if (!alasan.trim()) {
+      toast.error('Alasan penolakan pengembalian wajib diisi.');
+      return;
+    }
+    onConfirm(false, alasan); // Kirim 'false' (tidak setuju) dan alasannya
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
+        <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+          <XCircle className="h-10 w-10 text-red-600" />
+        </div>
+        <h3 className="text-xl font-bold text-gray-900 text-center">Tolak Pengajuan Pengembalian?</h3>
+        <p className="text-gray-500 mt-2 text-sm text-center">
+          Pesanan akan ditandai sebagai 'Pengembalian Ditolak'. Masukkan alasan penolakan Anda.
+        </p>
+        <div className="mt-6">
+          <label htmlFor="alasan_penolakan_retur" className="block text-sm font-medium text-gray-700 mb-1">
+            Alasan Penolakan (Wajib)
+          </label>
+          <textarea
+            id="alasan_penolakan_retur"
+            rows={3}
+            value={alasan}
+            onChange={(e) => setAlasan(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
+            placeholder="Contoh: Bukti foto tidak jelas, barang masih dalam kondisi baik."
+          />
+        </div>
+        <div className="mt-8 flex justify-center gap-4">
+          <button
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="py-2.5 px-6 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 disabled:opacity-50"
+          >
+            Batal
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="py-2.5 px-6 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 flex items-center justify-center disabled:bg-red-300"
+          >
+            {isSubmitting ? <Loader2 className="animate-spin h-5 w-5 mr-2"/> : <XCircle size={18} className="mr-2"/>}
+            {isSubmitting ? 'Memproses...' : 'Ya, Tolak Pengajuan'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+// --- AKHIR MODAL BARU ---
+
+
 const KonfirmasiPengembalian = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -29,12 +90,14 @@ const KonfirmasiPengembalian = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false); // <-- State baru
   const [isActionLoading, setIsActionLoading] = useState(false);
   const username = localStorage.getItem('username');
 
   const cleanedId = id.replace(':', '');
 
   useEffect(() => {
+    // ... (Fungsi useEffect fetch data Anda tidak berubah) ...
     const fetchData = async () => {
       setIsLoading(true);
       setError(null);
@@ -42,30 +105,21 @@ const KonfirmasiPengembalian = () => {
       try {
         token = localStorage.getItem('token');
         if (!token) throw new Error('Silakan login terlebih dahulu');
-
-        console.log('Fetching return request for ID:', cleanedId);
-
         const response = await axios.get(`http://localhost:5000/api/produsen/pesanan-masuk/pengembalian/${cleanedId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-
         if (!response.data.success || !response.data.data) {
              throw new Error(response.data.message || 'Gagal mengambil data pengembalian atau format data salah');
         }
-
         if (response.data.data.status !== 'Pengembalian Diajukan') {
               console.warn(`Status pesanan saat ini "${response.data.data.status || 'Tidak Diketahui'}".`);
         }
-        
         const responseData = response.data.data;
-        
         const totalHargaKeseluruhan = (responseData.detail_pesanan || []).reduce((acc, item) => acc + (Number(item.total_harga) || 0), 0);
-
         setData({
             ...responseData,
             total_harga_awal_calculasi: totalHargaKeseluruhan || responseData.total_harga || 0
         });
-
       } catch (err) {
         console.error('Error fetching return request:', err);
         setError(err.response?.data?.message || err.message);
@@ -82,7 +136,8 @@ const KonfirmasiPengembalian = () => {
     fetchData();
   }, [cleanedId, navigate]);
 
-   const handleAction = async (approve = true) => {
+   // --- PERBAIKI FUNGSI INI ---
+   const handleAction = async (approve = true, alasan_penolakan = null) => {
     const action = approve ? 'menyetujui' : 'menolak';
     setIsActionLoading(true);
     setError(null);
@@ -93,19 +148,19 @@ const KonfirmasiPengembalian = () => {
       if (!token) throw new Error('Sesi tidak valid.');
 
       const endpoint = `http://localhost:5000/api/produsen/pesanan-masuk/pengembalian/${cleanedId}/${approve ? 'approve' : 'reject'}`;
+      
+      // Kirim payload alasan jika menolak
+      const payload = approve ? {} : { alasan_penolakan: alasan_penolakan };
 
       const response = await axios.put(endpoint,
-        approve ? {} : { alasan_penolakan: 'Ditolak oleh produsen' },
+        payload, // <-- Kirim payload di sini
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       if (response.data.success) {
         toast.success(`Pengajuan pengembalian berhasil ${action}.`);
-        if (approve) {
-            navigate(`/produsen/pengelolaan-pengiriman`);
-        } else {
-             navigate('/produsen/pengelolaan-pengiriman/pengembalian');
-        }
+        // Arahkan ke daftar pengembalian (sudah benar)
+        navigate('/produsen/pengelolaan-pengiriman/pengembalian');
       } else {
         throw new Error(response.data.message || `Gagal ${action} pengembalian.`);
       }
@@ -116,11 +171,14 @@ const KonfirmasiPengembalian = () => {
     } finally {
       setIsActionLoading(false);
       setShowModal(false);
+      setShowRejectModal(false); // <-- Tutup modal tolak
     }
   };
+  // --- AKHIR PERBAIKAN ---
 
 
   const formatDate = (dateString) => {
+    // ... (fungsi formatDate tidak berubah) ...
     if (!dateString) return '-';
     try {
         const date = new Date(dateString);
@@ -133,11 +191,13 @@ const KonfirmasiPengembalian = () => {
   };
 
   const handleLogout = () => {
+    // ... (fungsi handleLogout tidak berubah) ...
     localStorage.clear();
     navigate('/');
   };
 
 
+ // ... (Render Loading, Error, Data Not Found tidak berubah) ...
  if (isLoading) {
      return (
        <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
@@ -227,6 +287,7 @@ const KonfirmasiPengembalian = () => {
             )}
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+               {/* ... (Header, Detail Grid tidak berubah) ... */}
                <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                   <div>
                     <h1 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -332,12 +393,13 @@ const KonfirmasiPengembalian = () => {
                   </div>
                </div>
 
+               {/* --- PERBAIKAN FOOTER AKSI --- */}
                <div className="p-6 flex flex-col sm:flex-row justify-end items-center gap-3 border-t border-slate-200">
                  {canTakeAction ? (
                    <>
                      <p className="text-sm text-slate-600 mr-auto">Tindakan Anda bersifat final.</p>
                      <button
-                       onClick={() => handleAction(false)}
+                       onClick={() => setShowRejectModal(true)} // <-- Buka modal tolak
                        className="w-full sm:w-auto px-6 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition flex items-center justify-center gap-2"
                        disabled={isActionLoading}
                      >
@@ -357,11 +419,13 @@ const KonfirmasiPengembalian = () => {
                     <p className="text-sm text-slate-600 mr-auto">Tindakan telah diambil untuk pengajuan ini.</p>
                  )}
                </div>
+               {/* --- AKHIR PERBAIKAN --- */}
             </div>
           </div>
         </main>
       </div>
 
+      {/* Modal Setuju (Tidak Berubah) */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center">
@@ -370,7 +434,7 @@ const KonfirmasiPengembalian = () => {
             </div>
             <h3 className="text-xl font-bold text-gray-900">Setujui Pengajuan Pengembalian?</h3>
             <p className="text-gray-500 mt-2 text-sm">
-              Anda akan menyetujui pengajuan pengembalian untuk pesanan ini. Pengiriman retur akan dijadwalkwkan. Dana akan dikembalikan setelah barang diterima.
+              Anda akan menyetujui pengajuan pengembalian untuk pesanan ini. Pengiriman retur akan dijadwalkan. Dana akan dikembalikan setelah barang diterima.
             </p>
             <div className="mt-8 flex justify-center gap-4">
               <button
@@ -393,19 +457,16 @@ const KonfirmasiPengembalian = () => {
         </div>
       )}
 
-      <style jsx>{`
-        @keyframes blob {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-        }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-      `}</style>
+      {/* --- TAMBAHKAN MODAL TOLAK DI SINI --- */}
+      <RejectReturnModal
+        show={showRejectModal}
+        onClose={() => setShowRejectModal(false)}
+        onConfirm={handleAction}
+        isSubmitting={isActionLoading}
+      />
+      {/* --- AKHIR TAMBAHAN --- */}
+
+      {/* Hapus <style jsx> */}
     </div>
   );
 };

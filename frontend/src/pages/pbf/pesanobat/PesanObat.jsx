@@ -123,6 +123,7 @@ const PesanObat = () => {
       case 'Pembatalan Ditolak': return 'bg-pink-50 text-pink-700 border-pink-200';
       case 'Pengembalian Diajukan': return 'bg-orange-50 text-orange-700 border-orange-200';
       case 'Dikembalikan': return 'bg-purple-50 text-purple-700 border-purple-200';
+      case 'Pengembalian Ditolak': return 'bg-pink-50 text-pink-700 border-pink-200';
       default: return 'bg-slate-50 text-slate-700 border-slate-200';
     }
   };
@@ -226,7 +227,6 @@ const PesanObat = () => {
                     />
                   </div>
                   
-                  {/* --- PERBAIKAN DROPDOWN --- */}
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
@@ -236,11 +236,11 @@ const PesanObat = () => {
                     <option>Perlu Dikirim</option>
                     <option>Dikirim</option>
                     <option>Selesai</option>
-                    <option>Pembatalan Ditolak</option> {/* <-- Diubah dari 'Ditolak' */}
-                    <option>Dibatalkan</option> {/* <-- Ditambahkan */}
+                    <option>Pembatalan Ditolak</option> 
+                    <option>Dibatalkan</option> 
+                    <option>Pengembalian Ditolak</option>
                     <option>Dikembalikan</option>
                   </select>
-                  {/* --- AKHIR PERBAIKAN --- */}
                   
                   {/* Filter Tanggal */}
                   <div className="relative">
@@ -393,18 +393,20 @@ const PesanObat = () => {
 
                                   case 'Pembatalan Diajukan':
                                   case 'Dibatalkan':
-                                  case 'Pembatalan Ditolak': // <-- Logika ini sudah benar
+                                  case 'Pembatalan Ditolak': 
                                     return (
                                       <Link to={`/pbf/pesanan/${item.id}/detail-pembatalan`} className="text-yellow-700 hover:text-yellow-800 font-medium">
                                         Lihat Detail 
                                       </Link>
                                     );
-
+                                  
+                                  {/* --- INI ADALAH PERBAIKAN YANG ANDA MINTA --- */}
                                   case 'Pengembalian Diajukan':
                                   case 'Dikembalikan':
                                     return (
                                       <>
-                                        <Link to={`/pbf/pesanan/${item.id}/detail`} className="text-blue-600 hover:text-blue-800">
+                                        {/* Mengarah ke halaman detail pengembalian baru */}
+                                        <Link to={`/pbf/pesanan/${item.id}/detail-pengembalian`} className="text-blue-600 hover:text-blue-800">
                                           Detail
                                         </Link>
                                         <Link to={`/pbf/pesanan/${item.id}/lacak-pengembalian-pbf`} className="text-purple-600 hover:text-purple-800">
@@ -412,6 +414,15 @@ const PesanObat = () => {
                                         </Link>
                                       </>
                                     );
+                                  case 'Pengembalian Ditolak':
+                                    return (
+                                      // Mengarah ke halaman pelacakan untuk melihat alasan
+                                      <Link to={`/pbf/pesanan/${item.id}/lacak-pengembalian-pbf`} className="text-red-600 hover:text-red-800 font-medium">
+                                        Tinjau Penolakan
+                                      </Link>
+                                    );
+                                  {/* --- AKHIR PERBAIKAN --- */}
+
                                   default:
                                     return (
                                       <Link to={`/pbf/pesanan/${item.id}/detail`} className="text-slate-600 hover:text-slate-800">
@@ -451,7 +462,7 @@ const PesanObat = () => {
         />
       </div>
       
-      {/* Hapus blok <style jsx> di bawah ini */}
+      {/* <style jsx> Dihapus */}
     </div>
   );
 };

@@ -269,7 +269,7 @@ getAll: async (req, res) => {
 
   rejectPengembalian: async (req, res) => {
     const { id } = req.params; // ID Pesanan
-    const { alasan_penolakan } = req.body; // Ambil alasan dari body
+    const { alasan_penolakan } = req.body; // <-- Ambil alasan dari body
     const idProdusen = req.user.id;
     let dbConnection;
 
@@ -293,12 +293,14 @@ getAll: async (req, res) => {
       }
 
       // 3. Update status dan tambahkan alasan ke catatan
-      const catatanBaru = (pesanan[0].catatan_khusus || '') + `\n[PENOLAKAN]: ${alasan_penolakan}`;
+      //    Gunakan prefix unik agar bisa dibedakan dari penolakan pembatalan
+      const catatanBaru = (pesanan[0].catatan_khusus || '') + `\n[PENOLAKAN PENGEMBALIAN]: ${alasan_penolakan}`;
       
       await dbConnection.query(
-        "UPDATE pesanan SET status = 'Pengembalian Ditolak', catatan_khusus = ? WHERE id = ?",
+        "UPDATE pesanan SET status = 'Pengembalian Ditolak', catatan_khusus = ? WHERE id = ?", // <-- Ubah status
         [catatanBaru, id]
       );
+      // --- AKHIR PERBAIKAN ---
 
       await dbConnection.commit();
       res.json({ success: true, message: 'Pengajuan pengembalian telah ditolak.' });
@@ -343,6 +345,7 @@ getAll: async (req, res) => {
       res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
     }
   },
+
 
   
 

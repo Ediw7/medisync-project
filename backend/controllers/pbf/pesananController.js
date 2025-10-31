@@ -204,31 +204,41 @@ const pesananController = {
       // Ekstrak alasan dari catatan_khusus
      let alasan_pembatalan = '-';
       let alasan_penolakan = '-';
+      let alasan_pengembalian = '-';
+      let alasan_penolakan_pengembalian = '-';
+
       if (pesanan[0].catatan_khusus) {
-        const catatan = pesanan[0].catatan_khusus;
-        
-        // Cari alasan yang dikirim PBF
-        if (catatan.includes('Alasan:')) {
-          let reasonBlock = catatan.split('Alasan:')[1];
-          
-          // Cek apakah ada penolakan
-          if (reasonBlock.includes('[PENOLAKAN]:')) {
-            alasan_pembatalan = reasonBlock.split('[PENOLAKAN]:')[0].trim() || '-';
-          } else {
-            alasan_pembatalan = reasonBlock.trim() || '-';
+          const catatan = pesanan[0].catatan_khusus;
+
+          // 1. Parse Alasan Pembatalan (dari PBF) - "Alasan: ..."
+          const pembatalanMatch = catatan.match(/Alasan:([\s\S]*?)(\[PENOLAKAN\]:|$)/);
+          if (pembatalanMatch && pembatalanMatch[1]) {
+              alasan_pembatalan = pembatalanMatch[1].trim();
           }
-        }
-      
-      // Cari alasan penolakan dari Produsen
-        if (catatan.includes('[PENOLAKAN]:')) {
-          alasan_penolakan = catatan.split('[PENOLAKAN]:')[1].trim() || '-';
-        }
+
+          // 2. Parse Alasan Penolakan Pembatalan (dari Produsen) - "[PENOLAKAN]: ..."
+          const penolakanPembatalanMatch = catatan.match(/\[PENOLAKAN\]:([\s\S]*?)(\[|$)/);
+          if (penolakanPembatalanMatch && penolakanPembatalanMatch[1]) {
+              alasan_penolakan = penolakanPembatalanMatch[1].trim();
+          }
+
+          // 3. Parse Alasan Pengembalian (dari PBF) - "Pengembalian Diajukan PBF. Alasan: ..."
+          const pengembalianMatch = catatan.match(/Pengembalian Diajukan PBF\. Alasan:([\s\S]*?)(\[PENOLAKAN PENGEMBALIAN\]:|$)/);
+          if (pengembalianMatch && pengembalianMatch[1]) {
+              alasan_pengembalian = pengembalianMatch[1].trim();
+          }
+
+          // 4. Parse Alasan Penolakan Pengembalian (dari Produsen) - "[PENOLAKAN PENGEMBALIAN]: ..."
+          const penolakanPengembalianMatch = catatan.match(/\[PENOLAKAN PENGEMBALIAN\]:([\s\S]*)/);
+          if (penolakanPengembalianMatch && penolakanPengembalianMatch[1]) {
+              alasan_penolakan_pengembalian = penolakanPengembalianMatch[1].trim();
+          }
       }
 
       res.json({
         success: true,
         data: {
-          pesanan: { ...pesanan[0], alasan_pembatalan, alasan_penolakan },
+          pesanan: { ...pesanan[0], alasan_pembatalan, alasan_penolakan, alasan_pengembalian,alasan_penolakan_pengembalian },
           detail_pesanan: detail
         }
       });

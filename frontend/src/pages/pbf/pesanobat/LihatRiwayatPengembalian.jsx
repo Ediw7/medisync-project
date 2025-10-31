@@ -7,10 +7,20 @@ import { ArrowLeft, CheckCircle } from 'lucide-react';
 const LihatRiwayatPengembalian = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { idPesanan, alasan, foto } = location.state || {};
+  
+  // --- PERBAIKAN DI SINI ---
+  // Hapus 'foto' dari destrukturisasi, karena kita tidak mengirimkannya
+  const { idPesanan, alasan } = location.state || {};
+  // Ambil 'previewFoto' dari state
+  const previewFoto = location.state?.foto; 
+  // --- AKHIR PERBAIKAN ---
+  
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  if (!idPesanan || !alasan || !foto) {
+  // --- PERBAIKAN DI SINI ---
+  // Ubah pengecekan: 'foto' tidak lagi wajib, 'alasan' juga tidak wajib
+  if (!idPesanan) {
+  // --- AKHIR PERBAIKAN ---
     return (
         <div className="flex justify-center items-center h-screen">
             <p>Data pengajuan tidak ditemukan.</p>
@@ -49,13 +59,19 @@ const LihatRiwayatPengembalian = () => {
                     </div>
                      <div>
                         <p className="text-sm font-medium text-gray-500">Alasan Pengembalian</p>
-                        <p className="mt-1 text-gray-700 bg-gray-50 p-3 rounded-md border">{alasan}</p>
+                        <p className="mt-1 text-gray-700 bg-gray-50 p-3 rounded-md border">{alasan || 'Tidak ada alasan.'}</p>
                     </div>
                      <div>
                         <p className="text-sm font-medium text-gray-500">Foto Bukti</p>
-                        <div className="mt-2 border rounded-lg p-2 bg-gray-50 inline-block">
-                           <img src={foto} alt="Bukti Pengembalian" className="h-48 w-auto object-contain rounded" />
-                        </div>
+                        {/* --- PERBAIKAN DI SINI --- */}
+                        {previewFoto ? (
+                          <div className="mt-2 border rounded-lg p-2 bg-gray-50 inline-block">
+                             <img src={previewFoto} alt="Bukti Pengembalian" className="h-48 w-auto object-contain rounded" />
+                          </div>
+                        ) : (
+                          <p className="mt-1 text-gray-500">Tidak ada bukti foto.</p>
+                        )}
+                        {/* --- AKHIR PERBAIKAN --- */}
                     </div>
                 </div>
             </div>

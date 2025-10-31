@@ -123,7 +123,10 @@ const PesanObat = () => {
       case 'Pembatalan Ditolak': return 'bg-pink-50 text-pink-700 border-pink-200';
       case 'Pengembalian Diajukan': return 'bg-orange-50 text-orange-700 border-orange-200';
       case 'Dikembalikan': return 'bg-purple-50 text-purple-700 border-purple-200';
+      // --- TAMBAHAN ---
       case 'Pengembalian Ditolak': return 'bg-pink-50 text-pink-700 border-pink-200';
+      case 'Pengembalian Selesai': return 'bg-purple-50 text-purple-700 border-purple-200'; // Samakan dengan 'Dikembalikan'
+      // --- AKHIR TAMBAHAN ---
       default: return 'bg-slate-50 text-slate-700 border-slate-200';
     }
   };
@@ -227,6 +230,7 @@ const PesanObat = () => {
                     />
                   </div>
                   
+                  {/* --- PERBAIKAN DROPDOWN --- */}
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
@@ -236,11 +240,14 @@ const PesanObat = () => {
                     <option>Perlu Dikirim</option>
                     <option>Dikirim</option>
                     <option>Selesai</option>
+                    <option>Dibatalkan</option>
                     <option>Pembatalan Ditolak</option> 
-                    <option>Dibatalkan</option> 
-                    <option>Pengembalian Ditolak</option>
+                    <option>Pengembalian Diajukan</option>
                     <option>Dikembalikan</option>
+                    <option>Pengembalian Ditolak</option>
+                    <option>Pengembalian Selesai</option>
                   </select>
+                  {/* --- AKHIR PERBAIKAN --- */}
                   
                   {/* Filter Tanggal */}
                   <div className="relative">
@@ -352,7 +359,7 @@ const PesanObat = () => {
                             <div className="text-sm font-semibold text-slate-900 font-mono">{item.nomor_po}</div>
                             <div className="text-xs text-slate-400">ID: {String(item.id).padStart(6, '0')}</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowcrap">
                             <div className="text-sm font-medium text-slate-900">{item.nama_pbf}</div>
                             <div className="text-xs text-emerald-600 font-semibold">Rp {(item.total_harga || 0).toLocaleString('id-ID')}</div>
                           </td>
@@ -381,15 +388,26 @@ const PesanObat = () => {
                                         Konfirmasi Penerimaan
                                       </button>
                                     );
+                                  
+                                  {/* --- INI PERBAIKANNYA --- */}
                                   case 'Selesai':
-                                  case 'Pengembalian Selesai':
                                     return item.id_aset_blockchain ? (
+                                      // Link untuk riwayat pesanan NORMAL
                                       <Link to={`/pbf/pesanan/riwayat/${item.id_aset_blockchain}`} className="text-emerald-600 hover:text-emerald-800 font-medium">
                                         Lihat Riwayat
                                       </Link>
                                     ) : (
                                       <span className="text-slate-400">Riwayat T/A</span>
                                     );
+                                  
+                                  case 'Pengembalian Selesai':
+                                    return (
+                                      // Link untuk riwayat PENGEMBALIAN (menggunakan ID Pesanan, bukan assetId)
+                                      <Link to={`/pbf/pesanan/${item.id}/lacak-pengembalian-pbf`} className="text-purple-600 hover:text-purple-800 font-medium">
+                                        Lihat Riwayat
+                                      </Link>
+                                    );
+                                  {/* --- AKHIR PERBAIKAN --- */}
 
                                   case 'Pembatalan Diajukan':
                                   case 'Dibatalkan':
@@ -399,13 +417,11 @@ const PesanObat = () => {
                                         Lihat Detail 
                                       </Link>
                                     );
-                                  
-                                  {/* --- INI ADALAH PERBAIKAN YANG ANDA MINTA --- */}
+
                                   case 'Pengembalian Diajukan':
                                   case 'Dikembalikan':
                                     return (
                                       <>
-                                        {/* Mengarah ke halaman detail pengembalian baru */}
                                         <Link to={`/pbf/pesanan/${item.id}/detail-pengembalian`} className="text-blue-600 hover:text-blue-800">
                                           Detail
                                         </Link>
@@ -416,12 +432,10 @@ const PesanObat = () => {
                                     );
                                   case 'Pengembalian Ditolak':
                                     return (
-                                      // Mengarah ke halaman pelacakan untuk melihat alasan
                                       <Link to={`/pbf/pesanan/${item.id}/lacak-pengembalian-pbf`} className="text-red-600 hover:text-red-800 font-medium">
                                         Tinjau Penolakan
                                       </Link>
                                     );
-                                  {/* --- AKHIR PERBAIKAN --- */}
 
                                   default:
                                     return (
@@ -461,8 +475,6 @@ const PesanObat = () => {
           orderId={selectedOrderId}
         />
       </div>
-      
-      {/* <style jsx> Dihapus */}
     </div>
   );
 };

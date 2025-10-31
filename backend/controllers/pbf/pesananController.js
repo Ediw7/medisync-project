@@ -158,7 +158,6 @@ const pesananController = {
   WHERE p.id_pbf = ? 
   ORDER BY p.tanggal_pesanan DESC
 `;
-
       const [rows] = await db.query(sql, [req.user.id]);
       res.json({ success: true, data: rows });
     } catch (error) {
@@ -176,13 +175,13 @@ const pesananController = {
         SELECT 
           p.*, 
           u.nama_resmi AS nama_produsen,
-          u.alamat AS alamat_produsen,          -- 1. Tambahkan alamat produsen
-          sjp.nomor_resi,                     -- 2. Tambahkan nomor resi
-          sjp.nomor_surat_jalan,            -- 3. Tambahkan nomor surat jalan
-          sjp.tanggal_pengiriman            -- 4. Tambahkan tanggal pengiriman
+          u.alamat AS alamat_produsen,
+          sjp.nomor_resi,
+          sjp.nomor_surat_jalan,
+          sjp.tanggal_pengiriman
         FROM pesanan p
         JOIN users u ON p.id_produsen = u.id
-        LEFT JOIN surat_jalan_produsen sjp ON p.id = sjp.id_pesanan -- 5. Tambahkan LEFT JOIN
+        LEFT JOIN surat_jalan_produsen sjp ON p.id = sjp.id_pesanan
         WHERE p.id = ? AND p.id_pbf = ?
       `;
       const [pesanan] = await db.query(sqlPesanan, [id, req.user.id]);
@@ -201,8 +200,8 @@ const pesananController = {
       const totalFromDetail = detail.reduce((sum, item) => sum + parseFloat(item.total_harga || 0), 0);
       pesanan[0].total_harga = pesanan[0].total_harga || totalFromDetail;
 
-      // Ekstrak alasan dari catatan_khusus
-     let alasan_pembatalan = '-';
+      // --- PERBAIKAN LOGIKA PARSING ---
+      let alasan_pembatalan = '-';
       let alasan_penolakan = '-';
       let alasan_pengembalian = '-';
       let alasan_penolakan_pengembalian = '-';
@@ -234,11 +233,18 @@ const pesananController = {
               alasan_penolakan_pengembalian = penolakanPengembalianMatch[1].trim();
           }
       }
+      // --- AKHIR PERBAIKAN ---
 
       res.json({
         success: true,
         data: {
-          pesanan: { ...pesanan[0], alasan_pembatalan, alasan_penolakan, alasan_pengembalian,alasan_penolakan_pengembalian },
+          pesanan: { 
+            ...pesanan[0], 
+            alasan_pembatalan, 
+            alasan_penolakan,
+            alasan_pengembalian, // <-- Tambahkan
+            alasan_penolakan_pengembalian // <-- Tambahkan
+          },
           detail_pesanan: detail
         }
       });
@@ -299,6 +305,7 @@ const pesananController = {
     }
   },
 
+  // --- FUNGSI INI YANG DIPERBAIKI ---
   getRiwayatByAssetId: async (req, res) => {
         const { assetId } = req.params;
         const idPbf = req.user.id; // ID PBF yang sedang login
@@ -309,63 +316,85 @@ const pesananController = {
             const network = await gateway.getNetwork('medisyncchannel');
             const contract = network.getContract('medisync');
             
-            // Panggil chaincode untuk membaca data aset
-            // Kita tetap butuh ini untuk mendapatkan data on-chain
-            const resultBuffer = await contract.evaluateTransaction('ProdusenContract:readObat', assetId);
+            // 1. Panggil chaincode untuk membaca data aset
+            const resultBuffer = await contract.evaluateTransaction('readObat', assetId);
             const onChainData = JSON.parse(resultBuffer.toString());
 
-            // Ekstrak ID Pesanan dari ID Aset (misal: '...-21' -> '21')
-             const isApotekOrder = onChainData.riwayat.some(h => h.status === 'DIKIRIM_KE_APOTEK');
-      const assetIdParts = assetId.split('-');
-      const idPesanan = assetIdParts[assetIdParts.length - 1];
-      let offChainRows = [];
+            // 2. Tentukan alur berdasarkan riwayat on-chain
+            const isApotekOrder = onChainData.riwayat.some(h => h.status === 'DIKIRIM_KE_APOTEK');
+            
+            let idPesanan;
+            let offChainRows = [];
+            
+            // 3. Ekstrak ID Pesanan dari ID Aset
+            const assetIdParts = assetId.split('-');
+            
+            if (isApotekOrder) {
+                // INI ALUR PBF -> APOTEK
+                idPesanan = assetIdParts[assetIdParts.length - 1]; // Ambil bagian terakhir
+                const sql = `
+                  SELECT 
+                    pa.id, pa.nomor_pesanan, pa.status, pa.tanggal_pesanan, pa.total_harga, pa.updated_at,
+                    sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman, sjp.opsi_pengiriman,
+                    pbf.nama_resmi AS nama_pbf,
+                    apotek.nama_resmi AS nama_apotek,
+                    pa.bukti_foto AS buktiPenerimaUrl
+                  FROM pesanan_apotek pa
+                  LEFT JOIN surat_jalan_pbf sjp ON pa.id = sjp.id_pesanan_apotek
+                  LEFT JOIN users pbf ON pa.id_pbf = pbf.id
+                  LEFT JOIN users apotek ON pa.id_apotek = apotek.id
+                  WHERE pa.id = ? AND pa.id_pbf = ?
+                `;
+                [offChainRows] = await db.query(sql, [idPesanan, idPbf]);
 
-      // Jika Asset ID memiliki lebih dari 3 bagian, itu adalah pesanan untuk Apotek.
-      if (assetIdParts.length > 3) {
-        const sql = `
-          SELECT 
-            pa.id, pa.nomor_pesanan, pa.status, pa.tanggal_pesanan,
-            sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman, sjp.opsi_pengiriman,
-            pbf.nama_resmi AS nama_pbf,
-            apotek.nama_resmi AS nama_apotek,
-            pa.bukti_foto AS buktiPenerimaUrl
-          FROM pesanan_apotek pa
-          LEFT JOIN surat_jalan_pbf sjp ON pa.id = sjp.id_pesanan_apotek
-          LEFT JOIN users pbf ON pa.id_pbf = pbf.id
-          LEFT JOIN users apotek ON pa.id_apotek = apotek.id
-          WHERE pa.id = ? AND pa.id_pbf = ?
-        `;
-        [offChainRows] = await db.query(sql, [idPesanan, idPbf]);
-      } else {
-        // Jika tidak, itu adalah pesanan dari Produsen.
-        const sql = `
-          SELECT 
-            p.id, p.nomor_po, p.status, p.tanggal_pesanan,
-            sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman, sjp.opsi_pengiriman,
-            pbf.nama_resmi AS nama_pbf,
-            produsen.nama_resmi AS nama_produsen,
-            p.bukti_foto AS buktiPenerimaUrl
-          FROM pesanan p
-          LEFT JOIN surat_jalan_produsen sjp ON p.id = sjp.id_pesanan
-          LEFT JOIN users pbf ON p.id_pbf = pbf.id
-          LEFT JOIN users produsen ON p.id_produsen = produsen.id
-          WHERE p.id = ? AND p.id_pbf = ?
-        `;
-        [offChainRows] = await db.query(sql, [idPesanan, idPbf]);
-      }
+            } else {
+                // INI ALUR PRODUSEN -> PBF
+                idPesanan = assetIdParts[assetIdParts.length - 1]; // Ambil bagian terakhir
+                const sql = `
+                  SELECT 
+                    p.id, p.nomor_po, p.status, p.tanggal_pesanan, p.total_harga, p.updated_at,
+                    sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman, sjp.opsi_pengiriman,
+                    pbf.nama_resmi AS nama_pbf,
+                    produsen.nama_resmi AS nama_produsen,
+                    p.bukti_foto AS buktiPenerimaUrl
+                  FROM pesanan p
+                  LEFT JOIN surat_jalan_produsen sjp ON p.id = sjp.id_pesanan
+                  LEFT JOIN users pbf ON p.id_pbf = pbf.id
+                  LEFT JOIN users produsen ON p.id_produsen = produsen.id
+                  WHERE p.id = ? AND p.id_pbf = ?
+                `;
+                [offChainRows] = await db.query(sql, [idPesanan, idPbf]);
+            }
+            
+            // 4. Cek hasil query
             if (offChainRows.length === 0) {
-                // Jika query ini gagal, maka muncul error yang Anda lihat
                 return res.status(404).json({ success: false, message: 'Data pesanan off-chain tidak ditemukan atau Anda tidak berwenang.' });
             }
 
+            // --- PERBAIKAN: TAMBAHKAN QUERY DETAIL_PESANAN ---
+            const idPesananFromOffChain = offChainRows[0].id;
+            const detailSql = isApotekOrder ? 
+              `SELECT dp.*, pr.batch_id
+               FROM detail_pesanan_apotek dp
+               LEFT JOIN produksi pr ON dp.id_produksi = pr.id
+               WHERE dp.id_pesanan_apotek = ?`
+              :
+              `SELECT dp.*, pr.batch_id
+               FROM detail_pesanan dp
+               LEFT JOIN produksi pr ON dp.id_produksi = pr.id
+               WHERE dp.id_pesanan = ?`;
+            
+            const [detail_pesanan] = await db.query(detailSql, [idPesananFromOffChain]);
+            // --- AKHIR PERBAIKAN ---
+
             return res.json({
                 success: true,
-                data: { onChain: onChainData, offChain: offChainRows[0] }
+                // Tambahkan detail_pesanan ke respons
+                data: { onChain: onChainData, offChain: offChainRows[0], detail_pesanan: detail_pesanan }
             });
 
         } catch (error) {
             console.error(`Error fetching riwayat PBF for asset ${assetId}:`, error);
-            // Memberikan pesan error yang lebih spesifik jika dari chaincode
             const errorMessage = error.toString();
             if (errorMessage.includes('does not exist')) {
                  return res.status(404).json({ success: false, message: `Aset dengan ID ${assetId} tidak ditemukan di blockchain.` });
@@ -544,12 +573,12 @@ const pesananController = {
         await dbConnection.beginTransaction();
         
         const [result] = await dbConnection.query(
-           "UPDATE pesanan SET status = 'Pengembalian Diajukan', catatan_khusus = ?, bukti_foto = ? WHERE id = ? AND id_pbf = ? AND status = 'Dikirim'",
+           "UPDATE pesanan SET status = 'Pengembalian Diajukan', catatan_khusus = ?, bukti_foto = ? WHERE id = ? AND id_pbf = ? AND (status = 'Selesai' OR status = 'Dikirim')",
           [catatan, buktiFotoPath, id, idPbf]
         );
 
         if (result.affectedRows === 0) {
-          throw new Error('Gagal mengajukan pengembalian. Pesanan tidak ditemukan atau statusnya bukan "Selesai".');
+          throw new Error('Gagal mengajukan pengembalian. Pesanan tidak ditemukan atau statusnya bukan "Selesai" atau "Dikirim".');
         }
         
         await dbConnection.commit();
@@ -588,37 +617,52 @@ const pesananController = {
 
             const hashBuktiFoto = await calculateFileHash(buktiFotoPath);
 
-            gateway = await getGateway();
+            gateway = await getPbfGateway();
             const network = await gateway.getNetwork('medisyncchannel');
             const contract = network.getContract('medisync');
 
-            const [items] = await dbConnection.query("SELECT pr.batch_id FROM detail_pesanan dp JOIN produksi pr ON dp.id_produksi = pr.id WHERE dp.id_pesanan = ?", [id]);
-            for (const item of items) {
-                const transaction = contract.createTransaction('PbfContract:terimaBarang');
-                transaction.setEndorsingOrganizations('PBFMSP');
-                await transaction.submit(item.batch_id, hashBuktiFoto);
+            // --- AMBIL ID ASET DARI DETAIL_PESANAN ---
+            const [items] = await dbConnection.query("SELECT id_aset_blockchain FROM detail_pesanan WHERE id_pesanan = ?", [id]);
+            if (items.length === 0) {
+                throw new Error('Tidak ada detail item yang ditemukan untuk pesanan ini.');
             }
 
-            await dbConnection.query("UPDATE pesanan SET status = 'Selesai', catatan_khusus = ? WHERE id = ?", [`Bukti penerimaan: ${buktiFotoPath}`, id]);
+            for (const item of items) {
+                if (!item.id_aset_blockchain) {
+                    console.warn(`Item pesanan (ID: ${id}) tidak memiliki asset blockchain, dilewati.`);
+                    continue;
+                }
+                const transaction = contract.createTransaction('PbfContract:terimaBarang');
+                // Endorsing policy mungkin perlu disesuaikan
+                // transaction.setEndorsingOrganizations('PBFMSP', 'ProdusenMSP'); 
+                await transaction.submit(item.id_aset_blockchain, hashBuktiFoto);
+            }
+            // --- AKHIR PERUBAHAN ---
+
+            // Simpan path foto ke 'bukti_foto' BUKAN 'catatan_khusus'
+            await dbConnection.query("UPDATE pesanan SET status = 'Selesai', bukti_foto = ? WHERE id = ?", [buktiFotoPath, id]);
             
             await dbConnection.commit();
             res.json({ success: true, message: 'Pesanan berhasil dikonfirmasi selesai dan kepemilikan aset di blockchain telah ditransfer.' });
         } catch (error) {
             if (dbConnection) await dbConnection.rollback();
-            if (fs.existsSync(buktiFotoPath)) fs.unlinkSync(buktiFotoPath); // Hapus file jika gagal
+            // Cek apakah file ada sebelum menghapus
+            if (buktiFotoPath) {
+                try { await fs.unlink(buktiFotoPath); } catch(e) { console.error("Gagal hapus file bukti:", e);}
+            }
             res.status(500).json({ success: false, message: `Gagal konfirmasi: ${error.message}` });
         } finally {
             if (gateway) gateway.disconnect();
             if (dbConnection) dbConnection.release();
         }
     },
-
-    acknowledgeRejection: async (req, res) => {
+  
+  acknowledgeRejection: async (req, res) => {
     const { id } = req.params;
     const idPbf = req.user.id;
 
     try {
-      // 1. Pastikan pesanan ada dan statusnya 'Pembatalan Ditolak'
+      // Pastikan pesanan ada dan statusnya benar
       const [pesanan] = await db.query(
         "SELECT id FROM pesanan WHERE id = ? AND id_pbf = ? AND status = 'Pembatalan Ditolak'",
         [id, idPbf]
@@ -628,13 +672,12 @@ const pesananController = {
         return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan atau statusnya tidak valid.' });
       }
 
-      // 2. PERUBAHAN UTAMA: Ubah status menjadi 'Dibatalkan', bukan 'Perlu Dikirim'
+      // Kembalikan statusnya ke 'Dibatalkan' sesuai alur kloning
       await db.query(
         "UPDATE pesanan SET status = 'Dibatalkan' WHERE id = ?",
         [id]
       );
 
-      // 3. Ubah pesan sukses
       res.json({ success: true, message: 'Pesanan lama telah dibatalkan.' });
 
     } catch (error) {
@@ -643,10 +686,9 @@ const pesananController = {
     }
   },
   
-
-  
   uploadPenerimaanMiddleware: uploadPenerimaan,
   uploadPengembalianMiddleware: uploadPengembalian
 };
 
 module.exports = pesananController;
+

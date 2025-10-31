@@ -193,10 +193,34 @@ const pesananController = {
       const totalFromDetail = detail.reduce((sum, item) => sum + parseFloat(item.total_harga || 0), 0);
       pesanan[0].total_harga = pesanan[0].total_harga || totalFromDetail;
 
+      // Ekstrak alasan dari catatan_khusus
+     let alasan_pembatalan = '-';
+      let alasan_penolakan = '-';
+      if (pesanan[0].catatan_khusus) {
+        const catatan = pesanan[0].catatan_khusus;
+        
+        // Cari alasan yang dikirim PBF
+        if (catatan.includes('Alasan:')) {
+          let reasonBlock = catatan.split('Alasan:')[1];
+          
+          // Cek apakah ada penolakan
+          if (reasonBlock.includes('[PENOLAKAN]:')) {
+            alasan_pembatalan = reasonBlock.split('[PENOLAKAN]:')[0].trim() || '-';
+          } else {
+            alasan_pembatalan = reasonBlock.trim() || '-';
+          }
+        }
+      
+      // Cari alasan penolakan dari Produsen
+        if (catatan.includes('[PENOLAKAN]:')) {
+          alasan_penolakan = catatan.split('[PENOLAKAN]:')[1].trim() || '-';
+        }
+      }
+
       res.json({
         success: true,
         data: {
-          pesanan: pesanan[0],
+          pesanan: { ...pesanan[0], alasan_pembatalan, alasan_penolakan },
           detail_pesanan: detail
         }
       });

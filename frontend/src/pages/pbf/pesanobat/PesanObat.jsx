@@ -386,6 +386,16 @@ const PesanObat = () => {
                                     ) : (
                                       <span className="text-slate-400">Riwayat T/A</span>
                                     );
+
+                                  case 'Pembatalan Diajukan':
+                                  case 'Dibatalkan':
+                                  case 'Pengembalian Ditolak': // Status ini juga relevan
+                                    return (
+                                      <Link to={`/pbf/pesanan/${item.id}/detail-pembatalan`} className="text-yellow-700 hover:text-yellow-800 font-medium">
+                                        Lihat Detail 
+                                      </Link>
+                                    );
+
                                   case 'Pengembalian Diajukan':
                                   case 'Dikembalikan':
                                     return (

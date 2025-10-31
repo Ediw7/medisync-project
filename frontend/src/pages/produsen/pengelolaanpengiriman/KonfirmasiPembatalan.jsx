@@ -54,6 +54,63 @@ const ConfirmationModal = ({ show, onClose, onConfirm, isSubmitting }) => {
   );
 };
 
+const RejectModal = ({ show, onClose, onConfirm, isSubmitting }) => {
+  const [alasan, setAlasan] = useState('');
+
+  if (!show) return null;
+
+  const handleSubmit = () => {
+    if (!alasan.trim()) {
+      toast.error('Alasan penolakan tidak boleh kosong.');
+      return;
+    }
+    onConfirm('Perlu Dikirim', alasan); // Kirim status 'Perlu Dikirim' dan alasannya
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
+        <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+          <XCircle className="h-10 w-10 text-red-600" />
+        </div>
+        <h3 className="text-xl font-bold text-gray-900 text-center">Tolak Pengajuan Pembatalan?</h3>
+        <p className="text-gray-500 mt-2 text-sm text-center">
+          Pesanan akan dikembalikan ke status 'Perlu Dikirim'. Masukkan alasan penolakan.
+        </p>
+        <div className="mt-6">
+          <label htmlFor="alasan_penolakan" className="block text-sm font-medium text-gray-700 mb-1">
+            Alasan Penolakan (Wajib)
+          </label>
+          <textarea
+            id="alasan_penolakan"
+            rows={3}
+            value={alasan}
+            onChange={(e) => setAlasan(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
+            placeholder="Contoh: Barang sudah dalam proses packing dan tidak dapat dibatalkan."
+          />
+        </div>
+        <div className="mt-8 flex justify-center gap-4">
+          <button
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="py-2.5 px-6 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 disabled:opacity-50"
+          >
+            Batal
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="py-2.5 px-6 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 flex items-center justify-center disabled:bg-red-300"
+          >
+            {isSubmitting ? <Loader2 className="animate-spin h-5 w-5 mr-2"/> : <XCircle size={18} className="mr-2"/>}
+            {isSubmitting ? 'Memproses...' : 'Ya, Tolak Pengajuan'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const KonfirmasiPembatalan = () => {
   const { id } = useParams();
@@ -64,6 +121,7 @@ const KonfirmasiPembatalan = () => {
   const [pesanan, setPesanan] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
   const username = localStorage.getItem('username');
 
   // --- LOGIKA FETCH DATA (TIDAK DIUBAH) ---
@@ -108,10 +166,10 @@ const KonfirmasiPembatalan = () => {
   }, [id, navigate]); // Dependensi tetap
 
   // --- LOGIKA AKSI (TIDAK DIUBAH, HANYA ALERT -> TOAST) ---
-  const handleAction = async (newStatus) => {
+  const handleAction = async (newStatus, alasan_penolakan = null) => {
     setIsSubmitting(true);
     setError(null);
-    toast.dismiss(); // Hapus toast sebelumnya
+    toast.dismiss(); 
 
     const actionText = newStatus === 'Dibatalkan' ? 'membatalkan' : 'menolak pembatalan';
     const cleanedId = id.replace(':', '');
@@ -120,24 +178,31 @@ const KonfirmasiPembatalan = () => {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Sesi tidak valid.');
 
+      // Kirim data yang sesuai
+      const payload = { 
+        status: newStatus, 
+        ...(alasan_penolakan && { alasan_penolakan }) // Tambahkan alasan jika ada
+      };
+
       const response = await axios.put(`http://localhost:5000/api/produsen/pembatalan/${cleanedId}/konfirmasi-pembatalan`,
-        { status: newStatus },
+        payload, // Kirim payload
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
 
       if (response.data.success) {
-        toast.success(`Pesanan berhasil ${actionText}.`); // Gunakan toast success
-        navigate('/produsen/pengelolaan-pengiriman/pembatalan'); // Arahkan ke daftar pembatalan
+        toast.success(`Pesanan berhasil ${actionText}.`); 
+        navigate('/produsen/pengelolaan-pengiriman/pembatalan'); 
       } else {
         throw new Error(response.data.message || `Gagal ${actionText} pesanan.`);
       }
     } catch (err) {
       const errorMsg = err.response?.data?.message || err.message || `Gagal ${actionText} pesanan.`;
       setError(errorMsg);
-      toast.error(errorMsg); // Gunakan toast error
+      toast.error(errorMsg); 
     } finally {
       setIsSubmitting(false);
-      setShowConfirmModal(false); // Selalu tutup modal
+      setShowConfirmModal(false); 
+      setShowRejectModal(false); // Tutup kedua modal
     }
   };
 

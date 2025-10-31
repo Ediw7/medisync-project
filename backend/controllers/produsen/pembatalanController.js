@@ -32,11 +32,23 @@ const pembatalanController = {
         for (const item of items) {
           await dbConnection.query("UPDATE produksi SET jumlah = jumlah + ? WHERE id = ?", [item.jumlah_pesanan, item.id_produksi]);
         }
-      } else if (status !== 'Perlu Dikirim') {
+        // Jika Dibatalkan, update status
+        await dbConnection.query(`UPDATE pesanan SET status = ? WHERE id = ?`, [status, id]);
+
+      } else if (status === 'Perlu Dikirim') {
+        // JIKA DITOLAK (status kembali ke Perlu Dikirim)
+        if (!alasan_penolakan || alasan_penolakan.trim() === '') {
+            throw new Error('Alasan penolakan wajib diisi saat menolak pembatalan.');
+        }
+        // Tambahkan alasan penolakan ke catatan
+        const catatanBaru = (currentPesanan[0].catatan_khusus || '') + `\n[PENOLAKAN]: ${alasan_penolakan}`;
+        await dbConnection.query(`UPDATE pesanan SET status = ?, catatan_khusus = ? WHERE id = ?`, [status, catatanBaru, id]);
+
+      } else {
         throw new Error("Status hanya bisa 'Dibatalkan' atau 'Perlu Dikirim'.");
       }
 
-      await dbConnection.query(`UPDATE pesanan SET status = ? WHERE id = ?`, [status, id]);
+     
       await dbConnection.commit();
 
       res.json({ success: true, message: `Status pesanan berhasil diubah menjadi ${status}.` });

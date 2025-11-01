@@ -150,7 +150,7 @@ const apotekController = {
         const [result] = await connection.query(
             `INSERT INTO pesanan_apotek (id_apotek, id_pbf, nomor_pesanan, nama_apotek, alamat_apotek, jabatan, nomor_sipa, telepon, total_harga, tanda_tangan_apoteker, status)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [idApotek, id_pbf, nomor_pesanan, nama_apotek, alamat_apotek, jabatan, nomor_sipa, telepon, total_harga, filePath, 'Menunggu Konfirmasi']
+            [idApotek, id_pbf, nomor_pesanan, nama_apotek, alamat_apotek, jabatan, nomor_sipa, telepon, total_harga, filePath, 'Perlu Dikirim']
         );
         const idPesanan = result.insertId;
         for (const item of items) {

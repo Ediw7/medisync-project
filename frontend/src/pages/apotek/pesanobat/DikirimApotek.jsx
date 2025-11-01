@@ -34,13 +34,13 @@ const NavItem = ({ label, to }) => {
   );
 };
 
-const PesanObatApotek = () => {
+const DikirimApotek = () => {
   const navigate = useNavigate();
   const [pesananData, setPesananData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  // statusFilter tidak lagi diperlukan di sini, ini adalah halaman "Semua"
+  const statusFilter = 'Dikirim'; // Filter Halaman Ini
   const username = localStorage.getItem('username');
 
   useEffect(() => {
@@ -84,22 +84,19 @@ const PesanObatApotek = () => {
   };
 
   const filteredData = useMemo(() => {
-    // Halaman "Semua", jadi tidak filter berdasarkan status
     return pesananData
+      .filter(item => {
+        return item.status === statusFilter;
+      })
       .filter(item =>
         (item.nama_pbf?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         (item.nomor_pesanan?.toLowerCase() || '').includes(searchTerm.toLowerCase())
       );
-  }, [pesananData, searchTerm]);
+  }, [pesananData, searchTerm, statusFilter]);
 
-  // Status badge (Menunggu Konfirmasi dihapus)
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'Perlu Dikirim': return 'bg-orange-100 text-orange-800 border border-orange-200';
       case 'Dikirim': return 'bg-blue-100 text-blue-800 border border-blue-200';
-      case 'Selesai': return 'bg-emerald-100 text-emerald-800 border border-emerald-200';
-      case 'Pembatalan Diajukan': return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
-      case 'Dibatalkan': return 'bg-red-100 text-red-800 border border-red-200';
       default: return 'bg-slate-100 text-slate-800 border border-slate-200';
     }
   };
@@ -115,44 +112,19 @@ const PesanObatApotek = () => {
     }
   };
 
-  // Render Aksi (Menunggu Konfirmasi dihapus, Batalkan pindah ke Perlu Dikirim)
   const renderAction = (item) => {
     const baseClasses = "text-sm font-semibold hover:underline transition-colors duration-150 inline-flex items-center gap-1.5 py-1 px-2 rounded-md";
-    const detailClasses = "text-slate-600 hover:text-slate-800 hover:bg-slate-100";
-    const cancelClasses = "text-red-600 hover:text-red-800 hover:bg-red-50";
     const confirmClasses = "text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50";
-    const historyClasses = "text-purple-600 hover:text-purple-800 hover:bg-purple-50";
 
     switch (item.status) {
-      case 'Perlu Dikirim': // Apotek bisa membatalkan saat status ini
-        return (
-          <Link to={`/apotek/pesanan/${item.id}/batalkan`} className={`${baseClasses} ${cancelClasses}`}>
-            <XCircle size={14}/> Batalkan
-          </Link>
-        );
       case 'Dikirim':
         return (
           <Link to={`/apotek/pesanan/${item.id}/konfirmasi-penerimaan`} className={`${baseClasses} ${confirmClasses}`}>
             <CheckCircle size={14}/> Konfirmasi
           </Link>
         );
-      case 'Selesai':
-        const assetId = item.detail_pesanan?.[0]?.blockchain_asset_id;
-        return assetId ? (
-          <Link to={`/apotek/pesanan/riwayat/${assetId}`} className={`${baseClasses} ${historyClasses}`}>
-            <FileText size={14}/> Riwayat
-          </Link>
-        ) : (
-          <span className="text-slate-400 text-xs italic">(Riwayat T/A)</span>
-        );
-      case 'Dibatalkan':
-      case 'Pembatalan Diajukan':
       default:
-        return (
-          <Link to={`/apotek/pesanan/${item.id}/detail`} className={`${baseClasses} ${detailClasses}`}>
-            <Info size={14}/> Detail
-          </Link>
-        );
+        return null; 
     }
   };
 
@@ -164,7 +136,7 @@ const PesanObatApotek = () => {
             <Loader2 className="animate-spin h-12 w-12 text-emerald-600" />
             <div className="absolute inset-0 h-12 w-12 rounded-full border-4 border-emerald-200 animate-ping opacity-20"></div>
           </div>
-          <p className="mt-4 text-slate-700 font-medium">Memuat Data Pesanan Obat...</p>
+          <p className="mt-4 text-slate-700 font-medium">Memuat Pesanan Dikirim...</p>
       </div>
     );
   }
@@ -261,7 +233,7 @@ const PesanObatApotek = () => {
                               <p className="text-slate-500 font-medium">
                                 {searchTerm
                                   ? "Tidak ada pesanan yang sesuai dengan pencarian."
-                                  : "Anda belum pernah membuat pesanan."}
+                                  : "Tidak ada pesanan yang sedang dikirim."}
                               </p>
                             </td>
                           </tr>
@@ -278,4 +250,4 @@ const PesanObatApotek = () => {
   );
 };
 
-export default PesanObatApotek;
+export default DikirimApotek;

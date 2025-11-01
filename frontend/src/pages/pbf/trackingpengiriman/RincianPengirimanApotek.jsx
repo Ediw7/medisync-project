@@ -119,7 +119,7 @@ const RincianPengirimanApotek = () => {
 
       if (response.data.success) {
         alert('Surat jalan berhasil dibuat dan data disimpan ke blockchain.');
-        navigate(`/pbf/pengelolaan-pesanan/surat-jalan/${id}`);
+        navigate(`/pbf/tracking-pengiriman/surat-jalan/${id}`);
       } else {
         throw new Error(response.data.message || 'Gagal mengatur pengiriman.');
       }

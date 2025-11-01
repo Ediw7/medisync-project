@@ -8,7 +8,7 @@ const pesananController = require('../../controllers/pbf/pesananController');
 // Untuk PBF yang login
 router.get('/', authenticateToken, authorizeRole('pbf'), pesananApotekController.getAllPesananMasuk);
 router.get('/:id', authenticateToken, authorizeRole('pbf'), pesananApotekController.getPesananById);
-router.put('/:id/proses', authenticateToken, authorizeRole('pbf'), pesananApotekController.prosesPesanan);
+
 router.put('/:id/atur-pengiriman', authenticateToken, authorizeRole('pbf'), pesananApotekController.updateStatusAndCreateSuratJalan);
 router.post('/proses-pengiriman-massal', authenticateToken, authorizeRole('pbf'), pesananApotekController.prosesPengirimanMassal);
 

@@ -47,7 +47,7 @@ const pesananApotekController = {
             const [result] = await connection.query(
                 `INSERT INTO pesanan_apotek (id_apotek, id_pbf, nama_apotek, alamat_apotek, jabatan, nomor_sipa, telepon, total_harga, status)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [idApotek, id_pbf, nama_apotek, alamat_apotek, jabatan, nomor_sipa, telepon, total_harga, 'Menunggu Konfirmasi']
+                [idApotek, id_pbf, nama_apotek, alamat_apotek, jabatan, nomor_sipa, telepon, total_harga, 'Perlu Dikirim']
             );
             
             const idPesanan = result.insertId;
@@ -151,7 +151,7 @@ const pesananApotekController = {
 
         try {
             const [pesanan] = await db.query(
-                "SELECT id FROM pesanan_apotek WHERE id = ? AND id_apotek = ? AND status = 'Menunggu Konfirmasi'",
+                "SELECT id FROM pesanan_apotek WHERE id = ? AND id_apotek = ? AND status = 'Perlu Dikirim'",
                 [id, idApotek]
             );
 
@@ -196,8 +196,9 @@ const pesananApotekController = {
             }
 
             // Jika PBF menolak, kembalikan statusnya. Jika menerima, batalkan.
-            if (status !== 'Dibatalkan' && status !== 'Menunggu Konfirmasi') {
-                throw new Error("Status tujuan hanya bisa 'Dibatalkan' atau 'Menunggu Konfirmasi'.");
+            if (status !== 'Dibatalkan' && status !== 'Perlu Dikirim') {
+                 // --- PERUBAHAN DI SINI ---
+                throw new Error("Status tujuan hanya bisa 'Dibatalkan' atau 'Perlu Dikirim'.");
             }
             
             // Tidak perlu mengembalikan stok karena stok on-chain belum berkurang
@@ -399,31 +400,6 @@ const pesananApotekController = {
         }
     },
 
-    prosesPesanan: async (req, res) => {
-        const { id } = req.params;
-        const idPbf = req.user.id;
-
-        try {
-            const [pesanan] = await db.query(
-                'SELECT * FROM pesanan_apotek WHERE id = ? AND id_pbf = ? AND status = "Menunggu Konfirmasi"',
-                [id, idPbf]
-            );
-
-            if (pesanan.length === 0) {
-                return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan atau sudah diproses.' });
-            }
-
-            await db.query(
-                "UPDATE pesanan_apotek SET status = 'Perlu Dikirim' WHERE id = ?",
-                [id]
-            );
-
-            res.json({ success: true, message: 'Pesanan berhasil diproses dan siap untuk diatur pengirimannya.' });
-        } catch (error) {
-            console.error('Error processing pesanan apotek:', error);
-            res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
-        }
-    },
 
     prosesPengirimanMassal: async (req, res) => {
         const { selectedIds, tanggalPengiriman, waktuPengiriman, catatan, opsiPengiriman } = req.body;

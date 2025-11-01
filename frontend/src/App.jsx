@@ -98,7 +98,10 @@ import BatalPesananApotek from './pages/apotek/pesanobat/BatalPesananApotek';
 import KonfirmasiPenerimaanApotek from './pages/apotek/pesanobat/KonfirmasiPenerimaanApotek';
 import LihatRiwayatPenerimaanApotek from './pages/apotek/pesanobat/LihatRiwayatPenerimaanApotek';
 import DetailPesananApotek from './pages/apotek/pesanobat/DetailPesananApotek';
-
+import PerluDikirimApotek from './pages/apotek/pesanobat/PerluDikirimApotek';
+import DikirimApotek from './pages/apotek/pesanobat/DikirimApotek';
+import SelesaiApotek from './pages/apotek/pesanobat/SelesaiApotek';
+import DibatalkanApotek from './pages/apotek/pesanobat/DibatalkanApotek';
 
 import RiwayatPembelian from './pages/apotek/riwayatpembelian/RiwayatPembelian';
 import Penjualan from './pages/apotek/penjualan/Penjualan';
@@ -206,7 +209,10 @@ function App() {
         <Route path="/apotek/pesanan/:id/konfirmasi-penerimaan" element={<KonfirmasiPenerimaanApotek />} />
         <Route path="/apotek/pesanan/riwayat/:assetId" element={<LihatRiwayatPenerimaanApotek />} />
         <Route path="/apotek/pesanan/:id/detail" element={<DetailPesananApotek />} />
-
+         <Route path="/apotek/pesan-obat/perlu-dikirim" element={<PerluDikirimApotek />} />
+      <Route path="/apotek/pesan-obat/dikirim" element={<DikirimApotek />} />
+      <Route path="/apotek/pesan-obat/selesai" element={<SelesaiApotek />} />
+      <Route path="/apotek/pesan-obat/dibatalkan" element={<DibatalkanApotek />} />
 
         <Route path="/apotek/riwayat-pembelian" element={<RiwayatPembelian />} />
         <Route path="/apotek/penjualan" element={<Penjualan />} />

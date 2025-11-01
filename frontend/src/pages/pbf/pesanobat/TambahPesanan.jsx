@@ -2,10 +2,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import SidebarPbf from '../../../components/SidebarPbf';
 import NavbarPbf from '../../../components/NavbarPbf';
-import { Plus, Trash2, Loader2, CheckCircle, XCircle, Upload } from 'lucide-react';
+import { 
+  Plus, 
+  Trash2, 
+  Loader2, 
+  CheckCircle, 
+  XCircle, 
+  Upload, 
+  AlertCircle,  // <-- FIX 1: Ditambahkan
+  ChevronDown   // <-- FIX 2: Ditambahkan
+} from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
 import { FaClipboardList } from "react-icons/fa";
-import { toast } from 'react-hot-toast'; // <-- 1. TAMBAHKAN IMPORT INI
+import { toast } from 'react-hot-toast';
 
 const TambahPesanan = () => {
   const navigate = useNavigate();
@@ -23,7 +32,7 @@ const TambahPesanan = () => {
     kontak_telepon: '',
     kontak_email: '',
     tanggal_pesanan: new Date().toISOString().split('T')[0],
-    tujuan_distribusi: '', // Akan diisi otomatis dari profil
+    tujuan_distribusi: '', 
     catatan_khusus: '',
     total_harga: 0,
   });
@@ -36,7 +45,7 @@ const TambahPesanan = () => {
     harga_per_unit: '',
     total_harga: '',
   });
-  const [detailObat, setDetailObat] = useState([]); // Ini adalah 'cart' Anda
+  const [detailObat, setDetailObat] = useState([]); 
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,7 +53,6 @@ const TambahPesanan = () => {
   const [popupMessage, setPopupMessage] = useState('');
   const [popupType, setPopupType] = useState('success');
 
-  // ... (fungsi showCustomAlert, closePopup, renderPopup tidak berubah) ...
   const showCustomAlert = (message, type) => {
     setPopupMessage(message);
     setPopupType(type);
@@ -99,18 +107,15 @@ const TambahPesanan = () => {
     );
   };
 
-  // --- BLOK LOGIKA KLONING YANG DIPERBAIKI ---
   useEffect(() => {
-    // Cek apakah ada data kloning di sessionStorage
     const cloneDataString = sessionStorage.getItem('cloneOrderData');
     
     if (cloneDataString) {
       try {
         const cloneData = JSON.parse(cloneDataString);
         
-        // 1. Isi keranjang (cart) Anda
         const clonedItems = cloneData.detail_pesanan.map(item => ({
-          id_produksi: item.batch_id || item.id_produksi, // Gunakan batch_id
+          id_produksi: item.batch_id || item.id_produksi, 
           nama_obat: item.nama_obat,
           bentuk_sediaan: item.bentuk_sediaan,
           dosis: item.dosis,
@@ -118,10 +123,9 @@ const TambahPesanan = () => {
           harga_per_unit: item.harga_per_unit,
           total_harga: item.total_harga,
         }));
-        setDetailObat(clonedItems); // <-- 2. GANTI DARI setCart ke setDetailObat
+        setDetailObat(clonedItems); 
 
-        // 2. Isi data form lainnya (jika ada)
-        setInfoPemesanan(prevData => ({ // <-- 3. GANTI DARI setFormData ke setInfoPemesanan
+        setInfoPemesanan(prevData => ({ 
             ...prevData,
             nama_pbf: cloneData.pesanan.nama_pbf,
             alamat_pbf: cloneData.pesanan.alamat_pbf,
@@ -133,29 +137,22 @@ const TambahPesanan = () => {
             kontak_email: cloneData.pesanan.kontak_email,
             tujuan_distribusi: cloneData.pesanan.tujuan_distribusi,
             catatan_khusus: cloneData.pesanan.catatan_khusus,
-            // Tanggal pesanan biarkan hari ini
         }));
 
-        // 3. Beri notifikasi
         toast.success('Data pesanan lama telah dimuat. Silakan perbaiki dan kirim ulang.');
-
-        // 4. Hapus data dari sessionStorage agar tidak dipakai lagi
         sessionStorage.removeItem('cloneOrderData');
 
       } catch (error) {
         console.error("Gagal memuat data kloning:", error);
         toast.error("Gagal memuat data pesanan lama.");
-        sessionStorage.removeItem('cloneOrderData'); // Hapus juga jika error
+        sessionStorage.removeItem('cloneOrderData'); 
       }
     }
-  }, []); // [] berarti hanya dijalankan sekali saat komponen dimuat
-  // --- AKHIR BLOK PERBAIKAN ---
+  }, []); 
 
-  // Fetch profil PBF
   useEffect(() => {
-    // Cek jika data sudah diisi oleh kloning, jangan fetch profil
     const cloneDataString = sessionStorage.getItem('cloneOrderData');
-    if (cloneDataString) return; // Lewati fetch profil jika sedang kloning
+    if (cloneDataString) return; 
 
     const fetchProfile = async () => {
       try {
@@ -188,7 +185,6 @@ const TambahPesanan = () => {
     fetchProfile();
   }, [navigate]);
 
-  // Fetch stok obat
   useEffect(() => {
     const fetchStok = async () => {
       setIsLoading(true);
@@ -198,14 +194,18 @@ const TambahPesanan = () => {
           navigate('/login/pbf');
           return;
         }
+        // Endpoint ini memanggil pbfController, yang memanggil CouchDB
         const response = await fetch(`http://localhost:5000/api/pbf/produsen/${idProdusen}/stok`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const result = await response.json();
         if (result.success) {
+          
+          
+          
           setStokObat(result.data);
-          console.log('Stok loaded from:', result.source);
-          console.log('Sample stok with harga:', result.data[0]);
+          console.log('Stok loaded from:', result.source); // Akan log 'on-chain'
+          console.log(`Stok ditemukan untuk Produsen ${idProdusen}:`, result.data.length);
         } else {
           throw new Error(result.message || 'Gagal memuat stok obat.');
         }
@@ -221,13 +221,11 @@ const TambahPesanan = () => {
     }
   }, [idProdusen, navigate]);
 
-  // Handler untuk info pemesanan
   const handleInfoChange = (e) => {
     const { name, value } = e.target;
     setInfoPemesanan({ ...infoPemesanan, [name]: value });
   };
 
-  // Handler untuk item obat
   const handleItemChange = (e) => {
     const { name, value } = e.target;
     setItemObat((prev) => {
@@ -241,15 +239,15 @@ const TambahPesanan = () => {
     });
   };
 
-  // Handler untuk memilih obat
   const handleItemSelect = (e) => {
     const selectedId = e.target.value;
-    const selected = stokObat.find((o) => o.id.toString() === selectedId);
+    // 'id' di sini adalah 'id' dari on-chain (batch_id)
+    const selected = stokObat.find((o) => o.id.toString() === selectedId); 
     if (selected) {
       const harga = Number(selected.harga_per_unit) || 0;
       const jumlah = 1; 
       setItemObat({
-        id_produksi: String(selected.id),
+        id_produksi: String(selected.id), // Gunakan ID on-chain (P11-...)
         nama_obat: selected.nama_obat,
         bentuk_sediaan: selected.bentuk_sediaan || '',
         dosis: selected.dosis || '',
@@ -262,7 +260,6 @@ const TambahPesanan = () => {
     }
   };
 
-  // Handler untuk tambah item
   const handleAddItem = () => {
     if (!itemObat.id_produksi || !itemObat.jumlah_pesanan || Number(itemObat.jumlah_pesanan) <= 0) {
       setError('Pilih obat dan masukkan jumlah yang valid.');
@@ -277,11 +274,9 @@ const TambahPesanan = () => {
       console.warn('Harga satuan 0 dari produksi, lanjutkan dengan hati-hati.');
     }
     
-    // Cek apakah item sudah ada di keranjang
     const existingItemIndex = detailObat.findIndex(item => item.id_produksi === itemObat.id_produksi);
     
     if (existingItemIndex > -1) {
-      // Jika sudah ada, update jumlahnya
       const updatedDetailObat = [...detailObat];
       const newJumlah = updatedDetailObat[existingItemIndex].jumlah_pesanan + Number(itemObat.jumlah_pesanan);
       
@@ -295,9 +290,8 @@ const TambahPesanan = () => {
       setDetailObat(updatedDetailObat);
       
     } else {
-      // Jika belum ada, tambahkan item baru
       setDetailObat([...detailObat, {
-        id_produksi: String(itemObat.id_produksi),
+        id_produksi: String(itemObat.id_produksi), // Ini akan menjadi batch_id (P11-...)
         nama_obat: itemObat.nama_obat,
         bentuk_sediaan: itemObat.bentuk_sediaan,
         dosis: itemObat.dosis,
@@ -320,29 +314,24 @@ const TambahPesanan = () => {
   };
 
 
-  // Handler untuk hapus item
   const handleRemoveItem = (index) => {
     setDetailObat(detailObat.filter((_, i) => i !== index));
   };
 
-  // Hitung total harga
   useEffect(() => {
     const total = detailObat.reduce((sum, item) => sum + Number(item.total_harga), 0);
     setInfoPemesanan((prev) => ({ ...prev, total_harga: total }));
   }, [detailObat]);
 
-  // Handler untuk hapus tanda tangan
   const clearSignature = () => {
     sigCanvas.current.clear();
   };
 
-  // Handler untuk submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsSubmitting(true);
 
-    // Validasi info pemesanan
     if (
       !infoPemesanan.nama_pbf ||
       !infoPemesanan.alamat_pbf ||
@@ -353,21 +342,19 @@ const TambahPesanan = () => {
       !infoPemesanan.kontak_telepon ||
       !infoPemesanan.kontak_email ||
       !infoPemesanan.tanggal_pesanan ||
-      !infoPemesanan.tujuan_distribusi // Pastikan tujuan distribusi juga tervalidasi
+      !infoPemesanan.tujuan_distribusi 
     ) {
       setError('Semua informasi pemesanan (termasuk tujuan distribusi) wajib diisi.');
       setIsSubmitting(false);
       return;
     }
 
-    // Validasi detail obat
     if (detailObat.length === 0) {
       setError('Tambahkan setidaknya satu item obat.');
       setIsSubmitting(false);
       return;
     }
 
-    // Validasi tanda tangan
     if (sigCanvas.current.isEmpty()) {
       setError('Tanda tangan Apoteker Penanggung Jawab wajib diisi.');
       setIsSubmitting(false);
@@ -381,7 +368,6 @@ const TambahPesanan = () => {
       }
       const tandaTanganDataUrl = sigCanvas.current.getTrimmedCanvas().toDataURL('image/png');
       const formData = {
-        // nomor_po: DIHAPUS
         id_produsen: Number(idProdusen),
         nama_pbf: infoPemesanan.nama_pbf,
         alamat_pbf: infoPemesanan.alamat_pbf,
@@ -392,7 +378,7 @@ const TambahPesanan = () => {
         kontak_telepon: infoPemesanan.kontak_telepon,
         kontak_email: infoPemesanan.kontak_email,
         tanggal_pesanan: infoPemesanan.tanggal_pesanan,
-        tujuan_distribusi: infoPemesanan.tujuan_distribusi, // Sudah terisi dari state
+        tujuan_distribusi: infoPemesanan.tujuan_distribusi, 
         catatan_khusus: infoPemesanan.catatan_khusus || null,
         items: detailObat,
         tanda_tangan_data_url: tandaTanganDataUrl,
@@ -414,7 +400,6 @@ const TambahPesanan = () => {
 
       console.log('Pesanan berhasil dibuat!');
       showCustomAlert(`Pesanan baru (No. PO: ${result.nomorPo}) berhasil dibuat.`, 'success');
-      // navigate('/pbf/pesan-obat'); // Pindah ke 'closePopup'
     } catch (err) {
       setError(err.message);
       showCustomAlert(err.message, 'error');
@@ -466,12 +451,12 @@ const TambahPesanan = () => {
 
             {error && (
               <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200 flex items-center gap-2">
+                <AlertCircle size={18} className="flex-shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Informasi Pemesanan */}
               <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
                 <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 px-6 py-4 border-b border-slate-200">
                   <h2 className="text-lg font-semibold text-emerald-900">Informasi Pemesanan</h2>
@@ -585,7 +570,7 @@ const TambahPesanan = () => {
                         value={infoPemesanan.tujuan_distribusi}
                         placeholder="Otomatis terisi dari alamat PBF"
                         className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-slate-100 cursor-not-allowed"
-                        readOnly // Dibuat read-only
+                        readOnly 
                       />
                     </div>
                     <div className="md:col-span-2">
@@ -603,7 +588,6 @@ const TambahPesanan = () => {
                 </div>
               </div>
 
-              {/* Detail Pemesanan Obat */}
               <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
                 <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 px-6 py-4 border-b border-slate-200">
                   <h2 className="text-lg font-semibold text-emerald-900">Detail Pemesanan Obat</h2>
@@ -659,12 +643,10 @@ const TambahPesanan = () => {
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end pt-4 border-t">
                    <div className="md:col-span-3">
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Pilih Obat</label>
-                   
                       <div className="relative">
                         <select
                           onChange={handleItemSelect}
                           value={itemObat.id_produksi}
-                          
                           className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition appearance-none bg-white pr-10"
                         >
                           <option value="">Pilih Obat</option>
@@ -678,14 +660,10 @@ const TambahPesanan = () => {
                             ))
                           )}
                         </select>
-                     
                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
-                          <svg className="h-5 w-5 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                            <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-                          </svg>
+                          <ChevronDown size={20} />
                         </div>
                       </div>
-                    
                     </div>
                     <div className="md:col-span-2">
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Jumlah</label>
@@ -708,7 +686,7 @@ const TambahPesanan = () => {
                         onChange={handleItemChange}
                         placeholder="Harga satuan"
                         className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-slate-100 cursor-not-allowed"
-                        readOnly // Harga diambil dari stok
+                        readOnly 
                       />
                     </div>
                     <div className="md:col-span-2">
@@ -725,7 +703,6 @@ const TambahPesanan = () => {
                 </div>
               </div>
 
-              {/* Tanda Tangan Apoteker */}
               <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
                 <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 px-6 py-4 border-b border-slate-200">
                   <h2 className="text-lg font-semibold text-emerald-900">Tanda Tangan Apoteker</h2>
@@ -751,7 +728,6 @@ const TambahPesanan = () => {
                 </div>
               </div>
 
-              {/* Tombol-tombol */}
               <div className="flex justify-end gap-3 pt-4">
                 <button
                   type="button"

@@ -2,11 +2,27 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
-import { Loader2, ArrowLeft, FileText, Hash, Calendar, Clock, MapPin, Edit3, Check, AlertCircle, ExternalLink, DollarSign, Truck, Shield, XCircle } from 'lucide-react'; // Ditambah Shield, XCircle
+import {
+  Loader2,
+  ArrowLeft,
+  FileText,
+  Hash,
+  Calendar,
+  Clock,
+  MapPin,
+  Edit3,
+  Check,
+  AlertCircle,
+  ExternalLink,
+  DollarSign,
+  Truck,
+  Shield,
+  XCircle,
+  ChevronDown // Ditambahkan untuk ikon dropdown
+} from 'lucide-react';
 import { toast } from 'react-hot-toast'; 
 import axios from 'axios'; 
 
-// --- KOMPONEN MODAL KONFIRMASI ---
 const ConfirmModal = ({ show, onClose, onConfirm, isLoading, pesanan }) => {
   if (!show) return null;
   
@@ -53,7 +69,6 @@ const ConfirmModal = ({ show, onClose, onConfirm, isLoading, pesanan }) => {
     </div>
   );
 };
-// --- AKHIR MODAL KONFIRMASI ---
 
 
 const toRoman = (num) => {
@@ -104,7 +119,7 @@ const RincianPengiriman = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(false); // State untuk modal
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const username = localStorage.getItem('username'); 
 
   const [nomorResi] = useState(() => id ? generateProNumber('RES', id) : 'INVALID-ID');
@@ -210,12 +225,11 @@ const RincianPengiriman = () => {
         return;
     }
     
-    // Tampilkan modal, jangan submit dulu
     setShowConfirmModal(true);
   };
   
   const handleConfirmSubmit = async () => {
-    setShowConfirmModal(false); // Tutup modal
+    setShowConfirmModal(false);
     setIsSubmitting(true);
     const toastId = toast.loading('Memproses pengiriman...');
 
@@ -286,44 +300,56 @@ const RincianPengiriman = () => {
   
    if (error && !pesanan) {
     return (
-       <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-red-50 p-6">
-          <div className="bg-white p-8 rounded-xl shadow-lg border border-red-200 text-center">
-            <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
-            <h2 className="text-xl font-bold text-red-800 mb-2">Gagal Memuat Data</h2>
-            <p className="text-red-600 mb-6">{error}</p>
-            <button
-               onClick={() => navigate('/produsen/pengelolaan-pengiriman')}
-               className="flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition mx-auto"
-             >
-               <ArrowLeft size={18} />
-               Kembali
-             </button>
-          </div>
+       <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
+        <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+        <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+          <NavbarProdusen onLogout={handleLogout} username={username} />
+          <main className="flex-1 overflow-auto pt-[72px] px-12 py-8 flex items-center justify-center p-6">
+            <div className="bg-white p-8 rounded-xl shadow-lg border border-red-200 text-center">
+              <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+              <h2 className="text-xl font-bold text-red-800 mb-2">Gagal Memuat Data</h2>
+              <p className="text-red-600 mb-6">{error}</p>
+              <button
+                 onClick={() => navigate('/produsen/pengelolaan-pengiriman')}
+                 className="flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition mx-auto"
+               >
+                 <ArrowLeft size={18} />
+                 Kembali
+               </button>
+            </div>
+           </main>
+         </div>
        </div>
     );
   }
 
   if (!pesanan) {
     return (
-      <div className="flex flex-col justify-center items-center h-screen bg-slate-50 p-6">
-        <div className="bg-white p-8 rounded-xl shadow-lg border border-slate-200 text-center">
-          <FileText className="mx-auto h-12 w-12 text-yellow-500 mb-4" />
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Data Pesanan Tidak Ditemukan</h2>
-          <p className="text-slate-600 mb-6">Data pesanan mungkin hilang atau halaman di-refresh.</p>
-           <button
-             onClick={() => navigate('/produsen/pengelolaan-pengiriman')}
-             className="flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition mx-auto"
-           >
-             <ArrowLeft size={18} />
-             Kembali
-           </button>
+      <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
+        <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+        <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+          <NavbarProdusen onLogout={handleLogout} username={username} />
+          <main className="flex-1 overflow-auto pt-[72px] px-12 py-8 flex items-center justify-center p-6">
+            <div className="bg-white p-8 rounded-xl shadow-lg border border-slate-200 text-center">
+              <FileText className="mx-auto h-12 w-12 text-yellow-500 mb-4" />
+              <h2 className="text-xl font-bold text-slate-800 mb-2">Data Pesanan Tidak Ditemukan</h2>
+              <p className="text-slate-600 mb-6">Data pesanan mungkin hilang atau halaman di-refresh.</p>
+               <button
+                 onClick={() => navigate('/produsen/pengelolaan-pengiriman')}
+                 className="flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition mx-auto"
+               >
+                 <ArrowLeft size={18} />
+                 Kembali
+               </button>
+            </div>
+          </main>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
       <ConfirmModal
         show={showConfirmModal}
         onClose={() => setShowConfirmModal(false)}
@@ -407,29 +433,45 @@ const RincianPengiriman = () => {
                       required
                     />
                   </div>
+                  
+                  {/* --- PERBAIKAN: WAKTU PENGIRIMAN --- */}
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Waktu Pengiriman*</label>
-                    <select
-                      value={waktuPengiriman}
-                      onChange={(e) => setWaktuPengiriman(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-white appearance-none"
-                    >
-                      <option value="09:00-12:00">Pagi (09:00 - 12:00)</option>
-                      <option value="13:00-16:00">Siang (13:00 - 16:00)</option>
-                      <option value="16:00-19:00">Sore (16:00 - 19:00)</option>
-                    </select>
+                    <div className="relative">
+                      <select
+                        value={waktuPengiriman}
+                        onChange={(e) => setWaktuPengiriman(e.target.value)}
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-white appearance-none pr-10"
+                      >
+                        <option value="09:00-12:00">Pagi (09:00 - 12:00)</option>
+                        <option value="13:00-16:00">Siang (13:00 - 16:00)</option>
+                        <option value="16:00-19:00">Sore (16:00 - 19:00)</option>
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+                        <ChevronDown size={20} />
+                      </div>
+                    </div>
                   </div>
+                  
+                  {/* --- PERBAIKAN: OPSI PENGIRIMAN --- */}
                    <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Opsi Pengiriman*</label>
-                    <select
-                      value={opsiPengiriman}
-                      onChange={(e) => setOpsiPengiriman(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-white appearance-none"
-                    >
-                      <option value="standar">Standar (2-3 hari)</option>
-                      <option value="ekspres">Ekspres (1 hari)</option>
-                    </select>
+                    <div className="relative">
+                      <select
+                        value={opsiPengiriman}
+                        onChange={(e) => setOpsiPengiriman(e.target.value)}
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-white appearance-none pr-10"
+                      >
+                        <option value="standar">Standar (2-3 hari)</option>
+                        <option value="ekspres">Ekspres (1 hari)</option>
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+                        <ChevronDown size={20} />
+                      </div>
+                    </div>
                   </div>
+                  {/* --- AKHIR PERBAIKAN --- */}
+                  
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Alamat Tujuan*</label>
                     <input

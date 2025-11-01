@@ -3,10 +3,13 @@
 const db = require('../../config/db');
 const nano = require('nano')('http://admin:adminpw@127.0.0.1:5984'); // Koneksi ke CouchDB
 
-// Fungsi untuk mengambil data stok dari CouchDB (on-chain)
-async function fetchStockFromCouchDB(idProdusen) {
+/**
+ * Mengambil stok dari CouchDB berdasarkan nama perusahaan produsen.
+ * * --- PERBAIKAN 1: Fungsi ini sekarang juga menerima idProdusen ---
+ * Ini diperlukan agar kita bisa meneruskannya ke objek yang di-map.
+ */
+async function fetchStockFromCouchDB(namaPerusahaanProdusen, idProdusen) {
   try {
-    // Di dunia nyata, Anda akan memetakan idProdusen ke MSP ID, misal id 1 -> ManufacturerMSP
     const mspId = 'ProdusenMSP'; 
     const dbName = 'medisyncchannel_medisync';
     const dbInstance = nano.use(dbName);
@@ -15,30 +18,37 @@ async function fetchStockFromCouchDB(idProdusen) {
       selector: {
         docType: 'obat',
         pemilikSaatIni: mspId,
-        jumlah: { "$gt": 0 } // Hanya ambil yang stoknya lebih dari 0
+        namaPerusahaan: namaPerusahaanProdusen, // <-- INI KUNCINYA
+        jumlah: { "$gt": 0 } 
       }
     };
 
     const result = await dbInstance.find(query);
-    // Map data agar formatnya konsisten dengan yang diharapkan frontend
+    
+    // Map data agar formatnya konsisten
     return result.docs.map(doc => ({
-      id: doc._id, // ID unik di CouchDB adalah batch_id
-      batch_id: doc._id,
+      id: doc.id || doc._id,
+      batch_id: doc.id || doc._id,
       nama_obat: doc.namaObat,
       bentuk_sediaan: doc.bentukSediaan,
       dosis: doc.dosis,
       jumlah: doc.jumlah,
-      harga_per_unit: doc.hargaPerUnit || 150000, // Ambil harga jika ada, atau beri default
+      harga_per_unit: doc.hargaPerUnit || 0,
+      
+      // --- PERBAIKAN 2: Gunakan idProdusen yang dilewatkan sebagai argumen ---
+      id_produsen: idProdusen, 
+
+      // --- PERBAIKAN 3 (UTAMA): Tambahkan field ini kembali! ---
+      // Ini diperlukan agar filter kedua di 'getAvailableStockByProdusen' berfungsi.
+      namaPerusahaan: doc.namaPerusahaan 
     }));
   } catch (error) {
-    // Jika CouchDB error atau tidak ada, kembalikan array kosong
     console.error('Error fetching from CouchDB:', error.message);
     return [];
   }
 }
 
 const pbfController = {
-    // Mengambil daftar semua produsen yang terdaftar
     getProdusenList: async (req, res) => {
         try {
             const [rows] = await db.query("SELECT id, nama_resmi, alamat, email FROM users WHERE role = 'produsen'");
@@ -49,20 +59,37 @@ const pbfController = {
         }
     },
 
-    // --- PERBAIKAN UTAMA DI SINI ---
-    // Sekarang hanya mengambil data dari "sumber kebenaran" (blockchain)
     getAvailableStockByProdusen: async (req, res) => {
         try {
             const { idProdusen } = req.params;
-            const onChainStock = await fetchStockFromCouchDB(idProdusen);
-            res.json({ success: true, data: onChainStock, source: 'on-chain' });
+
+            // 1. Cari nama_resmi (nama perusahaan) dari idProdusen
+            const [produsenRows] = await db.query(
+                "SELECT nama_resmi FROM users WHERE id = ? AND role = 'produsen'",
+                [idProdusen]
+            );
+
+            if (produsenRows.length === 0) {
+                throw new Error('Produsen tidak ditemukan di database lokal.');
+            }
+            const namaPerusahaan = produsenRows[0].nama_resmi;
+            
+            // 2. Gunakan namaPerusahaan untuk query ke CouchDB
+            // --- PERBAIKAN 4: Kirim idProdusen ke fungsi helper ---
+            const onChainStock = await fetchStockFromCouchDB(namaPerusahaan, idProdusen);
+            
+            // 3. (PENTING) Filter kedua ini SEKARANG AKAN BERFUNGSI
+            // karena 'onChainStock' sekarang memiliki properti '.namaPerusahaan'.
+            const finalStock = onChainStock.filter(stok => stok.namaPerusahaan === namaPerusahaan);
+
+            res.json({ success: true, data: finalStock, source: 'on-chain' });
+
         } catch (error) {
             console.error('Error in getAvailableStockByProdusen:', error.message);
             res.status(500).json({ success: false, message: error.message });
         }
     },
 
-    // Mengambil profil PBF yang sedang login
     getProfile: async (req, res) => {
         try {
             const [rows] = await db.query(

@@ -66,7 +66,7 @@ const PengelolaanPesanan = () => {
         });
         if (response.data.success) {
          // HAPUS 'Menunggu Konfirmasi' dari status relevan
-         const relevantStatuses = ['Perlu Dikirim', 'Pembatalan Diajukan', 'Dibatalkan'];
+        const relevantStatuses = ['Perlu Dikirim', 'Pembatalan Diajukan', 'Dibatalkan', 'Pembatalan Ditolak'];
           const filteredList = response.data.data.filter(item => relevantStatuses.includes(item.status));
           setPesananList(filteredList);
         } else {
@@ -88,33 +88,7 @@ const PengelolaanPesanan = () => {
     fetchPesananMasuk();
   }, [navigate]); 
 
-  // HAPUS FUNGSI handleProsesPesanan karena tidak ada lagi status 'Menunggu Konfirmasi'
-  /*
-  const handleProsesPesanan = async (pesananId) => {
-    setIsSubmitting(true); // Bug fix
-    const token = localStorage.getItem('token');
-    if (!token) {
-        toast.error('Sesi tidak valid.');
-        setIsSubmitting(false); // Bug fix
-        return;
-    }
-
-    const promise = axios.put(`http://localhost:5000/api/pbf/pesanan-apotek/${pesananId}/proses`, {}, {
-        headers: { 'Authorization': `Bearer ${token}` }
-    });
-
-    toast.promise(promise, {
-        loading: 'Memproses pesanan...',
-        success: (response) => {
-            fetchPesananMasuk();
-            return response.data.message || 'Pesanan berhasil diproses!';
-        },
-        error: (err) => {
-            return err.response?.data?.message || err.message || 'Gagal memproses pesanan.';
-        }
-    }).finally(() => setIsSubmitting(false)); // Bug fix
-  };
-  */
+  
 
   const sortData = (key) => {
     let direction = 'ascending';
@@ -169,6 +143,7 @@ const PengelolaanPesanan = () => {
      // case 'Menunggu Konfirmasi': return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
       case 'Perlu Dikirim': return 'bg-orange-100 text-orange-800 border border-orange-200';
       case 'Pembatalan Diajukan': return 'bg-pink-100 text-pink-800 border border-pink-200';
+      case 'Pembatalan Ditolak': return 'bg-red-100 text-pink-800 border border-pink-200';
       case 'Dibatalkan': return 'bg-red-100 text-red-800 border border-red-200';
       default: return 'bg-gray-100 text-gray-800 border border-gray-200';
     }
@@ -357,14 +332,18 @@ const PengelolaanPesanan = () => {
                                     Konfirmasi Pembatalan
                                 </Link>
                             )}
-                            {/* HAPUS Tombol 'Proses Pesanan' */}
-                            {/* {order.status === 'Menunggu Konfirmasi' && ( ... )} */}
+                            
 
                             {order.status === 'Perlu Dikirim' && (
                               <Link to={`/pbf/pengelolaan-pesanan/atur-pengiriman/${order.id}`} className="text-orange-600 hover:text-orange-800 font-semibold">Atur Pengiriman</Link>
                             )}
                              {order.status === 'Dibatalkan' && (
                               <Link to={`/pbf/pengelolaan-pesanan/riwayat-pembatalan/${order.id}`} className="text-gray-600 hover:text-gray-800 font-semibold">
+                                Lihat Riwayat
+                              </Link>
+                            )}
+                            {order.status === 'Pembatalan Ditolak' && (
+                              <Link to={`/pbf/pengelolaan-pesanan/riwayat-pembatalan/${order.id}`} className="text-pink-600 hover:text-pink-800 font-semibold">
                                 Lihat Riwayat
                               </Link>
                             )}

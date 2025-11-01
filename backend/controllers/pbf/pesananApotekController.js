@@ -121,9 +121,22 @@ const pesananApotekController = {
 
             const pesananData = pesananRows[0];
             let alasan_pembatalan = '-';
-            // Ekstrak alasan dari catatan_khusus
-            if (pesananData.catatan_khusus && pesananData.catatan_khusus.includes('Alasan:')) {
-                alasan_pembatalan = pesananData.catatan_khusus.split('Alasan:')[1].trim() || '-';
+            // --- PERBAIKAN LOGIKA EKSTRAK ALASAN ---
+            // Pisahkan alasan pengajuan (dari Apotek) dan alasan penolakan (dari PBF)
+            if (pesananData.catatan_khusus) {
+                const catatan = pesananData.catatan_khusus;
+                
+                // Cari alasan pengajuan
+                const alasanApotekMatch = catatan.match(/Alasan: (.*?)(?=\n\[PENOLAKAN\]|$)/);
+                if (alasanApotekMatch && alasanApotekMatch[1]) {
+                    alasan_pembatalan = alasanApotekMatch[1].trim();
+                }
+
+                // Cari alasan penolakan
+                const alasanPbfMatch = catatan.match(/\[PENOLAKAN\]: (.*)/);
+                if (alasanPbfMatch && alasanPbfMatch[1]) {
+                    pesananData.alasan_penolakan = alasanPbfMatch[1].trim(); // Tambah properti baru
+                }
             }
 
             res.json({
@@ -156,7 +169,7 @@ const pesananApotekController = {
             );
 
             if (pesanan.length === 0) {
-                return res.status(403).json({ success: false, message: "Pesanan tidak dapat dibatalkan atau tidak ditemukan. Status harus 'Menunggu Konfirmasi'." });
+                return res.status(403).json({ success: false, message: "Pesanan tidak dapat dibatalkan atau tidak ditemukan. Status harus 'Perlu Dikirim'." });
             }
             
             await db.query(
@@ -171,10 +184,10 @@ const pesananApotekController = {
         }
     },
 
-    // --- FUNGSI BARU 2: Untuk PBF mengonfirmasi/menolak pembatalan ---
     konfirmasiPembatalan: async (req, res) => {
         const { id } = req.params;
-        const { status } = req.body; // 'Dibatalkan' atau 'Menunggu Konfirmasi'
+        // Ambil status DAN alasan_penolakan dari body
+        const { status, alasan_penolakan } = req.body; 
         const idPbf = req.user.id;
 
         let dbConnection;
@@ -183,7 +196,7 @@ const pesananApotekController = {
             await dbConnection.beginTransaction();
 
             const [currentPesanan] = await dbConnection.query(
-                "SELECT status FROM pesanan_apotek WHERE id = ? AND id_pbf = ?",
+                "SELECT status, catatan_khusus FROM pesanan_apotek WHERE id = ? AND id_pbf = ?", // Ambil catatan_khusus
                 [id, idPbf]
             );
 
@@ -195,14 +208,25 @@ const pesananApotekController = {
                 throw new Error("Aksi tidak valid. Pesanan tidak dalam status 'Pembatalan Diajukan'.");
             }
 
-            // Jika PBF menolak, kembalikan statusnya. Jika menerima, batalkan.
-            if (status !== 'Dibatalkan' && status !== 'Perlu Dikirim') {
-                 // --- PERUBAHAN DI SINI ---
-                throw new Error("Status tujuan hanya bisa 'Dibatalkan' atau 'Perlu Dikirim'.");
+            // Logika baru yang mirip dengan Produsen
+            if (status === 'Dibatalkan') {
+                // Jika Dibatalkan, cukup update status
+                await dbConnection.query(`UPDATE pesanan_apotek SET status = ? WHERE id = ?`, [status, id]);
+            
+            } else if (status === 'Pembatalan Ditolak') {
+                // Jika Ditolak, WAJIB ada alasan
+                if (!alasan_penolakan || alasan_penolakan.trim() === '') {
+                    throw new Error('Alasan penolakan wajib diisi saat menolak pembatalan.');
+                }
+                // Tambahkan alasan penolakan ke catatan_khusus
+                const catatanBaru = (currentPesanan[0].catatan_khusus || '') + `\n[PENOLAKAN]: ${alasan_penolakan}`;
+                await dbConnection.query(`UPDATE pesanan_apotek SET status = ?, catatan_khusus = ? WHERE id = ?`, [status, catatanBaru, id]);
+
+            } else {
+                // Status tidak valid
+                throw new Error("Status tujuan hanya bisa 'Dibatalkan' atau 'Pembatalan Ditolak'.");
             }
             
-            // Tidak perlu mengembalikan stok karena stok on-chain belum berkurang
-            await dbConnection.query(`UPDATE pesanan_apotek SET status = ? WHERE id = ?`, [status, id]);
             await dbConnection.commit();
 
             res.json({ success: true, message: `Status pesanan berhasil diubah menjadi ${status}.` });

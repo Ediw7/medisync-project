@@ -281,16 +281,19 @@ const Pembatalan = () => {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            {item.status === 'Pembatalan Diajukan' && (
-                              <Link to={`/produsen/pengelolaan-pengiriman/konfirmasi-pembatalan/${item.id}`} className="text-yellow-700 hover:text-yellow-800 font-semibold">
-                                Konfirmasi
-                              </Link>
-                            )}
-                            {item.status === 'Dibatalkan' && (
-                              <Link to={`/produsen/pengelolaan-pengiriman/riwayat-pembatalan/${item.id}`} className="text-red-600 hover:text-red-800 font-semibold">
-                                Lihat Riwayat
-                              </Link>
-                            )}
+                             {item.status === 'Pembatalan Diajukan' && (
+                                                           <Link to={`/produsen/pengelolaan-pengiriman/konfirmasi-pembatalan/${item.id}`} className="text-yellow-700 hover:text-yellow-800 font-semibold">
+                                                             Konfirmasi Pembatalan
+                                                           </Link>
+                                                         )}
+                                                         {item.status === 'Dibatalkan' && (
+                                                           <Link to={`/produsen/pengelolaan-pengiriman/riwayat-pembatalan/${item.id}`} className="text-red-600 hover:text-red-800 font-semibold">
+                                                             Lihat Riwayat
+                                                           </Link>
+                                                         )}
+                                                                                                                 {item.status === 'Pembatalan Ditolak' && (
+                                                             <span className="text-sm text-pink-700 italic">Ditolak</span>
+                                                         )}
                           </td>
                         </tr>
                       )) : (

@@ -128,15 +128,20 @@ const SuratPesanan = () => {
               .print\\:shadow-none { box-shadow: none !important; }
               .print\\:border-0 { border: 0 !important; }
               .print\\:p-4 { padding: 1rem !important; }
+              .print\\:ml-0 { margin-left: 0 !important; }
+              .print\\:pt-0 { padding-top: 0 !important; }
+              .print\\:px-0 { padding-left: 0 !important; padding-right: 0 !important; }
+              .print\\:py-0 { padding-top: 0 !important; padding-bottom: 0 !important; }
+              .print\\:rounded-none { border-radius: 0 !important; }
               .print\\:h-12 { height: 3rem !important; }
-              .print\\:text-xs { font-size: 0.75rem; line-height: 1rem; }
-              .print\\:mb-6 { margin-bottom: 1.5rem; }
-              .print\\:mt-10 { margin-top: 2.5rem; }
-              .print\\:pt-4 { padding-top: 1rem; }
-              .print\\:border-slate-400 { border-color: #94a3b8; }
-              .print\\:bg-slate-200 { background-color: #e2e8f0; }
-              .print\\:text-slate-700 { color: #334155; }
-              .print\\:hidden { display: none !important; }
+              .print\\:text-xs { font-size: 0.75rem !important; line-height: 1rem !important; }
+              .print\\:mb-6 { margin-bottom: 1.5rem !important; }
+              .print\\:mt-10 { margin-top: 2.5rem !important; }
+              .print\\:pt-4 { padding-top: 1rem !important; }
+              .print\\:border-slate-400 { border-color: #94a3b8 !important; }
+              .print\\:bg-slate-200 { background-color: #e2e8f0 !important; }
+              .print\\:text-slate-700 { color: #334155 !important; }
+              .print\\:block { display: block !important; }
             }
         </style>
     `);
@@ -159,27 +164,22 @@ const SuratPesanan = () => {
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return '-';
-      const options = { day: 'numeric', month: 'long', year: 'numeric' };
-      // Periksa jika string hanya tanggal (YYYY-MM-DD)
-      if (dateString && dateString.length === 10 && !dateString.includes('T')) {
-         const [year, month, day] = dateString.split('-').map(Number);
-         if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-            const localDate = new Date(year, month - 1, day); // Bulan berbasis 0
-            return localDate.toLocaleDateString('id-ID', options);
-         }
+      let isoString = dateString;
+      if (dateString.length === 10) { // YYYY-MM-DD format
+        isoString = dateString + 'T00:00:00Z'; // Force UTC midnight
       }
-      // Jika ISO string, gunakan UTC
-      options.timeZone = 'UTC';
-      return date.toLocaleDateString('id-ID', options);
-
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) return '-';
+      return date.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
     } catch (e) {
       console.error("Error formatting date:", dateString, e);
       return 'Invalid Date';
     }
   };
-
 
  if (isLoading) {
      return (
@@ -247,7 +247,7 @@ const SuratPesanan = () => {
                   onClick={() => navigate('/produsen/pengelolaan-pengiriman')}
                   className="inline-flex items-center text-emerald-600 hover:text-emerald-700 transition-colors text-sm font-medium"
                 >
-                  <ArrowLeft size={16} className="mr-1" /> Kembali ke Pengelolaan Pengiriman
+                  <ArrowLeft size={16} className="mr-1" /> Kembali ke Pengiriman
                 </button>
               <div className="flex flex-wrap items-center gap-3">
                 <button onClick={handlePrint} className="inline-flex items-center px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition">
@@ -263,13 +263,16 @@ const SuratPesanan = () => {
 
               <header className="flex justify-between items-start mb-10 pb-6 border-b-2 border-slate-800">
                  <img src={logo} alt="Logo Perusahaan" className="h-16 w-auto print:h-12" />
-                 <div className='text-right'>
-                    <h1 className="text-3xl print:text-2xl font-bold text-slate-900 uppercase tracking-tight">Surat Pesanan</h1>
-                    <p className="text-slate-600 mt-1 print:text-xs">Nomor PO: <span className="font-semibold text-slate-800">{info.nomor_po}</span></p>
+                 <div className="text-right">
+                    <h2 className="text-3xl font-bold text-slate-900 uppercase tracking-tight">Surat Pesanan</h2>
+                    <p className="text-lg font-semibold text-slate-700 mt-1">No. {info.nomor_po}</p>
+                    <p className="text-sm text-slate-500 mt-1">
+                          Tanggal: {formatDate(info.tanggal_pesanan)}
+                    </p>
                  </div>
               </header>
 
-              <section className="grid grid-cols-2 gap-8 mb-10 text-sm print:text-xs print:gap-4 print:mb-6">
+              <section className="grid grid-cols-2 gap-8 mb-10 text-sm print:gap-4 print:mb-6 print:text-xs">
                   <div className="space-y-1">
                       <h3 className="font-bold text-slate-800 mb-2 uppercase text-xs tracking-wider border-b pb-1">Pemesanan Oleh (PBF)</h3>
                       <p className="font-semibold text-slate-700">{info.nama_pbf}</p>
@@ -287,8 +290,8 @@ const SuratPesanan = () => {
                    </div>
               </section>
 
-              <section className="mb-10 text-sm print:text-xs print:mb-6">
-                <p className="mb-4 text-slate-700 leading-relaxed">
+              <section className="mb-10">
+                <p className="mb-4 text-slate-700 leading-relaxed print:mb-2 print:text-xs">
                   Dengan hormat,<br />
                   Mohon untuk disediakan produk farmasi sebagai berikut:
                 </p>
@@ -326,7 +329,7 @@ const SuratPesanan = () => {
                     </tfoot>
                   </table>
                 </div>
-                <p className="mt-6 text-slate-700 leading-relaxed print:mt-4">
+                <p className="mt-6 text-slate-700 leading-relaxed print:mt-4 print:text-xs">
                   Produk tersebut akan kami gunakan untuk keperluan distribusi ke{' '}
                   <span className="font-semibold text-slate-800">{info.tujuan_distribusi || 'Fasilitas Kesehatan Terkait'}</span> sesuai dengan
                   peraturan yang berlaku.
@@ -350,7 +353,7 @@ const SuratPesanan = () => {
                           onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'block'; }}
                         />
                       ) : null }
-                      <span className={`text-slate-400 text-xs italic border-b border-slate-400 w-full pb-1 ${info.tanda_tangan_apoteker ? 'hidden' : 'block'}`}>( Tanda Tangan Digital )</span>
+                      <span className={`text-slate-400 text-xs italic border-b border-slate-400 w-full text-center ${info.tanda_tangan_apoteker ? 'hidden' : 'block'}`}>( Tanda Tangan Digital )</span>
                    </div>
                   <p className="font-bold underline text-slate-800 mt-2">{info.nama_apoteker || '(Nama Apoteker PBF)'}</p>
                   <p className="text-slate-600">Apoteker Penanggung Jawab PBF</p>

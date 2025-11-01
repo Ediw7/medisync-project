@@ -110,13 +110,47 @@ const riwayatController = {
         onChainData = JSON.parse(resultBuffer.toString());
       } catch (err) {
         console.warn(`Asset ${assetId} tidak ditemukan di blockchain.`);
+        // Jangan return error dulu, coba cari off-chain
       }
 
-      // Cari idPesanan dari on-chain
+      // Cari idPesanan dari on-chain JIKA DATANYA ADA
       let idPesanan = null;
       if (onChainData?.id) {
+        // Asumsi format ID Aset adalah [ID_PRODUKSI]-[ID_PESANAN]
+        // Contoh: P1-20251030-C439DDFF-000197
         idPesanan = onChainData.id.substring(onChainData.id.lastIndexOf('-') + 1);
+        
+        // Konversi ID pesanan dari string (misal '000197') ke angka (197)
+        idPesanan = parseInt(idPesanan, 10); 
+        if (isNaN(idPesanan)) {
+            // Jika formatnya beda, coba cari dari detail_pesanan berdasarkan assetId
+             const [detailRow] = await db.query(
+                "SELECT id_pesanan FROM detail_pesanan WHERE id_aset_blockchain = ? LIMIT 1",
+                [assetId]
+             );
+             if (detailRow.length > 0) {
+                 idPesanan = detailRow[0].id_pesanan;
+             } else {
+                 // Jika tidak ada data on-chain dan tidak ketemu di detail_pesanan
+                 if (!onChainData) {
+                     throw new Error(`Asset ${assetId} tidak ditemukan di blockchain dan data off-chain tidak sinkron.`);
+                 }
+                 throw new Error(`Data off-chain untuk asset ${assetId} tidak ditemukan di tabel detail_pesanan.`);
+             }
+        }
+      } else {
+         // Fallback jika tidak ada data on-chain (mungkin error), cari di detail_pesanan
+         const [detailRow] = await db.query(
+            "SELECT id_pesanan FROM detail_pesanan WHERE id_aset_blockchain = ? LIMIT 1",
+            [assetId]
+         );
+         if (detailRow.length > 0) {
+             idPesanan = detailRow[0].id_pesanan;
+         } else {
+             throw new Error(`Asset ${assetId} tidak ditemukan di blockchain dan data off-chain tidak sinkron.`);
+         }
       }
+
 
       // 2. Ambil data Off-Chain (MySQL)
       let offChainRows = [];
@@ -124,7 +158,8 @@ const riwayatController = {
         const sql = `
           SELECT 
             p.id, p.nomor_po, p.status, p.tanggal_pesanan,
-            sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman,
+            sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman, 
+            sjp.opsi_pengiriman, -- <-- PERBAIKAN DI SINI
             pbf.nama_resmi AS nama_pbf,
             produsen.nama_resmi AS nama_produsen,
             p.bukti_foto AS buktiPenerimaUrl
@@ -140,6 +175,10 @@ const riwayatController = {
 
       if (!onChainData && offChainRows.length === 0) {
         return res.status(404).json({ success: false, message: 'Data riwayat tidak ditemukan.' });
+      }
+      
+      if (offChainRows.length === 0) {
+           return res.status(404).json({ success: false, message: 'Data pesanan off-chain tidak ditemukan (Data on-chain ada).' });
       }
 
       // 3. Gabungkan hasil

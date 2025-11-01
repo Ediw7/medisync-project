@@ -345,18 +345,25 @@ const PengelolaanPengiriman = () => {
                             )}
                             {item.status === 'Dibatalkan' && (
                               <Link to={`/produsen/pengelolaan-pengiriman/riwayat-pembatalan/${item.id}`} className="text-red-600 hover:text-red-800 font-semibold">
-                                Lihat Riwayat Batal
+                                Lihat Riwayat
                               </Link>
                             )}
-                            {item.status === 'Pengembalian Diajukan' && (
+                                                                                    {item.status === 'Pembatalan Ditolak' && (
+                                <span className="text-sm text-pink-700 italic">Ditolak</span>
+                            )}
+                            
+                                                        {item.status === 'Pengembalian Diajukan' && (
                               <Link to={`/produsen/pengelolaan-pengiriman/konfirmasi-pengembalian/${item.id}`} className="text-indigo-600 hover:text-indigo-800 font-semibold">
-                                Konfirmasi Pengembalian
+                                Konfirmasi
                               </Link>
                             )}
                             {(item.status === 'Dikembalikan' || item.status === 'Pengembalian Disetujui' || item.status === 'Pengembalian Selesai') && (
                               <Link to={`/produsen/pengelolaan-pengiriman/lacak-pengembalian/${item.id}`} className="text-purple-600 hover:text-purple-800 font-semibold">
                                 Lacak Pengembalian
                               </Link>
+                            )}
+                            {item.status === 'Pengembalian Ditolak' && (
+                                <span className="text-sm text-pink-700 italic">Ditolak</span>
                             )}
                           </td>
                         </tr>

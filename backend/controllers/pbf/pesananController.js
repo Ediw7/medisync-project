@@ -145,27 +145,33 @@ async function fetchFromMySQL(idProdusen) {
 
 const pesananController = {
   getAll: async (req, res) => {
-    try {
-      const sql = `
-  SELECT 
-    p.id, p.nomor_po, p.tanggal_pesanan, p.status AS status, 
-    p.nama_pbf, p.alamat_pbf, COALESCE(p.total_harga, 0) AS total_harga,
-    (SELECT dp.id_aset_blockchain 
-     FROM detail_pesanan dp 
-     WHERE dp.id_pesanan = p.id AND dp.id_aset_blockchain IS NOT NULL
-     LIMIT 1) AS id_aset_blockchain
-  FROM pesanan p
-  WHERE p.id_pbf = ? 
-  ORDER BY p.tanggal_pesanan DESC
-`;
-      const [rows] = await db.query(sql, [req.user.id]);
-      res.json({ success: true, data: rows });
-    } catch (error) {
-      console.error('Error in getAll:', error);
-      res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
-    }
-  },
-
+  try {
+    const sql = `
+      SELECT 
+        p.id, 
+        p.nomor_po, 
+        p.tanggal_pesanan, 
+        p.status, 
+        p.nama_pbf, 
+        p.alamat_pbf, 
+        COALESCE(p.total_harga, 0) AS total_harga,
+        u.nama_resmi AS nama_produsen,  -- INI YANG HARUS ADA
+        (SELECT dp.id_aset_blockchain 
+         FROM detail_pesanan dp 
+         WHERE dp.id_pesanan = p.id AND dp.id_aset_blockchain IS NOT NULL
+         LIMIT 1) AS id_aset_blockchain
+      FROM pesanan p
+      LEFT JOIN users u ON p.id_produsen = u.id  -- JOIN KE TABEL users
+      WHERE p.id_pbf = ?
+      ORDER BY p.tanggal_pesanan DESC
+    `;
+    const [rows] = await db.query(sql, [req.user.id]);
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error('Error in getAll:', error);
+    res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+  }
+},
   
 
   getById: async (req, res) => {

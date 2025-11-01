@@ -1,37 +1,58 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom'; // Import Link & useLocation
 import SidebarPbf from '../../../components/SidebarPbf';
 import NavbarPbf from '../../../components/NavbarPbf';
-import { Search, Calendar } from 'lucide-react';
+import {
+  Search,
+  Truck, // Ikon Header
+  Loader2,
+  AlertTriangle,
+  Package,
+  ChevronUp,
+  ChevronDown
+} from 'lucide-react';
 import axios from 'axios';
+import { toast } from 'react-hot-toast'; 
+
+// --- NavItem (Desain Segmented Control) ---
+const NavItem = ({ label, to }) => {
+  const location = useLocation();
+  const isActive = location.pathname === to;
+  const baseClass = "py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap block text-center sm:inline-block";
+  const activeClass = "bg-emerald-600 text-white shadow-md";
+  const inactiveClass = "text-slate-500 hover:text-emerald-800 hover:bg-gray-300";
+
+  return (
+    <Link
+      to={to}
+      className={`${baseClass} ${isActive ? activeClass : inactiveClass}`}
+    >
+      {label}
+    </Link>
+  );
+};
 
 const TrackingPengiriman = () => {
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [activeTab, setActiveTab] = useState('Semua');
   const [pesananList, setPesananList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'descending' });
+  const username = localStorage.getItem('username');
 
-  // --- MAPPING STATUS BARU ---
-  const statusMapping = {
-    'Semua': ['Dikirim', 'Selesai', 'Pengembalian Diajukan', 'Dikembalikan'],
-    'Dikirim': ['Dikirim'],
-    'Selesai': ['Selesai'],
-    'Pengembalian': ['Pengembalian Diajukan', 'Dikembalikan'],
-  };
-  
-  // --- NAVIGASI TAB BARU ---
-  const tabs = ['Semua', 'Dikirim', 'Selesai', 'Pengembalian'];
+  // Status untuk halaman "Semua"
+  const relevantStatuses = ['Dikirim', 'Selesai', 'Pengembalian Diajukan', 'Dikembalikan', 'Pengembalian Selesai', 'Pengembalian Ditolak'];
 
   useEffect(() => {
     const fetchData = async () => {
-      setIsLoading(true);
+      if (pesananList.length === 0) setIsLoading(true);
       setError(null);
       try {
         const token = localStorage.getItem('token');
         if (!token) {
+            toast.error('Sesi berakhir, silakan login kembali.');
             navigate('/login/pbf');
             return;
         }
@@ -39,16 +60,19 @@ const TrackingPengiriman = () => {
             headers: { Authorization: `Bearer ${token}` }
         });
         if (response.data.success) {
-            // Hanya ambil data yang relevan untuk halaman tracking
-            const relevantStatuses = statusMapping['Semua'];
             setPesananList(response.data.data.filter(p => 
                 relevantStatuses.includes(p.status)
             ));
         } else {
-            throw new Error(response.data.message);
+            throw new Error(response.data.message || 'Gagal memuat data pesanan.');
         }
       } catch (err) {
-        setError(err.message);
+        const errorMsg = err.response?.data?.message || err.message;
+        setError(errorMsg);
+        if (pesananList.length === 0) toast.error(errorMsg);
+        if (err.response?.status === 401 || err.response?.status === 403) {
+            navigate('/login/pbf');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -56,137 +80,265 @@ const TrackingPengiriman = () => {
     fetchData();
   }, [navigate]);
   
-  const filteredData = useMemo(() => {
-    return pesananList.filter(item => {
-        const tabStatuses = statusMapping[activeTab];
-        const searchMatch = (item.nama_apotek?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-                            (item.nomor_pesanan?.toLowerCase() || '').includes(searchTerm.toLowerCase());
-        
-        return tabStatuses.includes(item.status) && searchMatch;
+  const filteredAndSortedData = useMemo(() => {
+    let filtered = [...pesananList].filter(item => {
+        // Halaman ini adalah "Semua", jadi tidak ada filter status
+        return (item.nama_apotek?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+               (item.nomor_pesanan?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     });
-  }, [pesananList, activeTab, searchTerm]);
+    
+    // Logika sorting
+    if (sortConfig.key) {
+      filtered.sort((a, b) => {
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+        if (aValue == null) aValue = '';
+        if (bValue == null) bValue = '';
+        if (sortConfig.key === 'tanggal_pesanan' || sortConfig.key === 'tanggal_pengiriman') {
+             aValue = new Date(aValue);
+             bValue = new Date(bValue);
+        }
+        if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
+        return 0;
+      });
+    }
+    return filtered;
+
+  }, [pesananList, searchTerm, sortConfig]);
 
   const getStatusClass = (status) => {
     switch (status) {
-      case 'Dikirim': return 'bg-cyan-100 text-cyan-800';
-      case 'Selesai': return 'bg-emerald-100 text-emerald-800';
-      case 'Pengembalian Diajukan': return 'bg-indigo-100 text-indigo-800';
-      case 'Dikembalikan': return 'bg-purple-100 text-purple-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'Dikirim': return 'bg-blue-100 text-blue-800 border border-blue-200';
+      case 'Selesai': return 'bg-emerald-100 text-emerald-800 border border-emerald-200';
+      case 'Pengembalian Diajukan': return 'bg-indigo-100 text-indigo-800 border border-indigo-200';
+      case 'Dikembalikan': return 'bg-purple-100 text-purple-800 border border-purple-200';
+      case 'Pengembalian Selesai': return 'bg-teal-100 text-teal-800 border border-teal-200';
+      case 'Pengembalian Ditolak': return 'bg-red-100 text-red-800 border border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border border-gray-200';
     }
   };
 
   const renderAction = (order) => {
     switch (order.status) {
         case 'Dikirim':
-            return <Link to={`/pbf/tracking-pengiriman/lacak/${order.id}`} className="text-emerald-600 hover:text-emerald-800 font-medium">Lacak Pengiriman</Link>;
+            return <Link to={`/pbf/tracking-pengiriman/lacak/${order.id}`} className="text-emerald-600 hover:text-emerald-800 font-semibold">Lacak</Link>;
         case 'Selesai':
-            return <Link to={`/pbf/tracking-pengiriman/riwayat/${order.id_aset_blockchain}`} className="text-purple-600 hover:text-purple-800 font-medium">Lihat Riwayat</Link>;
+            // Pastikan Anda meneruskan assetId dari backend
+            return <Link to={`/pbf/tracking-pengiriman/riwayat/${order.id_aset_blockchain}`} className="text-purple-600 hover:text-purple-800 font-semibold">Lihat Riwayat</Link>;
         case 'Pengembalian Diajukan':
-            return <Link to={`/pbf/tracking-pengiriman/konfirmasi-pengembalian/${order.id}`} className="text-indigo-600 hover:text-indigo-800 font-medium">Proses Pengembalian</Link>;
+            return <span className="text-indigo-600 font-semibold">Menunggu Respon</span>;
         case 'Dikembalikan':
-            return <Link to={`/pbf/tracking-pengiriman/lacak-pengembalian/${order.id}`} className="text-indigo-600 hover:text-indigo-800 font-medium">Lacak Pengembalian</Link>;
+        case 'Pengembalian Selesai':
+        case 'Pengembalian Ditolak':
+            return <Link to={`/pbf/tracking-pengiriman/lacak-pengembalian/${order.id}`} className="text-indigo-600 hover:text-indigo-800 font-semibold">Lacak Retur</Link>;
         default:
             return null;
     }
   }
+  
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate('/');
+  };
+  
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('id-ID', {
+      day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC'
+    });
+  };
+
+  const getSortIndicator = (key) => {
+    if (sortConfig.key !== key) return null;
+    return sortConfig.direction === 'ascending' ? <ChevronUp size={14} /> : <ChevronDown size={14} />;
+  };
+  
+  const sortData = (key) => {
+    let direction = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  if (isLoading && pesananList.length === 0) {
+     return (
+       <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
+          <div className="relative">
+            <Loader2 className="animate-spin h-12 w-12 text-emerald-600" />
+            <div className="absolute inset-0 h-12 w-12 rounded-full border-4 border-emerald-200 animate-ping opacity-20"></div>
+          </div>
+          <p className="mt-4 text-slate-700 font-medium">Memuat Tracking Pengiriman...</p>
+      </div>
+    );
+  }
+
+  if (error && pesananList.length === 0) {
+     return (
+       <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
+        <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+        <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+          <NavbarPbf onLogout={handleLogout} username={username} />
+          <main className="flex-1 flex items-center justify-center p-6 pt-[72px]">
+            <div className="bg-white p-8 rounded-2xl shadow-lg border border-red-200 text-center max-w-md">
+              <AlertTriangle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+              <h2 className="text-xl font-bold text-red-800 mb-2">Gagal Memuat Data</h2>
+              <p className="text-red-600 mb-6">{error}</p>
+              <button
+                 onClick={fetchData} 
+                 className="flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition mx-auto"
+               >
+                 <Loader2 size={18} className="mr-1" />
+                 Coba Lagi
+               </button>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
       <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
-        <NavbarPbf onLogout={() => { localStorage.clear(); navigate('/'); }} />
-        <main className="flex-1 pt-16 p-6 mt-8 ml-8">
+        <NavbarPbf onLogout={handleLogout} username={username} />
+        
+        <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
           <div className="max-w-7xl mx-auto">
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold text-gray-800">Pantau Pengiriman ke Apotek</h1>
-              <p className="text-gray-500 mt-1">Lacak Pengiriman obat ke Apotek</p>
+            
+            <div className="mb-10 relative">
+              <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+              <div className="absolute -top-20 -right-20 w-72 h-72 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+
+              <div className="relative flex items-center gap-3">
+                <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg">
+                  <Truck className="text-white" size={24} />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-emerald-900 to-teal-900 bg-clip-text text-transparent">
+                    Pantau Pengiriman
+                  </h1>
+                  <p className="text-slate-600 text-lg mt-1">Lacak semua pengiriman keluar ke apotek.</p>
+                </div>
+              </div>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <div className="border-b border-gray-200 mb-6">
-                <nav className="-mb-px flex space-x-8 overflow-x-auto" aria-label="Tabs">
-                  {tabs.map((tab) => (
-                    <button
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
-                        activeTab === tab
-                          ? 'border-emerald-500 text-emerald-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                      }`}
-                    >
-                      {tab}
-                    </button>
-                  ))}
-                </nav>
-              </div>
-              {/* Sisanya tidak berubah */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden relative z-10">
+              <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4">
+            
+                <div className="flex overflow-x-auto sm:overflow-visible w-full sm:w-auto">
+                  <div className="flex space-x-2 bg-slate-100 p-1.5 rounded-lg">
+                    <NavItem label="Semua" to="/pbf/tracking-pengiriman" />
+                    <NavItem label="Dikirim" to="/pbf/tracking-pengiriman/dikirim" />
+                    <NavItem label="Selesai" to="/pbf/tracking-pengiriman/selesai" />
+                    <NavItem label="Pengembalian" to="/pbf/tracking-pengiriman/pengembalian" />
+                  </div>
+                </div>
+            
+                <div className="relative w-full sm:w-auto">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
                     type="text"
-                    placeholder="Cari ID Pesanan atau nama apotek..."
-                    className="w-full p-2 pl-10 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
+                    placeholder="Cari Apotek atau No. Pesanan..."
+                    className="pl-9 pr-4 py-2 border border-slate-300 rounded-lg w-full sm:w-64 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                 <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                  <input
-                    type="text"
-                    placeholder="Filter tanggal belum aktif"
-                    disabled
-                    className="w-full p-2 pl-10 border border-gray-300 rounded-lg bg-gray-100"
-                  />
-                </div>
               </div>
+              
+            
               <div className="overflow-x-auto">
-                {isLoading ? (<p className="text-center py-10">Memuat data...</p>) : 
-                 error ? (<p className="text-center py-10 text-red-500">{error}</p>) :
-                 (
-                    <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                {isLoading && pesananList.length > 0 ? ( 
+                    <div className="p-10 text-center text-slate-500">
+                       <Loader2 className="animate-spin h-8 w-8 mx-auto text-emerald-600" />
+                       <p className="mt-2">Memperbarui data...</p>
+                   </div>
+                ) : (
+                  <table className="min-w-full">
+                    <thead className="bg-slate-50 border-b border-slate-200">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Apotek Pemesan</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nomor Pesanan</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pesanan</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Harga</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                          <th 
+                            className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-100"
+                            onClick={() => sortData('nama_apotek')}
+                          >
+                            <div className="flex items-center gap-1">Apotek Tujuan {getSortIndicator('nama_apotek')}</div>
+                          </th>
+                          <th 
+                            className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-100"
+                            onClick={() => sortData('nomor_pesanan')}
+                          >
+                            <div className="flex items-center gap-1">Nomor Pesanan {getSortIndicator('nomor_pesanan')}</div>
+                          </th>
+                           <th 
+                            className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-100"
+                            onClick={() => sortData('tanggal_pengiriman')}
+                          >
+                            <div className="flex items-center gap-1">Tgl. Kirim {getSortIndicator('tanggal_pengiriman')}</div>
+                          </th>
+                          <th 
+                            className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-100"
+                            onClick={() => sortData('total_harga')}
+                          >
+                            <div className="flex items-center gap-1">Total Harga {getSortIndicator('total_harga')}</div>
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {filteredData.length > 0 ? filteredData.map((order) => (
-                            <tr key={order.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.nama_apotek}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.nomor_pesanan}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 hover:underline">
-                                    <Link to={`/pbf/pengelolaan-pesanan/surat/${order.id}`}>Lihat Surat</Link>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(order.total_harga)}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(order.status)}`}>
-                                        {order.status}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm">{renderAction(order)}</td>
-                            </tr>
-                        )) : (
-                            <tr><td colSpan="6" className="text-center py-10 text-gray-500">Tidak ada data untuk tab ini.</td></tr>
-                        )}
+                    <tbody className="bg-white divide-y divide-slate-100">
+                      {filteredAndSortedData.length > 0 ? filteredAndSortedData.map((order) => (
+                        <tr key={order.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{order.nama_apotek}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-mono">{order.nomor_pesanan}</td>
+                           <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                            {formatDate(order.tanggal_pengiriman)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-700">
+                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(order.total_harga)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(order.status)}`}>
+                              {order.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            {renderAction(order)}
+                          </td>
+                        </tr>
+                      )) : (
+                        <tr>
+                          <td colSpan="6" className="text-center py-10 text-slate-500">
+                            <Package size={32} className="mx-auto mb-2 opacity-50"/>
+                            {searchTerm ? 'Tidak ada pesanan yang cocok.' : 'Tidak ada pesanan dalam kategori ini.'}
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
-                    </table>
-                 )}
+                  </table>
+                )}
               </div>
-            </div>
+          </div>
           </div>
         </main>
       </div>
+       <style jsx>{`
+        @keyframes blob {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+      `}</style>
     </div>
   );
 };

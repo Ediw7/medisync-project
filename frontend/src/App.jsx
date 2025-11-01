@@ -61,6 +61,9 @@ import DetailStokPbf from './pages/pbf/monitoringstok/DetailStokPbf';
 import RiwayatDistribusiPbf from './pages/pbf/monitoringstok/RiwayatDistribusiPbf';
 
 import PengelolaanPesanan from './pages/pbf/pengelolaanpesanan/PengelolaanPesanan';
+import MenungguPesananPbf from './pages/pbf/pengelolaanpesanan/MenungguPesananPbf';
+import PerluDikirimPbf from './pages/pbf/pengelolaanpesanan/PerluDikirimPbf';
+import DibatalkanPbf from './pages/pbf/pengelolaanpesanan/DibatalkanPbf';
 import SuratPesananApotek from './pages/pbf/pengelolaanpesanan/SuratPesananApotek';
 import KonfirmasiPembatalanApotek from './pages/pbf/pengelolaanpesanan/KonfirmasiPembatalanApotek';
 import LihatRiwayatPembatalanApotek from './pages/pbf/pengelolaanpesanan/LihatRiwayatPembatalanApotek';
@@ -68,15 +71,17 @@ import PengirimanMassalPbf from './pages/pbf/pengelolaanpesanan/PengirimanMassal
 import AturPickupMassalPbf from './pages/pbf/pengelolaanpesanan/AturPickupMassalPbf';
 import KonfirmasiPengirimanMassalPbf from './pages/pbf/pengelolaanpesanan/KonfirmasiPengirimanMassalPbf';
 import CetakSuratJalanMassalPbf from './pages/pbf/pengelolaanpesanan/CetakSuratJalanMassalPbf';
-
 import AturPengirimanApotek from './pages/pbf/pengelolaanpesanan/AturPengirimanApotek';
+
+
 import RincianPengirimanApotek from './pages/pbf/trackingpengiriman/RincianPengirimanApotek';
 import LihatStatusApotek from './pages/pbf/trackingpengiriman/LihatStatusApotek';
 import SuratJalanPbf from './pages/pbf/trackingpengiriman/SuratJalanPbf';
 import LihatRiwayatPesananApotek from './pages/pbf/trackingpengiriman/LihatRiwayatPesananApotek';
 import TrackingPengiriman from './pages/pbf/trackingpengiriman/TrackingPengiriman';
-
-
+import DikirimPbf from './pages/pbf/trackingpengiriman/DikirimPbf';
+import SelesaiPbf from './pages/pbf/trackingpengiriman/SelesaiPbf';
+import PengembalianPbf from './pages/pbf/trackingpengiriman/PengembalianPbf';
 
 import LaporanAnalitikPbf from './pages/pbf/laporananalitikpbf/LaporanAnalitikPbf';
 import LaporanAnalitikkeApotek from './pages/pbf/laporananalitikpbf/LaporanAnalitikkeApotek';
@@ -165,11 +170,11 @@ function App() {
        <Route path="/pbf/pesanan/:id/lacak-pengembalian-pbf" element={<LacakPengembalianPbf />} />
 
       <Route path="/pbf/pengelolaan-pesanan" element={<PengelolaanPesanan />} />
+      <Route path="/pbf/pengelolaan-pesanan/menunggu-konfirmasi" element={<MenungguPesananPbf />} />
+      <Route path="/pbf/pengelolaan-pesanan/perlu-dikirim" element={<PerluDikirimPbf />} />
+      <Route path="/pbf/pengelolaan-pesanan/dibatalkan" element={<DibatalkanPbf />} />
       <Route path="/pbf/pengelolaan-pesanan/surat/:id" element={<SuratPesananApotek />} />
-      
       <Route path="/pbf/pengelolaan-pesanan/rincian-pengiriman/:id" element={<RincianPengirimanApotek />} />
-
-      
      <Route path="/pbf/pengelolaan-pesanan/konfirmasi-pembatalan/:id" element={<KonfirmasiPembatalanApotek />} />
       <Route path="/pbf/pengelolaan-pesanan/riwayat-pembatalan/:id" element={<LihatRiwayatPembatalanApotek />} />
       <Route path="/pbf/pengelolaan-pesanan/pengiriman-massal" element={<PengirimanMassalPbf />} />
@@ -180,6 +185,9 @@ function App() {
 
 
       <Route path="/pbf/tracking-pengiriman" element={<TrackingPengiriman />} />
+      <Route path="/pbf/tracking-pengiriman/dikirim" element={<DikirimPbf />} />
+      <Route path="/pbf/tracking-pengiriman/selesai" element={<SelesaiPbf />} />
+      <Route path="/pbf/tracking-pengiriman/pengembalian" element={<PengembalianPbf />} />
      
       <Route path="/pbf/tracking-pengiriman/lacak/:id" element={<LihatStatusApotek />} />
       <Route path="/pbf/tracking-pengiriman/riwayat/:assetId" element={<LihatRiwayatPesananApotek />} />

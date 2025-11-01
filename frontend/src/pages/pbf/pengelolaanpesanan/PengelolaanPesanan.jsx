@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom'; // Import Link dan useLocation
 import SidebarPbf from '../../../components/SidebarPbf';
 import NavbarPbf from '../../../components/NavbarPbf';
 import {
@@ -13,23 +13,26 @@ import {
   ChevronUp,
   ChevronDown
 } from 'lucide-react';
+import {FaClipboardList} from "react-icons/fa";
 import axios from 'axios';
 import { toast } from 'react-hot-toast'; 
 
-
-const NavItem = ({ label, filter, currentFilter, setFilter }) => {
-  const isActive = filter === currentFilter;
+// --- NavItem (DIPERBAIKI) ---
+const NavItem = ({ label, to }) => {
+  const location = useLocation();
+  const isActive = location.pathname === to; // Cek path URL
   const baseClass = "py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap block text-center sm:inline-block";
   const activeClass = "bg-emerald-600 text-white shadow-md";
   const inactiveClass = "text-slate-500 hover:text-emerald-800 hover:bg-gray-300";
 
   return (
-    <button
-      onClick={() => setFilter(filter)}
+    // Gunakan Link, bukan button
+    <Link
+      to={to}
       className={`${baseClass} ${isActive ? activeClass : inactiveClass}`}
     >
       {label}
-    </button>
+    </Link>
   );
 };
 
@@ -40,8 +43,9 @@ const PengelolaanPesanan = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('Semua');
+  // statusFilter tidak lagi diperlukan di sini
   const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'descending' });
+  const [isSubmitting, setIsSubmitting] = useState(false); // Bug fix
   const username = localStorage.getItem('username');
 
   const fetchPesananMasuk = async () => {
@@ -83,9 +87,11 @@ const PengelolaanPesanan = () => {
   }, [navigate]); 
 
   const handleProsesPesanan = async (pesananId) => {
+    setIsSubmitting(true); // Bug fix
     const token = localStorage.getItem('token');
     if (!token) {
         toast.error('Sesi tidak valid.');
+        setIsSubmitting(false); // Bug fix
         return;
     }
 
@@ -102,7 +108,7 @@ const PengelolaanPesanan = () => {
         error: (err) => {
             return err.response?.data?.message || err.message || 'Gagal memproses pesanan.';
         }
-    });
+    }).finally(() => setIsSubmitting(false)); // Bug fix
   };
 
   const sortData = (key) => {
@@ -115,15 +121,7 @@ const PengelolaanPesanan = () => {
 
   const filteredAndSortedData = useMemo(() => {
     let filtered = [...pesananList]
-      .filter(item => {
-        if (statusFilter === 'Semua') {
-          return true;
-        }
-        if (statusFilter === 'Dibatalkan') {
-          return ['Dibatalkan', 'Pembatalan Diajukan'].includes(item.status);
-        }
-        return item.status === statusFilter;
-      })
+      // Logika filter status dihapus (karena ini halaman "Semua")
       .filter(item =>
         (item.nama_apotek?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         (item.nomor_pesanan?.toLowerCase() || '').includes(searchTerm.toLowerCase())
@@ -137,7 +135,6 @@ const PengelolaanPesanan = () => {
         if (aValue == null) aValue = '';
         if (bValue == null) bValue = '';
         
-        // Sorting untuk tanggal
         if (sortConfig.key === 'tanggal_pesanan') {
              aValue = new Date(aValue);
              bValue = new Date(bValue);
@@ -153,7 +150,7 @@ const PengelolaanPesanan = () => {
       });
     }
     return filtered;
-  }, [pesananList, searchTerm, statusFilter, sortConfig]);
+  }, [pesananList, searchTerm, sortConfig]); // Hapus statusFilter dari dependensi
 
   const handleLogout = () => {
     localStorage.clear();
@@ -239,7 +236,7 @@ const PengelolaanPesanan = () => {
               <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg">
-                    <Box className="text-white" size={24} />
+                    <FaClipboardList className="text-white" size={24} />
                   </div>
                   <div>
                     <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-emerald-900 to-teal-900 bg-clip-text text-transparent">
@@ -264,10 +261,11 @@ const PengelolaanPesanan = () => {
             
                 <div className="flex overflow-x-auto sm:overflow-visible w-full sm:w-auto">
                   <div className="flex space-x-2 bg-slate-100 p-1.5 rounded-lg">
-                    <NavItem label="Semua" filter="Semua" currentFilter={statusFilter} setFilter={setStatusFilter} />
-                    <NavItem label="Menunggu Konfirmasi" filter="Menunggu Konfirmasi" currentFilter={statusFilter} setFilter={setStatusFilter} />
-                    <NavItem label="Perlu Dikirim" filter="Perlu Dikirim" currentFilter={statusFilter} setFilter={setStatusFilter} />
-                    <NavItem label="Dibatalkan" filter="Dibatalkan" currentFilter={statusFilter} setFilter={setStatusFilter} />
+                    {/* --- NAVIGASI TAB DIPERBAIKI --- */}
+                    <NavItem label="Semua" to="/pbf/pengelolaan-pesanan" />
+                    <NavItem label="Menunggu Konfirmasi" to="/pbf/pengelolaan-pesanan/menunggu-konfirmasi" />
+                    <NavItem label="Perlu Dikirim" to="/pbf/pengelolaan-pesanan/perlu-dikirim" />
+                    <NavItem label="Dibatalkan" to="/pbf/pengelolaan-pesanan/dibatalkan" />
                   </div>
                 </div>
             
@@ -406,3 +404,4 @@ const PengelolaanPesanan = () => {
 };
 
 export default PengelolaanPesanan;
+

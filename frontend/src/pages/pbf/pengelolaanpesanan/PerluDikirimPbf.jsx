@@ -224,7 +224,7 @@ const PerluDikirimPbf = () => {
                 <div className="flex overflow-x-auto sm:overflow-visible w-full sm:w-auto">
                   <div className="flex space-x-2 bg-slate-100 p-1.5 rounded-lg">
                     <NavItem label="Semua" to="/pbf/pengelolaan-pesanan" />
-                    <NavItem label="Menunggu Konfirmasi" to="/pbf/pengelolaan-pesanan/menunggu-konfirmasi" />
+                   
                     <NavItem label="Perlu Dikirim" to="/pbf/pengelolaan-pesanan/perlu-dikirim" />
                     <NavItem label="Dibatalkan" to="/pbf/pengelolaan-pesanan/dibatalkan" />
                   </div>

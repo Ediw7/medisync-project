@@ -45,7 +45,8 @@ const PengelolaanPesanan = () => {
   const [searchTerm, setSearchTerm] = useState('');
   // statusFilter tidak lagi diperlukan di sini
   const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'descending' });
-  const [isSubmitting, setIsSubmitting] = useState(false); // Bug fix
+  // HAPUS State isSubmitting karena fungsi handleProsesPesanan dihapus
+  // const [isSubmitting, setIsSubmitting] = useState(false); 
   const username = localStorage.getItem('username');
 
   const fetchPesananMasuk = async () => {
@@ -64,7 +65,8 @@ const PengelolaanPesanan = () => {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.data.success) {
-         const relevantStatuses = ['Menunggu Konfirmasi', 'Perlu Dikirim', 'Pembatalan Diajukan', 'Dibatalkan'];
+         // HAPUS 'Menunggu Konfirmasi' dari status relevan
+         const relevantStatuses = ['Perlu Dikirim', 'Pembatalan Diajukan', 'Dibatalkan'];
           const filteredList = response.data.data.filter(item => relevantStatuses.includes(item.status));
           setPesananList(filteredList);
         } else {
@@ -86,6 +88,8 @@ const PengelolaanPesanan = () => {
     fetchPesananMasuk();
   }, [navigate]); 
 
+  // HAPUS FUNGSI handleProsesPesanan karena tidak ada lagi status 'Menunggu Konfirmasi'
+  /*
   const handleProsesPesanan = async (pesananId) => {
     setIsSubmitting(true); // Bug fix
     const token = localStorage.getItem('token');
@@ -110,6 +114,7 @@ const PengelolaanPesanan = () => {
         }
     }).finally(() => setIsSubmitting(false)); // Bug fix
   };
+  */
 
   const sortData = (key) => {
     let direction = 'ascending';
@@ -160,7 +165,8 @@ const PengelolaanPesanan = () => {
   
   const getStatusClass = (status) => {
     switch (status) {
-     case 'Menunggu Konfirmasi': return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
+     // HAPUS case 'Menunggu Konfirmasi'
+     // case 'Menunggu Konfirmasi': return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
       case 'Perlu Dikirim': return 'bg-orange-100 text-orange-800 border border-orange-200';
       case 'Pembatalan Diajukan': return 'bg-pink-100 text-pink-800 border border-pink-200';
       case 'Dibatalkan': return 'bg-red-100 text-red-800 border border-red-200';
@@ -261,9 +267,9 @@ const PengelolaanPesanan = () => {
             
                 <div className="flex overflow-x-auto sm:overflow-visible w-full sm:w-auto">
                   <div className="flex space-x-2 bg-slate-100 p-1.5 rounded-lg">
-                    {/* --- NAVIGASI TAB DIPERBAIKI --- */}
+                    {/* --- NAVIGASI TAB DIPERBAIKI (HAPUS 'Menunggu Konfirmasi') --- */}
                     <NavItem label="Semua" to="/pbf/pengelolaan-pesanan" />
-                    <NavItem label="Menunggu Konfirmasi" to="/pbf/pengelolaan-pesanan/menunggu-konfirmasi" />
+                    {/* <NavItem label="Menunggu Konfirmasi" to="/pbf/pengelolaan-pesanan/menunggu-konfirmasi" /> */}
                     <NavItem label="Perlu Dikirim" to="/pbf/pengelolaan-pesanan/perlu-dikirim" />
                     <NavItem label="Dibatalkan" to="/pbf/pengelolaan-pesanan/dibatalkan" />
                   </div>
@@ -351,15 +357,9 @@ const PengelolaanPesanan = () => {
                                     Konfirmasi Pembatalan
                                 </Link>
                             )}
-                            {order.status === 'Menunggu Konfirmasi' && (
-                              <button 
-                                onClick={() => handleProsesPesanan(order.id)}
-                                className="text-emerald-600 hover:text-emerald-800 font-semibold"
-                                disabled={isSubmitting} // Disable saat aksi berjalan
-                              >
-                                Proses Pesanan
-                              </button>
-                            )}
+                            {/* HAPUS Tombol 'Proses Pesanan' */}
+                            {/* {order.status === 'Menunggu Konfirmasi' && ( ... )} */}
+
                             {order.status === 'Perlu Dikirim' && (
                               <Link to={`/pbf/pengelolaan-pesanan/atur-pengiriman/${order.id}`} className="text-orange-600 hover:text-orange-800 font-semibold">Atur Pengiriman</Link>
                             )}
@@ -404,4 +404,3 @@ const PengelolaanPesanan = () => {
 };
 
 export default PengelolaanPesanan;
-

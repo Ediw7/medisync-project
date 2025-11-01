@@ -61,7 +61,7 @@ import DetailStokPbf from './pages/pbf/monitoringstok/DetailStokPbf';
 import RiwayatDistribusiPbf from './pages/pbf/monitoringstok/RiwayatDistribusiPbf';
 
 import PengelolaanPesanan from './pages/pbf/pengelolaanpesanan/PengelolaanPesanan';
-import MenungguPesananPbf from './pages/pbf/pengelolaanpesanan/MenungguPesananPbf';
+
 import PerluDikirimPbf from './pages/pbf/pengelolaanpesanan/PerluDikirimPbf';
 import DibatalkanPbf from './pages/pbf/pengelolaanpesanan/DibatalkanPbf';
 import SuratPesananApotek from './pages/pbf/pengelolaanpesanan/SuratPesananApotek';
@@ -170,7 +170,7 @@ function App() {
        <Route path="/pbf/pesanan/:id/lacak-pengembalian-pbf" element={<LacakPengembalianPbf />} />
 
       <Route path="/pbf/pengelolaan-pesanan" element={<PengelolaanPesanan />} />
-      <Route path="/pbf/pengelolaan-pesanan/menunggu-konfirmasi" element={<MenungguPesananPbf />} />
+     
       <Route path="/pbf/pengelolaan-pesanan/perlu-dikirim" element={<PerluDikirimPbf />} />
       <Route path="/pbf/pengelolaan-pesanan/dibatalkan" element={<DibatalkanPbf />} />
       <Route path="/pbf/pengelolaan-pesanan/surat/:id" element={<SuratPesananApotek />} />

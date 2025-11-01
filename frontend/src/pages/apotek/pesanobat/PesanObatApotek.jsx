@@ -40,7 +40,6 @@ const PesanObatApotek = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  // statusFilter tidak lagi diperlukan di sini, ini adalah halaman "Semua"
   const username = localStorage.getItem('username');
 
   useEffect(() => {
@@ -92,13 +91,14 @@ const PesanObatApotek = () => {
       );
   }, [pesananData, searchTerm]);
 
-  // Status badge (Menunggu Konfirmasi dihapus)
+  // Status badge (Sudah benar)
   const getStatusBadge = (status) => {
     switch (status) {
       case 'Perlu Dikirim': return 'bg-orange-100 text-orange-800 border border-orange-200';
       case 'Dikirim': return 'bg-blue-100 text-blue-800 border border-blue-200';
       case 'Selesai': return 'bg-emerald-100 text-emerald-800 border border-emerald-200';
       case 'Pembatalan Diajukan': return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
+      case 'Pembatalan Ditolak': return 'bg-pink-100 text-pink-800 border border-pink-200';
       case 'Dibatalkan': return 'bg-red-100 text-red-800 border border-red-200';
       default: return 'bg-slate-100 text-slate-800 border border-slate-200';
     }
@@ -115,13 +115,18 @@ const PesanObatApotek = () => {
     }
   };
 
-  // Render Aksi (Menunggu Konfirmasi dihapus, Batalkan pindah ke Perlu Dikirim)
+  // --- (PERUBAHAN DI FUNGSI INI) ---
   const renderAction = (item) => {
     const baseClasses = "text-sm font-semibold hover:underline transition-colors duration-150 inline-flex items-center gap-1.5 py-1 px-2 rounded-md";
     const detailClasses = "text-slate-600 hover:text-slate-800 hover:bg-slate-100";
     const cancelClasses = "text-red-600 hover:text-red-800 hover:bg-red-50";
     const confirmClasses = "text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50";
     const historyClasses = "text-purple-600 hover:text-purple-800 hover:bg-purple-50";
+    
+    // Style untuk link pembatalan
+    const rejectedClasses = "text-pink-600 hover:text-pink-800 hover:bg-pink-50";
+    const diajukanClasses = "text-yellow-700 hover:text-yellow-800 hover:bg-yellow-50";
+    const dibatalkanClasses = "text-red-600 hover:text-red-800 hover:bg-red-50";
 
     switch (item.status) {
       case 'Perlu Dikirim': // Apotek bisa membatalkan saat status ini
@@ -137,7 +142,7 @@ const PesanObatApotek = () => {
           </Link>
         );
       case 'Selesai':
-        const assetId = item.detail_pesanan?.[0]?.blockchain_asset_id;
+        const assetId = item.id_aset_blockchain; // Ambil dari data (pastikan backend mengirim ini)
         return assetId ? (
           <Link to={`/apotek/pesanan/riwayat/${assetId}`} className={`${baseClasses} ${historyClasses}`}>
             <FileText size={14}/> Riwayat
@@ -145,9 +150,30 @@ const PesanObatApotek = () => {
         ) : (
           <span className="text-slate-400 text-xs italic">(Riwayat T/A)</span>
         );
-      case 'Dibatalkan':
+      
+      // --- PERUBAHAN LOGIKA DI SINI ---
+      case 'Pembatalan Ditolak':
+        return (
+          <Link to={`/apotek/pesanan/${item.id}/detail-pembatalan`} className={`${baseClasses} ${rejectedClasses}`}>
+            <Info size={14}/> Lihat Detail
+          </Link>
+        );
       case 'Pembatalan Diajukan':
+        return (
+          <Link to={`/apotek/pesanan/${item.id}/detail-pembatalan`} className={`${baseClasses} ${diajukanClasses}`}>
+            <Info size={14}/> Lihat Detail
+          </Link>
+        );
+      case 'Dibatalkan':
+        return (
+          <Link to={`/apotek/pesanan/${item.id}/detail-pembatalan`} className={`${baseClasses} ${dibatalkanClasses}`}>
+            <Info size={14}/> Lihat Detail
+          </Link>
+        );
+      // --- AKHIR PERUBAHAN ---
+
       default:
+        // Status lain yang tidak dikenal akan masuk ke sini
         return (
           <Link to={`/apotek/pesanan/${item.id}/detail`} className={`${baseClasses} ${detailClasses}`}>
             <Info size={14}/> Detail
@@ -155,6 +181,7 @@ const PesanObatApotek = () => {
         );
     }
   };
+  // --- (AKHIR DARI FUNGSI YANG BERUBAH) ---
 
 
    if (isLoading && pesananData.length === 0) {

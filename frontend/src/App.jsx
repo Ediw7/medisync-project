@@ -102,6 +102,7 @@ import PerluDikirimApotek from './pages/apotek/pesanobat/PerluDikirimApotek';
 import DikirimApotek from './pages/apotek/pesanobat/DikirimApotek';
 import SelesaiApotek from './pages/apotek/pesanobat/SelesaiApotek';
 import DibatalkanApotek from './pages/apotek/pesanobat/DibatalkanApotek';
+import DetailPembatalanApotek from './pages/apotek/pesanobat/DetailPembatalanApotek';
 
 import RiwayatPembelian from './pages/apotek/riwayatpembelian/RiwayatPembelian';
 import Penjualan from './pages/apotek/penjualan/Penjualan';
@@ -213,6 +214,8 @@ function App() {
       <Route path="/apotek/pesan-obat/dikirim" element={<DikirimApotek />} />
       <Route path="/apotek/pesan-obat/selesai" element={<SelesaiApotek />} />
       <Route path="/apotek/pesan-obat/dibatalkan" element={<DibatalkanApotek />} />
+      <Route path="/apotek/pesanan/:id/detail-pembatalan" element={<DetailPembatalanApotek />} />
+
 
         <Route path="/apotek/riwayat-pembelian" element={<RiwayatPembelian />} />
         <Route path="/apotek/penjualan" element={<Penjualan />} />

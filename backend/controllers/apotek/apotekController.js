@@ -116,10 +116,38 @@ const apotekController = {
         }
         const sqlDetail = 'SELECT * FROM detail_pesanan_apotek WHERE id_pesanan_apotek = ?';
         const [detailRows] = await db.query(sqlDetail, [id]);
+        const pesananData = pesananRows[0];
+        let alasan_pembatalan = '-'; // Alasan dari Apotek
+        let alasan_penolakan = '-';  // Alasan dari PBF
+
+        if (pesananData.catatan_khusus) {
+            const catatan = pesananData.catatan_khusus;
+            
+            // Cari alasan pengajuan (dari Apotek)
+            const alasanApotekMatch = catatan.match(/Alasan: (.*?)(?=\n\[PENOLAKAN\]|$)/);
+            if (alasanApotekMatch && alasanApotekMatch[1]) {
+                alasan_pembatalan = alasanApotekMatch[1].trim();
+            }
+
+            // Cari alasan penolakan (dari PBF)
+            const alasanPbfMatch = catatan.match(/\[PENOLAKAN\]: (.*)/);
+            if (alasanPbfMatch && alasanPbfMatch[1]) {
+                alasan_penolakan = alasanPbfMatch[1].trim();
+            }
+        }
+
         res.json({
             success: true,
-            data: { pesanan: pesananRows[0], detail_pesanan: detailRows },
+            data: { 
+                pesanan: { 
+                    ...pesananData, 
+                    alasan_pembatalan: alasan_pembatalan, // Ini alasan Apotek
+                    alasan_penolakan: alasan_penolakan    // Ini alasan PBF
+                }, 
+                detail_pesanan: detailRows 
+            },
         });
+
     } catch (error) {
         console.error(`Error getting pesanan by ID for Apotek:`, error);
         res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });

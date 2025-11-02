@@ -9,10 +9,15 @@ class PbfContract extends Contract {
         return assetJSON && assetJSON.length > 0;
     }
 
-    async terimaBarang(ctx, batchId, hashBuktiFoto) {
+    // --- FUNGSI DIPERBAIKI ---
+    async terimaBarang(ctx, batchId, hashBuktiFoto, namaPbf) {
         const mspID = ctx.clientIdentity.getMSPID();
         if (mspID !== 'PBFMSP') {
             throw new Error(`ERROR: Hanya PBF yang bisa menerima barang.`);
+        }
+        
+        if (!namaPbf || namaPbf.trim() === '') {
+            throw new Error('ERROR: Nama PBF (nama_resmi) wajib disertakan saat menerima barang.');
         }
 
         const assetJSON = await ctx.stub.getState(batchId);
@@ -31,18 +36,25 @@ class PbfContract extends Contract {
         obat.pemilikSaatIni = 'PBFMSP';
         obat.statusSaatIni = 'DITERIMA_PBF';
         
-        obat.riwayat.push({
+        // --- PERBAIKAN STRUKTUR RIWAYAT ---
+        const riwayatBaru = {
             pemilik: 'PBFMSP',
             status: 'DITERIMA_PBF',
             timestamp: timestamp,
-            detail: `Barang diterima. Hash bukti foto: ${hashBuktiFoto}`
-        });
+            detail: `Barang diterima oleh PBF.`, // Detail umum
+            penerima: namaPbf,                 // Variabel baru
+            hashBukti: hashBuktiFoto         // Variabel baru
+        };
+        
+        obat.riwayat.push(riwayatBaru);
+        // --- AKHIR PERBAIKAN ---
 
         await ctx.stub.putState(batchId, Buffer.from(JSON.stringify(obat)));
         return JSON.stringify(obat);
     }
+    // --- AKHIR FUNGSI DIPERBAIKI ---
 
-    // <-- PERUBAHAN: Fungsi transferToApotek dirombak total mirip transferToPbf
+
     async transferToApotek(ctx, idPesanan, hashSuratJalan, namaApotek, obatIdsJson, jumlahPesananJson) {
         const mspID = ctx.clientIdentity.getMSPID();
         if (mspID !== 'PBFMSP') {
@@ -50,7 +62,7 @@ class PbfContract extends Contract {
         }
 
         const obatIds = JSON.parse(obatIdsJson);
-        const jumlahPesananList = JSON.parse(jumlahPesananJson); // Array [{obatId, jumlah}, ...]
+        const jumlahPesananList = JSON.parse(jumlahPesananJson);
         if (!obatIds || obatIds.length === 0 || !jumlahPesananList || jumlahPesananList.length === 0) {
             throw new Error(`ERROR: Tidak ada ID obat atau jumlah pesanan yang valid untuk pesanan ${idPesanan}.`);
         }
@@ -74,7 +86,6 @@ class PbfContract extends Contract {
                 throw new Error(`ERROR: Obat dengan ID ${obatId} tidak dalam status siap dikirim (Status saat ini: ${obatAsli.statusSaatIni}).`);
             }
 
-            // Cari jumlah pesanan untuk obat ini
             const pesananItem = jumlahPesananList.find(item => item.obatId === obatId);
             const jumlahDipesan = pesananItem ? Number(pesananItem.jumlah) : 0;
             if (jumlahDipesan <= 0) {
@@ -84,10 +95,9 @@ class PbfContract extends Contract {
                 throw new Error(`ERROR: Stok obat ${obatId} (${obatAsli.jumlah}) tidak cukup untuk pesanan ${jumlahDipesan}.`);
             }
 
-            // 1. Update batch asli (kurangi jumlah, tambahkan riwayat)
             obatAsli.jumlah -= jumlahDipesan;
             obatAsli.riwayat.push({
-                pemilik: 'PBFMSP', // Pemilik tetap sama
+                pemilik: 'PBFMSP',
                 status: 'DIKIRIM_KE_APOTEK',
                 timestamp: timestamp,
                 detail: `Transfer ke ${namaApotek} (Pesanan: ${idPesanan}). Jumlah: ${jumlahDipesan}. Sisa stok: ${obatAsli.jumlah}.`
@@ -101,10 +111,9 @@ class PbfContract extends Contract {
             
             await ctx.stub.putState(obatAsli.id, Buffer.from(JSON.stringify(obatAsli)));
 
-            // 2. Buat aset baru untuk Apotek (Asset Splitting)
-            const apotekAssetId = `${obatId}-${idPesanan}`; // ID unik untuk kiriman ini
+            const apotekAssetId = `${obatId}-${idPesanan}`;
             const apotekAsset = {
-                docType: 'obat', // Menggunakan docType yang sama agar mudah dicari
+                docType: 'obat',
                 id: apotekAssetId,
                 namaObat: obatAsli.namaObat,
                 nomorIzinEdar: obatAsli.nomorIzinEdar,
@@ -115,11 +124,11 @@ class PbfContract extends Contract {
                 tanggalKadaluarsa: obatAsli.tanggalKadaluarsa,
                 penanggungJawab: obatAsli.penanggungJawab,
                 hargaPerUnit: obatAsli.hargaPerUnit,
-                jumlah: Number(jumlahDipesan), // Jumlah yang dikirim
-                pemilikSaatIni: 'ApotekMSP', // Pemilik baru adalah Apotek
+                jumlah: Number(jumlahDipesan),
+                pemilikSaatIni: 'ApotekMSP',
                 statusSaatIni: 'DIKIRIM_KE_APOTEK', 
                 hashDokumen: {
-                    hasilUjiMutu: obatAsli.hashDokumen.hasilUjiMutu, // Warisi hash mutu
+                    hasilUjiMutu: obatAsli.hashDokumen.hasilUjiMutu,
                     suratJalan: hashSuratJalan
                 },
                 namaPerusahaan: obatAsli.namaPerusahaan,
@@ -129,10 +138,9 @@ class PbfContract extends Contract {
                     timestamp: timestamp,
                     detail: `Diterima dari PBFMSP (Pesanan: ${idPesanan}). Surat Jalan hash: ${hashSuratJalan}, Jumlah: ${jumlahDipesan}`
                 }],
-                idBatchAsal: obatId // Referensi ke batch asal
+                idBatchAsal: obatId
             };
 
-            // Pastikan ID aset baru belum ada
             const apotekAssetExists = await this.assetExists(ctx, apotekAssetId);
             if (apotekAssetExists) {
                 throw new Error(`ERROR: Aset kiriman Apotek dengan ID ${apotekAssetId} sudah ada.`);

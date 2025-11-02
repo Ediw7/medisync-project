@@ -172,43 +172,58 @@ const KonfirmasiPenerimaan = () => {
   };
 
   const handleConfirm = async () => {
-    if (!buktiFoto) {
-      toast.error('Bukti foto wajib diunggah.');
-      return;
+  if (!buktiFoto) {
+    toast.error('Bukti foto wajib diunggah.');
+    return;
+  }
+
+  setIsSubmitting(true);
+  setError(null);
+
+  const formData = new FormData();
+  formData.append('buktiFoto', buktiFoto);
+
+  let token;
+  try {
+    token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Token tidak ditemukan. Silakan login ulang.');
     }
-    setIsSubmitting(true);
-    setError(null);
 
-    const formData = new FormData();
-    formData.append('buktiFoto', buktiFoto);
-
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.put(
-        `http://localhost:5000/api/pbf/penerimaan/${id}/konfirmasi`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      );
-
-      if (response.data.success) {
-        toast.success('Pesanan berhasil dikonfirmasi!');
-        navigate('/pbf/pesan-obat');
-      } else {
-        throw new Error(response.data.message);
+    const response = await axios.put(
+      `http://localhost:5000/api/pbf/penerimaan/${id}/konfirmasi`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // JANGAN SET Content-Type → Axios akan set otomatis + boundary
+        },
+        timeout: 30000, // 30 detik timeout
       }
-    } catch (err) {
-      const errorMsg = err.response?.data?.message || err.message || 'Gagal konfirmasi.';
-      setError(errorMsg);
-      toast.error(errorMsg);
-    } finally {
-      setIsSubmitting(false);
+    );
+
+    if (response.data.success) {
+      toast.success('Pesanan berhasil dikonfirmasi dan tercatat di blockchain!');
+      setShowConfirmModal(false);
+      setTimeout(() => navigate('/pbf/pesan-obat'), 1500);
+    } else {
+      throw new Error(response.data.message || 'Gagal konfirmasi.');
     }
-  };
+  } catch (err) {
+    const errorMsg = err.response?.data?.message || err.message || 'Gagal mengirim data.';
+    setError(errorMsg);
+    toast.error(errorMsg);
+
+    // Tangani 401/403 → logout otomatis
+    if (err.response?.status === 401 || err.response?.status === 403 || errorMsg.includes('login')) {
+      toast.error('Sesi berakhir. Mengarahkan ke login...');
+      localStorage.clear();
+      setTimeout(() => navigate('/login/pbf'), 2000);
+    }
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const handleDownloadPDF = () => {
     const element = contentRef.current;

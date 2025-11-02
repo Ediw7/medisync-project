@@ -1,5 +1,4 @@
 'use strict';
-
 const db = require('../../config/db');
 const fs = require('fs').promises;
 const path = require('path');
@@ -7,7 +6,7 @@ const crypto = require('crypto');
 const { Gateway, Wallets } = require('fabric-network');
 const grpc = require('@grpc/grpc-js');
 
-// Fungsi untuk menghitung hash file
+// ... (calculateFileHash dan getGateway tetap sama) ...
 async function calculateFileHash(filePath) {
   try {
     console.log(`Calculating hash for file: ${filePath}`);
@@ -23,32 +22,27 @@ async function calculateFileHash(filePath) {
   }
 }
 
-// Ganti fungsi getGateway Anda dengan yang ini
 async function getGateway() {
   try {
     console.log('Initializing Fabric Gateway connection...');
     
-    // 1. Tentukan path ke wallet yang sudah dibuat oleh enrollAdminPbf.js
     const walletPath = path.resolve(__dirname, '..', '..', 'wallet');
     const wallet = await Wallets.newFileSystemWallet(walletPath);
     console.log(`Loading wallet from: ${walletPath}`);
 
-    // 2. Pastikan identitas admin PBF ada di dalam wallet
     const identity = await wallet.get('pbfAdmin');
     if (!identity) {
         throw new Error('Identitas "pbfAdmin" tidak ditemukan di dalam wallet. Jalankan enrollAdminPbf.js terlebih dahulu.');
     }
 
-    // 3. Muat connection profile
     const ccpPath = path.resolve(__dirname, '..', '..', 'connection-org2.json');
     console.log(`Loading connection profile from: ${ccpPath}`);
     const ccp = JSON.parse(await fs.readFile(ccpPath, 'utf8'));
 
-    // 4. Buat koneksi gateway (lebih sederhana)
     const gateway = new Gateway();
     await gateway.connect(ccp, {
         wallet,
-        identity: 'pbfAdmin', // Gunakan identitas dari wallet
+        identity: 'pbfAdmin',
         discovery: { enabled: true, asLocalhost: true }
     });
 
@@ -64,8 +58,9 @@ async function getGateway() {
 const penerimaanController = {
   // Mengonfirmasi penerimaan pesanan dengan unggah foto
    confirmPenerimaan: async (req, res) => {
-    const { id } = req.params;
+    const { id } = req.params; // ID Pesanan
     const idPbf = req.user.id;
+    const namaPbf = req.user.nama_resmi; // <-- AMBIL NAMA PBF DARI TOKEN
     const buktiFoto = req.file;
 
     let gateway;
@@ -76,7 +71,13 @@ const penerimaanController = {
         return res.status(400).json({ success: false, message: 'Bukti foto wajib diunggah.' });
       }
 
-      console.log(`Processing penerimaan for pesanan ID: ${id}, PBF ID: ${idPbf}, File: ${buktiFoto.path}`);
+      // --- PERBAIKAN VALIDASI NAMA PBF ---
+      if (!namaPbf) {
+          return res.status(401).json({ success: false, message: 'Nama PBF tidak ditemukan di token Anda. Silakan login ulang.' });
+      }
+      // --- AKHIR PERBAIKAN ---
+
+      console.log(`Processing penerimaan for pesanan ID: ${id}, PBF: ${namaPbf}, File: ${buktiFoto.path}`);
 
       dbConnection = await db.getConnection();
       await dbConnection.beginTransaction();
@@ -106,12 +107,10 @@ const penerimaanController = {
       const hashBuktiFoto = await calculateFileHash(buktiFoto.path);
       console.log(`Hash bukti foto: ${hashBuktiFoto}`);
 
-      // Koneksi ke Fabric
       gateway = await getGateway();
       const network = await gateway.getNetwork('medisyncchannel');
       const contract = network.getContract('medisync');
 
-      // Ambil ID aset yang benar dari kolom baru yang kita buat
       const [detailPesanan] = await dbConnection.query(
         'SELECT id_aset_blockchain FROM detail_pesanan WHERE id_pesanan = ?',
         [id]
@@ -121,28 +120,32 @@ const penerimaanController = {
         throw new Error('ID Aset Blockchain untuk kiriman ini tidak ditemukan di database. Pastikan produsen sudah mencatat pengiriman.');
       }
 
-      // Panggil chaincode terimaBarang untuk setiap item
       for (const item of detailPesanan) {
-        if (item.id_aset_blockchain) { // Pastikan ID tidak null/kosong
+        if (item.id_aset_blockchain) {
           console.log(`Submitting transaction for asset_id: ${item.id_aset_blockchain}`);
           const transaction = contract.createTransaction('PbfContract:terimaBarang');
           transaction.setEndorsingOrganizations('PBFMSP', 'ProdusenMSP');
-          // Gunakan ID yang benar
-          await transaction.submit(item.id_aset_blockchain, hashBuktiFoto);
+          
+          // --- PERBAIKAN: KIRIM 3 ARGUMEN ---
+          await transaction.submit(
+            item.id_aset_blockchain, 
+            hashBuktiFoto, 
+            namaPbf // Argumen ke-3
+          );
+          // --- AKHIR PERBAIKAN ---
+          
           console.log(`Transaction for asset_id: ${item.id_aset_blockchain} submitted successfully`);
         }
       }
 
-      // Update status pesanan di MySQL
       await dbConnection.query(
         'UPDATE pesanan SET status = ?, bukti_foto = ? WHERE id = ?',
         ['Selesai', buktiFoto.path, id]
       );
       
-      // Anda bisa menambahkan hash ke catatan khusus jika perlu
       await dbConnection.query(
         'UPDATE pesanan SET catatan_khusus = CONCAT(IFNULL(catatan_khusus, ""), ?) WHERE id = ?',
-        [`\nBukti penerimaan: ${buktiFoto.path}, Hash: ${hashBuktiFoto}`, id]
+        [`\n[PENERIMAAN PBF]: Diterima oleh ${namaPbf}. Hash Bukti: ${hashBuktiFoto}`, id] // Detail lebih baik
       );
 
       await dbConnection.commit();
@@ -151,7 +154,7 @@ const penerimaanController = {
       console.error('Error in confirmPenerimaan:', error);
       if (dbConnection) await dbConnection.rollback();
       if (buktiFoto && await fs.access(buktiFoto.path).then(() => true).catch(() => false)) {
-        await fs.unlink(buktiFoto.path); // Hapus file jika terjadi error
+        await fs.unlink(buktiFoto.path);
       }
       res.status(500).json({ success: false, message: `Gagal konfirmasi: ${error.message}` });
     } finally {
@@ -160,8 +163,8 @@ const penerimaanController = {
     }
   },
 
-  // Mengonfirmasi pesanan (mengubah status dari "Dipesan" menjadi "Perlu Dikirim")
   confirmPesanan: async (req, res) => {
+    // ... (Fungsi ini tidak berubah) ...
     try {
       const { id } = req.params;
       const idPbf = req.user.id;

@@ -75,7 +75,13 @@ const authController = {
       }
 
       const token = jwt.sign(
-        { id: user.id, role: user.role, username: user.username },
+        { 
+          id: user.id, 
+          role: user.role, 
+          username: user.username,
+          nama_resmi: user.nama_resmi, // <-- TAMBAHKAN INI
+          nomor_izin: user.nomor_izin   // <-- TAMBAHKAN INI JUGA
+        },
         JWT_SECRET,
         { expiresIn: "1h" }
       );

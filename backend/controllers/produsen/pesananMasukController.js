@@ -72,6 +72,48 @@ getAll: async (req, res) => {
     }
 },
 
+// --- GANTI FUNGSI LAMA DENGAN YANG INI ---
+  getMassalDetails: async (req, res) => {
+    const { selectedIds } = req.body;
+    const idProdusen = req.user.id; // Produsen yang sedang login
+
+    if (!selectedIds || !Array.isArray(selectedIds) || selectedIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'selectedIds harus berupa array yang tidak kosong.' });
+    }
+
+    try {
+      const placeholders = selectedIds.map(() => '?').join(',');
+      
+      // PERBAIKAN SQL: Mengambil dari tabel 'pesanan' (Produsen -> PBF)
+      const sql = `
+        SELECT 
+          p.id, 
+          p.nomor_po,  -- <-- Mengambil nomor_po
+          p.status,
+          u.nama_resmi AS nama_pbf, -- <-- Mengambil nama PBF
+          u.alamat AS alamat_pbf     -- <-- Mengambil alamat PBF
+        FROM pesanan p
+        JOIN users u ON p.id_pbf = u.id
+        WHERE p.id_produsen = ? AND p.id IN (${placeholders})
+      `;
+      
+      const params = [idProdusen, ...selectedIds];
+      
+      const [rows] = await db.query(sql, params);
+
+      if (rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Tidak ada data pesanan yang ditemukan untuk ID yang dipilih.' });
+      }
+
+      // Kirim data yang benar (nama_pbf, alamat_pbf, nomor_po)
+      res.json({ success: true, data: rows });
+
+    } catch (error) {
+      console.error('Error in getMassalDetails:', error);
+      res.status(500).json({ success: false, message: 'Kesalahan Server Internal', error: error.message });
+    }
+  },
+  // --- AKHIR FUNGSI BARU ---
   getPesananById: async (req, res) => {
   try {
     const { id } = req.params;

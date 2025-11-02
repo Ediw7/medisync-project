@@ -329,7 +329,7 @@ const PengelolaanPesanan = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             {order.status === 'Pembatalan Diajukan' && (
                                 <Link to={`/pbf/pengelolaan-pesanan/konfirmasi-pembatalan/${order.id}`} className="text-pink-600 hover:text-pink-800 font-semibold">
-                                    Konfirmasi Pembatalan
+                                    Konfirmasi
                                 </Link>
                             )}
                             

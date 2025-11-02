@@ -27,6 +27,7 @@ const LoginPage = () => {
       localStorage.setItem("token", res.data.token)
       localStorage.setItem("username", res.data.username)
       localStorage.setItem("namaResmi", res.data.namaResmi)
+     localStorage.setItem('nomorIzinPbf', res.data.nomor_izin);
 
       if (res.data.id) {
         localStorage.setItem("produsenId", res.data.id) 

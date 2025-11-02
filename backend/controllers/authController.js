@@ -81,6 +81,7 @@ const authController = {
           username: user.username,
           nama_resmi: user.nama_resmi, // <-- TAMBAHKAN INI
           nomor_izin: user.nomor_izin   // <-- TAMBAHKAN INI JUGA
+          
         },
         JWT_SECRET,
         { expiresIn: "1h" }

@@ -122,7 +122,7 @@ const TrackingPengiriman = () => {
   const renderAction = (order) => {
     switch (order.status) {
         case 'Dikirim':
-            return <Link to={`/pbf/tracking-pengiriman/lacak/${order.id}`} className="text-emerald-600 hover:text-emerald-800 font-semibold">Lacak</Link>;
+            return <Link to={`/pbf/tracking-pengiriman/lihatstatus/${order.id}`} className="text-emerald-600 hover:text-emerald-800 font-semibold">Lihat Status</Link>;
         case 'Selesai':
             // Pastikan Anda meneruskan assetId dari backend
             return <Link to={`/pbf/tracking-pengiriman/riwayat/${order.id_aset_blockchain}`} className="text-purple-600 hover:text-purple-800 font-semibold">Lihat Riwayat</Link>;

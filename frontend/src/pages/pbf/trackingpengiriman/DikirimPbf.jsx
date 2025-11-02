@@ -110,7 +110,7 @@ const DikirimPbf = () => {
   };
 
   const renderAction = (order) => {
-    return <Link to={`/pbf/tracking-pengiriman/lacak/${order.id}`} className="text-emerald-600 hover:text-emerald-800 font-semibold">Lacak</Link>;
+    return <Link to={`/pbf/tracking-pengiriman/lihatstatus/${order.id}`} className="text-emerald-600 hover:text-emerald-800 font-semibold">Lihat Status</Link>;
   }
   
   const handleLogout = () => {

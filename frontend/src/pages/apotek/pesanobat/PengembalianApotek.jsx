@@ -14,7 +14,8 @@ import {
   CheckCircle2,
   XCircle,
   Info,
-  X
+  X,
+  Undo2 // Ikon untuk pengembalian
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
@@ -55,7 +56,7 @@ const OrderCard = ({ item, getStatusBadge, formatDate, renderAction }) => {
 };
 // --- AKHIR KOMPONEN CARD ---
 
-const DibatalkanApotek = () => {
+const PengembalianApotek = () => {
   const navigate = useNavigate();
   const [pesananData, setPesananData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -108,8 +109,15 @@ const DibatalkanApotek = () => {
   };
 
   const filteredData = useMemo(() => {
+    const relevantStatuses = [
+      'Pengembalian Diajukan', 
+      'Dikembalikan', 
+      'Pengembalian Selesai', 
+      'Pengembalian Ditolak', 
+      'Pengembalian Disetujui'
+    ];
     return pesananData
-      .filter(item => ['Dibatalkan', 'Pembatalan Diajukan', 'Pembatalan Ditolak'].includes(item.status)) // <-- FILTER HALAMAN INI
+      .filter(item => relevantStatuses.includes(item.status)) // <-- FILTER HALAMAN INI
       .filter(item =>
         (item.nama_produsen?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         (item.nomor_po?.toLowerCase() || '').includes(searchTerm.toLowerCase())
@@ -130,10 +138,12 @@ const DibatalkanApotek = () => {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'Pembatalan Diajukan': return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
-      case 'Dibatalkan': return 'bg-red-100 text-red-800 border border-red-200';
-      case 'Pembatalan Ditolak': return 'bg-pink-100 text-pink-800 border border-pink-200';
-      default: return 'bg-slate-100 text-slate-700 border border-slate-200';
+      case 'Pengembalian Diajukan': return 'bg-indigo-100 text-indigo-800 border-indigo-200';
+      case 'Pengembalian Disetujui': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'Dikembalikan': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'Pengembalian Ditolak': return 'bg-pink-100 text-pink-800 border-pink-200';
+      case 'Pengembalian Selesai': return 'bg-teal-100 text-teal-800 border-teal-200';
+      default: return 'bg-slate-100 text-slate-700 border-slate-200';
     }
   };
 
@@ -148,11 +158,10 @@ const DibatalkanApotek = () => {
   
   const renderAction = (item) => {
     const baseClasses = "text-sm font-semibold hover:underline transition-colors duration-150 inline-flex items-center gap-1.5 py-1 px-2 rounded-md";
-    const detailClasses = "text-slate-600 hover:text-slate-800 hover:bg-slate-100";
-    // Semua status di halaman ini hanya bisa melihat detail
+    const historyClasses = "text-purple-600 hover:text-purple-800 hover:bg-purple-50";
     return (
-      <Link to={`/apotek/pesanan/${item.id}/detail`} className={`${baseClasses} ${detailClasses}`}>
-        <Info size={14}/> Lihat Detail
+      <Link to={`/apotek/pesanan/${item.id}/lacak-pengembalian`} className={`${baseClasses} ${historyClasses}`}>
+        Lacak Retur
       </Link>
     );
   };
@@ -175,18 +184,18 @@ const DibatalkanApotek = () => {
           <div className="max-w-7xl mx-auto">
             
             <div className="mb-10 relative">
-              <div className="absolute -top-20 -left-20 w-72 h-72 bg-red-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-              <div className="absolute -top-20 -right-20 w-72 h-72 bg-yellow-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+              <div className="absolute -top-20 -left-20 w-72 h-72 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+              <div className="absolute -top-20 -right-20 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
               <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-red-500 to-orange-600 rounded-xl shadow-lg">
-                    <XCircle className="text-white" size={24} />
+                  <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg">
+                    <Undo2 className="text-white" size={24} />
                   </div>
                   <div>
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-red-900 to-orange-900 bg-clip-text text-transparent">
-                      Pesanan Dibatalkan
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-indigo-900 to-purple-900 bg-clip-text text-transparent">
+                      Pengembalian
                     </h1>
-                    <p className="text-slate-600 text-lg mt-1">Pesanan yang dibatalkan atau dalam proses pembatalan.</p>
+                    <p className="text-slate-600 text-lg mt-1">Daftar pesanan yang sedang/telah dikembalikan.</p>
                   </div>
                 </div>
                  <button 
@@ -261,7 +270,7 @@ const DibatalkanApotek = () => {
                 <div className="text-center py-12 bg-white rounded-lg border border-dashed border-slate-300">
                   <ShoppingCart size={48} className="mx-auto mb-3 text-slate-300" />
                   <p className="text-slate-500 font-medium">
-                    {searchTerm ? "Tidak ada pesanan yang sesuai." : "Tidak ada pesanan yang dibatalkan."}
+                    {searchTerm ? "Tidak ada pesanan yang sesuai." : "Tidak ada pesanan pengembalian."}
                   </p>
                 </div>
               )}
@@ -286,4 +295,4 @@ const DibatalkanApotek = () => {
   );
 };
 
-export default DibatalkanApotek;
+export default PengembalianApotek;

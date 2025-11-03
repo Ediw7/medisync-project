@@ -42,21 +42,22 @@ app.use('/api/produsen/pesanan-masuk', pesananMasukRoutes);
 app.use('/api/produsen/pembatalan', pembatalanRoutes);
 app.use('/api/produsen/riwayat-distribusi', riwayatRoute);
 app.use('/api/produsen', laporananalitikRoutes);
+
 app.use('/api/pbf/pesanan', pesananPbfRoutes);
 app.use('/api/pbf/stok', stokPbfRoutes);
 app.use('/api/pbf/riwayat-distribusi', pbfDistribusiRoutes)
-
 app.use('/api/pbf/pesanan-apotek', pesananApotekPbfRoutes); 
-
 app.use('/api/pbf', pbfRoutes);
 app.use('/api/pbf/penerimaan', penerimaanRoutes); 
 app.use('/api/pbf/dashboard', dashboardPbfRoutes);
+app.use('/api/pbf/laporan', laporanRoutes);
+
 app.use('/api/blockchain', blockchainRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/apotek', apotekRoutes);
 app.use('/api/apotek/penerimaan', penerimaanApotekRoutes);
 app.use('/api/apotek/dashboard', dashboardApotekRoutes);
-app.use('/api/pbf/laporan', laporanRoutes);
+
 app.use('/api/apotek/batalkan', batalkanApotekRoute);
 
 const PORT = process.env.PORT || 5000;

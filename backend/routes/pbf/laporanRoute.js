@@ -12,6 +12,7 @@ router.get('/pemesanan-bulanan-produsen', laporanController.getPemesananBulananP
 router.get('/transaksi-per-produsen', laporanController.getTransaksiPerProdusen);
 router.get('/riwayat-produsen', laporanController.getRiwayatProdusen);
 router.get('/kpi-data', laporanController.getKpiData);
+router.get('/apotek', laporanController.getLaporanApotekAgregat);
 // --- RUTE LAPORAN APOTEK ---
 router.get('/distribusi-bulanan-apotek', laporanController.getDistribusiBulananApotek);
 router.get('/transaksi-per-apotek', laporanController.getTransaksiPerApotek);

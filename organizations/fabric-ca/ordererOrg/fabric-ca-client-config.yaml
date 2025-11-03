@@ -117,7 +117,7 @@ csr:
       O: Hyperledger
       OU: Fabric
   hosts:
-    - 122c57a2eea3
+    - 1649faaf6040
 
 #############################################################################
 #  Registration section used to register a new identity with fabric-ca server

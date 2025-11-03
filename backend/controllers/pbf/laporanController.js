@@ -29,6 +29,43 @@ async function getStokGudangFromCouchDB(idPbf) {
   }
 }
 
+// (Tambahkan ini di dekat bagian atas file)
+
+// Helper untuk mengambil Top 10 Produk Terlaris ke Apotek (by Revenue)
+async function _getProdukTerlaris(idPbf, connection) {
+  const sql = `
+    SELECT 
+      dpa.nama_obat, 
+      SUM(dpa.jumlah) as total_terjual, 
+      SUM(dpa.jumlah * dpa.harga_satuan) as total_pendapatan
+    FROM detail_pesanan_apotek dpa
+    JOIN pesanan_apotek pa ON dpa.id_pesanan_apotek = pa.id
+    WHERE pa.id_pbf = ? AND pa.status = 'Selesai'
+    GROUP BY dpa.nama_obat
+    ORDER BY total_pendapatan DESC
+    LIMIT 10
+  `;
+  const [rows] = await connection.query(sql, [idPbf]);
+  return rows;
+}
+
+// Helper untuk mengambil Top 10 Apotek (by Revenue)
+async function _getTopApotekRevenue(idPbf, connection) {
+  const sql = `
+    SELECT 
+      u.nama_resmi AS nama_apotek, 
+      SUM(p.total_harga) AS total_penjualan
+    FROM pesanan_apotek p
+    JOIN users u ON p.id_apotek = u.id
+    WHERE p.id_pbf = ? AND p.status = 'Selesai' AND u.role = 'apotek'
+    GROUP BY u.nama_resmi
+    ORDER BY total_penjualan DESC
+    LIMIT 10
+  `;
+  const [rows] = await connection.query(sql, [idPbf]);
+  return rows;
+}
+
 const LaporanController = {
   
    getKpiData: async (req, res) => {
@@ -202,6 +239,123 @@ const LaporanController = {
   /**
    * @description Mengambil data distribusi bulanan ke Apotek untuk Bar Chart
    */
+
+  
+
+  // ... (fungsi controller lainnya)
+// (Pastikan Anda sudah menambahkan _getProdukTerlaris dan _getTopApotekRevenue di atas controller ini)
+
+// ... (fungsi Anda yang lain seperti getKpiData, getPemesananBulananProdusen, dll.)
+
+  getLaporanApotekAgregat: async (req, res) => {
+  const idPbf = req.user.id;
+  let connection;
+  try {
+    connection = await db.getConnection();
+
+    // Ambil 12 bulan terakhir dari sekarang
+    const endDate = new Date();
+    // Perbaikan kecil: Pastikan startDate menghitung mundur 11 bulan, BUKAN 12
+    const startDate = new Date(endDate.getFullYear(), endDate.getMonth() - 11, 1);
+
+    const formatDate = (date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      return `${year}-${month}`;
+    };
+
+    // Buat array 12 bulan
+    const months = [];
+    for (let d = new Date(startDate); d <= endDate; d.setMonth(d.getMonth() + 1)) {
+      months.push(formatDate(new Date(d)));
+    }
+
+    // --- QUERY SQL YANG BENAR (BUKAN '...') ---
+    const sqlDistribusi = `
+      SELECT 
+        DATE_FORMAT(p.tanggal_pesanan, '%Y-%m') AS bulan, 
+        SUM(d.jumlah) AS jumlah 
+      FROM pesanan_apotek p
+      JOIN detail_pesanan_apotek d ON p.id = d.id_pesanan_apotek
+      WHERE p.id_pbf = ? AND p.status = 'Selesai'
+        AND p.tanggal_pesanan >= ?
+        AND p.tanggal_pesanan <= LAST_DAY(?)
+      GROUP BY DATE_FORMAT(p.tanggal_pesanan, '%Y-%m')
+    `;
+
+    const sqlPengiriman = `
+      SELECT 
+        DATE_FORMAT(tanggal_pesanan, '%Y-%m') AS bulan, 
+        COUNT(id) AS jumlah 
+      FROM pesanan_apotek 
+      WHERE id_pbf = ? AND status = 'Selesai'
+        AND tanggal_pesanan >= ?
+        AND tanggal_pesanan <= LAST_DAY(?)
+      GROUP BY DATE_FORMAT(tanggal_pesanan, '%Y-%m')
+    `;
+
+    const sqlPenjualan = `
+      SELECT 
+        DATE_FORMAT(tanggal_pesanan, '%Y-%m') AS bulan, 
+        SUM(total_harga) AS total 
+      FROM pesanan_apotek 
+      WHERE id_pbf = ? AND status = 'Selesai'
+        AND tanggal_pesanan >= ?
+        AND tanggal_pesanan <= LAST_DAY(?)
+      GROUP BY DATE_FORMAT(tanggal_pesanan, '%Y-%m')
+    `;
+    // --- AKHIR QUERY SQL YANG BENAR ---
+
+    // Jalankan semua query secara paralel
+    const [
+      [distribusiRows],
+      [pengirimanRows],
+      [penjualanRows],
+      produkTerlaris,
+      topApotekRevenue
+    ] = await Promise.all([
+      connection.query(sqlDistribusi, [idPbf, startDate, endDate]),
+      connection.query(sqlPengiriman, [idPbf, startDate, endDate]),
+      connection.query(sqlPenjualan, [idPbf, startDate, endDate]),
+      _getProdukTerlaris(idPbf, connection), // Panggil helper baru
+      _getTopApotekRevenue(idPbf, connection) // Panggil helper baru
+    ]);
+
+    // Map ke objek untuk lookup cepat
+    const mapRows = (rows) => {
+      const map = {};
+      rows.forEach(r => { map[r.bulan] = r.jumlah || r.total || 0; });
+      return map;
+    };
+
+    const distribusiMap = mapRows(distribusiRows);
+    const pengirimanMap = mapRows(pengirimanRows);
+    const penjualanMap = mapRows(penjualanRows);
+
+    // Isi data lengkap 12 bulan
+    const distribusiObat = months.map(m => ({ bulan: m, jumlah: Number(distribusiMap[m]) || 0 }));
+    const jumlahPengiriman = months.map(m => ({ bulan: m, jumlah: Number(pengirimanMap[m]) || 0 }));
+    const hasilPenjualan = months.map(m => ({ bulan: m, total: Number(penjualanMap[m]) || 0 }));
+
+    res.json({
+      success: true,
+      data: { 
+        distribusiObat, 
+        jumlahPengiriman, 
+        hasilPenjualan,
+        produkTerlaris,    // <-- Data baru
+        topApotekRevenue   // <-- Data baru
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in getLaporanApotekAgregat:', error);
+    res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+  } finally {
+    if (connection) connection.release();
+  }
+},
+// ... (sisa controller Anda)
   getDistribusiBulananApotek: async (req, res) => {
     const idPbf = req.user.id;
     try {

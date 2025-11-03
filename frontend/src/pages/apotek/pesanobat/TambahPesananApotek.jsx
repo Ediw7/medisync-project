@@ -23,7 +23,7 @@ const TambahPesananApotek = () => {
         id: '',
         nama_obat: '',
         keterangan: '',
-        qty: 1,
+        qty: '', // <-- Diubah dari 1
         satuan: '',
         harga_satuan: 0,
         stok_tersedia: 0,
@@ -124,6 +124,7 @@ const TambahPesananApotek = () => {
         setInfoApoteker({ ...infoApoteker, [name]: value });
     };
 
+    // --- PERBAIKAN 1: handleObatSelect ---
     const handleObatSelect = (e) => {
         const selectedObatId = e.target.value;
         const selectedObat = availableStock.find(obat => obat.id === selectedObatId);
@@ -133,25 +134,42 @@ const TambahPesananApotek = () => {
                 id: selectedObat.id,
                 nama_obat: selectedObat.nama_obat,
                 keterangan: `${selectedObat.dosis || ''} ${selectedObat.bentuk_sediaan || ''}`.trim(),
-                qty: 1,
+                qty: '', // Diubah ke string kosong agar bisa diisi manual
                 satuan: selectedObat.bentuk_sediaan || 'Box',
                 harga_satuan: selectedObat.harga_per_unit || 0,
                 stok_tersedia: selectedObat.stok_saat_ini || 0,
             });
         } else {
-            setItemObat({ id: '', nama_obat: '', keterangan: '', qty: 1, satuan: '', harga_satuan: 0, stok_tersedia: 0 });
+            // Reset ke string kosong juga
+            setItemObat({ id: '', nama_obat: '', keterangan: '', qty: '', satuan: '', harga_satuan: 0, stok_tersedia: 0 });
         }
     };
 
+    // --- PERBAIKAN 2: handleQtyChange ---
     const handleQtyChange = (e) => {
-        const newQty = parseInt(e.target.value, 10);
-        if (newQty > 0 && newQty <= itemObat.stok_tersedia) {
-            setItemObat({ ...itemObat, qty: newQty });
-        } else if (newQty > itemObat.stok_tersedia) {
+        const value = e.target.value;
+
+        // 1. Izinkan field kosong
+        if (value === '') {
+            setItemObat({ ...itemObat, qty: '' });
+            return;
+        }
+
+        const newQty = parseInt(value, 10);
+
+        // 2. Jika bukan angka (misal "abc") atau 0, jangan update (atau reset ke 1)
+        if (isNaN(newQty) || newQty <= 0) {
+            setItemObat({ ...itemObat, qty: 1 }); // Default ke 1 jika input tidak valid
+            return;
+        }
+
+        // 3. Cek stok
+        if (newQty > itemObat.stok_tersedia) {
              toast.error(`Jumlah tidak boleh melebihi stok tersedia (${itemObat.stok_tersedia})`);
              setItemObat({ ...itemObat, qty: itemObat.stok_tersedia });
         } else {
-             setItemObat({ ...itemObat, qty: 1 });
+             // 4. Input valid
+             setItemObat({ ...itemObat, qty: newQty });
         }
     };
 
@@ -162,6 +180,7 @@ const TambahPesananApotek = () => {
         if (!itemObat.id) {
             toast.error('Silakan pilih obat yang valid.'); return;
         }
+        // Diubah untuk menangani string kosong
         const qtyToAdd = parseInt(itemObat.qty, 10);
         if (isNaN(qtyToAdd) || qtyToAdd <= 0) {
             toast.error('Jumlah pesanan harus lebih dari 0.'); return;
@@ -202,7 +221,8 @@ const TambahPesananApotek = () => {
             setDetailPesanan([...detailPesanan, newItem]);
             toast.success(`${itemObat.nama_obat} (batch ${itemObat.id.slice(-6)}) ditambahkan.`);
         }
-        setItemObat({ id: '', nama_obat: '', keterangan: '', qty: 1, satuan: '', harga_satuan: 0, stok_tersedia: 0 });
+        // Reset ke string kosong
+        setItemObat({ id: '', nama_obat: '', keterangan: '', qty: '', satuan: '', harga_satuan: 0, stok_tersedia: 0 });
     };
 
     const handleRemoveItem = (index) => {

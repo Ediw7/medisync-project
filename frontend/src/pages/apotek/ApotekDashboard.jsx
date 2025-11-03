@@ -181,7 +181,6 @@ const ApotekDashboard = () => {
                 value={stats.totalStok} 
                 label="Total Stok Obat" 
                 unit="box" 
-                trend="+12%"
                 color="emerald"
               />
               <StatCard 
@@ -189,21 +188,18 @@ const ApotekDashboard = () => {
                 value={stats.penjualanHariIni} 
                 label="Penjualan Hari Ini" 
                 isCurrency={true}
-                trend="+8%"
                 color="blue"
               />
               <StatCard 
                 icon={<FileText />} 
                 value={stats.pesananAktif} 
                 label="Pesanan Aktif"
-                trend="+5%"
                 color="purple"
               />
               <StatCard 
                 icon={<AlertTriangle />} 
                 value={stats.akanKadaluarsa} 
                 label="Obat Akan Kedaluwarsa" 
-                unit="%"
                 color="orange"
               />
             </div>

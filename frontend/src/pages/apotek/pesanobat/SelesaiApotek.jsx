@@ -147,7 +147,7 @@ const SelesaiApotek = () => {
   const renderAction = (item) => {
     const baseClasses = "text-sm font-semibold hover:underline transition-colors duration-150 inline-flex items-center gap-1.5 py-1 px-2 rounded-md";
     const historyClasses = "text-purple-600 hover:text-purple-800 hover:bg-purple-50";
-    const assetId = item.detail_pesanan?.[0]?.blockchain_asset_id;
+    const assetId = item.id_aset_blockchain;
     return assetId ? (
       <Link to={`/apotek/pesanan/riwayat/${assetId}`} className={`${baseClasses} ${historyClasses}`}>
         <FileText size={14}/> Lihat Riwayat

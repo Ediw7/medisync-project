@@ -264,7 +264,10 @@ const PesanObatApotek = () => {
           </Link>
         );
       case 'Selesai':
-        const assetId = item.detail_pesanan?.[0]?.blockchain_asset_id;
+       
+        const assetId = item.id_aset_blockchain;
+
+
         return assetId ? (
           <Link to={`/apotek/pesanan/riwayat/${assetId}`} className={`${baseClasses} ${historyClasses}`}>
             <FileText size={14}/> Lihat Riwayat

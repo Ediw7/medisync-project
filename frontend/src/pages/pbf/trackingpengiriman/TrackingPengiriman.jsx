@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom'; // Import Link & useLocation
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import SidebarPbf from '../../../components/SidebarPbf';
 import NavbarPbf from '../../../components/NavbarPbf';
 import {
@@ -9,7 +9,8 @@ import {
   AlertTriangle,
   Package,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  ArrowUpDown // Ditambahkan
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast'; 
@@ -42,52 +43,60 @@ const TrackingPengiriman = () => {
   const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'descending' });
   const username = localStorage.getItem('username');
 
-  // Status untuk halaman "Semua"
-  const relevantStatuses = ['Dikirim', 'Selesai', 'Pengembalian Diajukan', 'Dikembalikan', 'Pengembalian Selesai', 'Pengembalian Ditolak'];
+  // --- PERBAIKAN 1: Tambahkan 'Pengembalian Disetujui' ---
+  const relevantStatuses = [
+    'Dikirim', 
+    'Selesai', 
+    'Pengembalian Diajukan', 
+    'Pengembalian Disetujui', // <-- DITAMBAHKAN
+    'Dikembalikan', 
+    'Pengembalian Selesai', 
+    'Pengembalian Ditolak'
+  ];
+
+  const fetchData = useCallback(async () => {
+    if (pesananList.length === 0) setIsLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+          toast.error('Sesi berakhir, silakan login kembali.');
+          navigate('/login/pbf');
+          return;
+      }
+      const response = await axios.get('http://localhost:5000/api/pbf/pesanan-apotek', {
+          headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.data.success) {
+          setPesananList(response.data.data.filter(p => 
+              relevantStatuses.includes(p.status)
+          ));
+      } else {
+          throw new Error(response.data.message || 'Gagal memuat data pesanan.');
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || err.message;
+      setError(errorMsg);
+      if (pesananList.length === 0) toast.error(errorMsg);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+          navigate('/login/pbf');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [navigate, pesananList.length]); // dependensi diperbarui
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (pesananList.length === 0) setIsLoading(true);
-      setError(null);
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            toast.error('Sesi berakhir, silakan login kembali.');
-            navigate('/login/pbf');
-            return;
-        }
-        const response = await axios.get('http://localhost:5000/api/pbf/pesanan-apotek', {
-            headers: { Authorization: `Bearer ${token}` }
-        });
-        if (response.data.success) {
-            setPesananList(response.data.data.filter(p => 
-                relevantStatuses.includes(p.status)
-            ));
-        } else {
-            throw new Error(response.data.message || 'Gagal memuat data pesanan.');
-        }
-      } catch (err) {
-        const errorMsg = err.response?.data?.message || err.message;
-        setError(errorMsg);
-        if (pesananList.length === 0) toast.error(errorMsg);
-        if (err.response?.status === 401 || err.response?.status === 403) {
-            navigate('/login/pbf');
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchData();
-  }, [navigate]);
+  }, [fetchData]);
   
   const filteredAndSortedData = useMemo(() => {
     let filtered = [...pesananList].filter(item => {
-        // Halaman ini adalah "Semua", jadi tidak ada filter status
+        // Halaman ini adalah "Semua", jadi tidak ada filter status spesifik
         return (item.nama_apotek?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                (item.nomor_pesanan?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     });
     
-    // Logika sorting
     if (sortConfig.key) {
       filtered.sort((a, b) => {
         let aValue = a[sortConfig.key];
@@ -112,6 +121,7 @@ const TrackingPengiriman = () => {
       case 'Dikirim': return 'bg-blue-100 text-blue-800 border border-blue-200';
       case 'Selesai': return 'bg-emerald-100 text-emerald-800 border border-emerald-200';
       case 'Pengembalian Diajukan': return 'bg-indigo-100 text-indigo-800 border border-indigo-200';
+      case 'Pengembalian Disetujui': return 'bg-purple-100 text-purple-800 border border-purple-200'; // Ditambahkan
       case 'Dikembalikan': return 'bg-purple-100 text-purple-800 border border-purple-200';
       case 'Pengembalian Selesai': return 'bg-teal-100 text-teal-800 border border-teal-200';
       case 'Pengembalian Ditolak': return 'bg-red-100 text-red-800 border border-red-200';
@@ -119,23 +129,39 @@ const TrackingPengiriman = () => {
     }
   };
 
+  // --- PERBAIKAN 2: Render Aksi ---
   const renderAction = (order) => {
+    // Logika lebih aman untuk mendapatkan assetId
+    const assetId = order.detail_pesanan?.[0]?.id_aset_blockchain || order.id_aset_blockchain;
+
     switch (order.status) {
         case 'Dikirim':
-            return <Link to={`/pbf/tracking-pengiriman/lihatstatus/${order.id}`} className="text-emerald-600 hover:text-emerald-800 font-semibold">Lihat Status</Link>;
+            return <Link to={`/pbf/tracking-pengiriman/lacak/${order.id}`} className="text-emerald-600 hover:text-emerald-800 font-semibold">Lihat Status</Link>;
         case 'Selesai':
-            // Pastikan Anda meneruskan assetId dari backend
-            return <Link to={`/pbf/tracking-pengiriman/riwayat/${order.id_aset_blockchain}`} className="text-purple-600 hover:text-purple-800 font-semibold">Lihat Riwayat</Link>;
-        case 'Pengembalian Diajukan':
-            return <span className="text-indigo-600 font-semibold">Menunggu Respon</span>;
+            return assetId ? (
+                <Link to={`/pbf/tracking-pengiriman/riwayat/${assetId}`} className="text-purple-600 hover:text-purple-800 font-semibold">Lihat Riwayat</Link>
+            ) : (
+                <span className="text-slate-400 text-xs italic">(Riwayat T/A)</span>
+            );
+        case 'Pengembalian Diajukan': // <-- INI YANG DIUBAH
+            return (
+                <Link 
+                  to={`/pbf/tracking-pengiriman/konfirmasi-pengembalian/${order.id}`} 
+                  className="text-orange-600 hover:text-orange-800 font-semibold"
+                >
+                  Konfirmasi
+                </Link>
+            );
+        case 'Pengembalian Disetujui':
         case 'Dikembalikan':
         case 'Pengembalian Selesai':
         case 'Pengembalian Ditolak':
-            return <Link to={`/pbf/tracking-pengiriman/lacak-pengembalian/${order.id}`} className="text-indigo-600 hover:text-indigo-800 font-semibold">Lacak Retur</Link>;
+            return <Link to={`/pbf/tracking-pengiriman/lacak-pengembalian/${order.id}`} className="text-indigo-600 hover:text-indigo-800 font-semibold">Lacak</Link>;
         default:
             return null;
     }
   }
+  // --- AKHIR PERBAIKAN 2 ---
   
   const handleLogout = () => {
     localStorage.clear();
@@ -150,7 +176,7 @@ const TrackingPengiriman = () => {
   };
 
   const getSortIndicator = (key) => {
-    if (sortConfig.key !== key) return null;
+    if (sortConfig.key !== key) return <ArrowUpDown size={14} className="text-slate-300" />; // Ganti ke ikon netral
     return sortConfig.direction === 'ascending' ? <ChevronUp size={14} /> : <ChevronDown size={14} />;
   };
   
@@ -174,6 +200,7 @@ const TrackingPengiriman = () => {
     );
   }
 
+  // (Render Error tidak berubah)
   if (error && pesananList.length === 0) {
      return (
        <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">

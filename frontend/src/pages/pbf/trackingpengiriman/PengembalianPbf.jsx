@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import SidebarPbf from '../../../components/SidebarPbf';
 import NavbarPbf from '../../../components/NavbarPbf';
@@ -9,7 +9,9 @@ import {
   AlertTriangle,
   Package,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  Undo2, // Ikon untuk pengembalian
+  ArrowUpDown // Untuk sorting
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast'; 
@@ -41,11 +43,17 @@ const PengembalianPbf = () => {
   const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'descending' });
   const username = localStorage.getItem('username');
 
-  // Filter di-hardcode untuk semua status pengembalian
-  const statusFilter = ['Pengembalian Diajukan', 'Dikembalikan', 'Pengembalian Selesai', 'Pengembalian Ditolak'];
+  // --- PERBAIKAN 1: Tambahkan 'Pengembalian Disetujui' ---
+  const statusFilter = [
+    'Pengembalian Diajukan', 
+    'Pengembalian Disetujui', // <-- DITAMBAHKAN
+    'Dikembalikan', 
+    'Pengembalian Selesai', 
+    'Pengembalian Ditolak'
+  ];
+  // --- AKHIR PERBAIKAN 1 ---
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const fetchData = useCallback(async () => { // useCallback ditambahkan
       if (pesananList.length === 0) setIsLoading(true);
       setError(null);
       try {
@@ -59,9 +67,9 @@ const PengembalianPbf = () => {
             headers: { Authorization: `Bearer ${token}` }
         });
         if (response.data.success) {
-            const relevantStatuses = ['Dikirim', 'Selesai', 'Pengembalian Diajukan', 'Dikembalikan', 'Pengembalian Selesai', 'Pengembalian Ditolak'];
+            // Filter data yang di-fetch agar sesuai dengan halaman ini
             setPesananList(response.data.data.filter(p => 
-                relevantStatuses.includes(p.status)
+                statusFilter.includes(p.status)
             ));
         } else {
             throw new Error(response.data.message || 'Gagal memuat data pesanan.');
@@ -76,12 +84,15 @@ const PengembalianPbf = () => {
       } finally {
         setIsLoading(false);
       }
-    };
+    }, [navigate, pesananList.length]); // dependensi diperbarui
+
+  useEffect(() => {
     fetchData();
-  }, [navigate]);
+  }, [fetchData]);
   
   const filteredAndSortedData = useMemo(() => {
     let filtered = [...pesananList].filter(item => {
+        // Filter status sudah terjadi di fetchData atau di array statusFilter
         return statusFilter.includes(item.status) &&
                ((item.nama_apotek?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                (item.nomor_pesanan?.toLowerCase() || '').includes(searchTerm.toLowerCase()));
@@ -109,6 +120,7 @@ const PengembalianPbf = () => {
   const getStatusClass = (status) => {
     switch (status) {
       case 'Pengembalian Diajukan': return 'bg-indigo-100 text-indigo-800 border border-indigo-200';
+      case 'Pengembalian Disetujui': return 'bg-purple-100 text-purple-800 border border-purple-200'; // Ditambahkan
       case 'Dikembalikan': return 'bg-purple-100 text-purple-800 border border-purple-200';
       case 'Pengembalian Selesai': return 'bg-teal-100 text-teal-800 border border-teal-200';
       case 'Pengembalian Ditolak': return 'bg-red-100 text-red-800 border border-red-200';
@@ -116,10 +128,27 @@ const PengembalianPbf = () => {
     }
   };
 
+  // --- PERBAIKAN 2: Render Aksi ---
   const renderAction = (order) => {
     switch (order.status) {
         case 'Pengembalian Diajukan':
-            return <span className="text-indigo-600 font-semibold">Menunggu Respon</span>;
+            return (
+                <Link 
+                  to={`/pbf/tracking-pengiriman/konfirmasi-pengembalian/${order.id}`} 
+                  className="text-orange-600 hover:text-orange-800 font-semibold"
+                >
+                  Konfirmasi
+                </Link>
+            );
+        case 'Pengembalian Disetujui':
+             return (
+                <Link 
+                  to={`/pbf/tracking-pengiriman/lacak-pengembalian/${order.id}`} 
+                  className="text-purple-600 hover:text-purple-800 font-semibold"
+                >
+                  Lacak
+                </Link>
+            );
         case 'Dikembalikan':
         case 'Pengembalian Selesai':
         case 'Pengembalian Ditolak':
@@ -128,6 +157,7 @@ const PengembalianPbf = () => {
             return null;
     }
   }
+  // --- AKHIR PERBAIKAN 2 ---
   
   const handleLogout = () => {
     localStorage.clear();
@@ -142,7 +172,7 @@ const PengembalianPbf = () => {
   };
 
   const getSortIndicator = (key) => {
-    if (sortConfig.key !== key) return null;
+    if (sortConfig.key !== key) return <ArrowUpDown size={14} className="text-slate-300" />;
     return sortConfig.direction === 'ascending' ? <ChevronUp size={14} /> : <ChevronDown size={14} />;
   };
   
@@ -166,6 +196,7 @@ const PengembalianPbf = () => {
     );
   }
 
+  // (Bagian Error render tidak berubah)
   if (error && pesananList.length === 0) {
      return (
        <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
@@ -201,18 +232,18 @@ const PengembalianPbf = () => {
           <div className="max-w-7xl mx-auto">
             
             <div className="mb-10 relative">
-              <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-              <div className="absolute -top-20 -right-20 w-72 h-72 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+              <div className="absolute -top-20 -left-20 w-72 h-72 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+              <div className="absolute -top-20 -right-20 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
 
               <div className="relative flex items-center gap-3">
-                <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg">
-                  <Truck className="text-white" size={24} />
+                <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg">
+                  <Undo2 className="text-white" size={24} />
                 </div>
                 <div>
-                  <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-emerald-900 to-teal-900 bg-clip-text text-transparent">
-                    Pantau Pengiriman
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-indigo-900 to-purple-900 bg-clip-text text-transparent">
+                    Pantau Pengembalian
                   </h1>
-                  <p className="text-slate-600 text-lg mt-1">Lacak semua pengiriman keluar ke apotek.</p>
+                  <p className="text-slate-600 text-lg mt-1">Lacak semua pengembalian masuk dari apotek.</p>
                 </div>
               </div>
             </div>
@@ -306,7 +337,7 @@ const PengembalianPbf = () => {
                         <tr>
                           <td colSpan="6" className="text-center py-10 text-slate-500">
                             <Package size={32} className="mx-auto mb-2 opacity-50"/>
-                            {searchTerm ? 'Tidak ada pesanan yang cocok.' : 'Tidak ada pesanan dalam kategori ini.'}
+                            {searchTerm ? 'Tidak ada pesanan yang cocok.' : 'Tidak ada pengembalian dalam kategori ini.'}
                           </td>
                         </tr>
                       )}

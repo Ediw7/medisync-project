@@ -52,9 +52,9 @@ import AjukanPengembalian from './pages/pbf/pesanobat/AjukanPengembalian';
 import KonfirmasiPenerimaan from './pages/pbf/pesanobat/KonfirmasiPenerimaan';
 import LihatRiwayatPesanan from './pages/pbf/pesanobat/LIhatRiwayatPesanan';
 import LihatRiwayatPengembalian from './pages/pbf/pesanobat/LihatRiwayatPengembalian';
-import LacakPengembalianPbf from './pages/pbf/pesanobat/LacakPengembalianPbf';
 import DetailPembatalan from './pages/pbf/pesanobat/DetailPembatalan';
 import DetailPengembalian from './pages/pbf/pesanobat/DetailPengembalian';
+import LacakPengembalianPbf from './pages/pbf/trackingpengiriman/LacakPengembalianPbf';
 
 import MonitoringStokPbf from './pages/pbf/monitoringstok/MonitoringStokPbf';
 import DetailStokPbf from './pages/pbf/monitoringstok/DetailStokPbf';
@@ -74,6 +74,7 @@ import CetakSuratJalanMassalPbf from './pages/pbf/pengelolaanpesanan/CetakSuratJ
 import AturPengirimanApotek from './pages/pbf/pengelolaanpesanan/AturPengirimanApotek';
 import RincianPengirimanApotek from './pages/pbf/pengelolaanpesanan/RincianPengirimanApotek';
 import SuratJalanPbf from './pages/pbf/pengelolaanpesanan/SuratJalanPbf';
+import KonfirmasiPengembalianPbf from './pages/pbf/trackingpengiriman/KonfirmasiPengembalianPbf';
 
 
 import LihatStatusApotek from './pages/pbf/trackingpengiriman/LihatStatusApotek';
@@ -82,6 +83,7 @@ import TrackingPengiriman from './pages/pbf/trackingpengiriman/TrackingPengirima
 import DikirimPbf from './pages/pbf/trackingpengiriman/DikirimPbf';
 import SelesaiPbf from './pages/pbf/trackingpengiriman/SelesaiPbf';
 import PengembalianPbf from './pages/pbf/trackingpengiriman/PengembalianPbf';
+import LacakPengembalianPbf from './pages/pbf/trackingpengiriman/LacakPengembalianPbf';
 
 import LaporanAnalitikPbf from './pages/pbf/laporananalitikpbf/LaporanAnalitikPbf';
 import LaporanAnalitikkeApotek from './pages/pbf/laporananalitikpbf/LaporanAnalitikkeApotek';
@@ -104,6 +106,8 @@ import SelesaiApotek from './pages/apotek/pesanobat/SelesaiApotek';
 import DibatalkanApotek from './pages/apotek/pesanobat/DibatalkanApotek';
 import PengembalianApotek from './pages/apotek/pesanobat/PengembalianApotek';
 import DetailPembatalanApotek from './pages/apotek/pesanobat/DetailPembatalanApotek';
+import AjukanPengembalianApotek from './pages/apotek/pesanobat/AjukanPengembalianApotek';
+import LacakPengembalianApotek from './pages/apotek/pesanobat/LacakPengembalianApotek';
 
 import RiwayatPembelian from './pages/apotek/riwayatpembelian/RiwayatPembelian';
 import Penjualan from './pages/apotek/penjualan/Penjualan';
@@ -193,6 +197,8 @@ function App() {
       <Route path="/pbf/tracking-pengiriman/dikirim" element={<DikirimPbf />} />
       <Route path="/pbf/tracking-pengiriman/selesai" element={<SelesaiPbf />} />
       <Route path="/pbf/tracking-pengiriman/pengembalian" element={<PengembalianPbf />} />
+      <Route path="/pbf/tracking-pengiriman/lacak-pengembalian/:id" element={<LacakPengembalianPbf />} />
+      <Route path="/pbf/tracking-pengiriman/konfirmasi-pengembalian/:id" element={<KonfirmasiPengembalianPbf />} />
      
       <Route path="/pbf/tracking-pengiriman/lihatstatus/:id" element={<LihatStatusApotek />} />
       <Route path="/pbf/tracking-pengiriman/riwayat/:assetId" element={<LihatRiwayatPesananApotek />} />
@@ -203,25 +209,26 @@ function App() {
       <Route path="/pbf/laporan-analitik-ke-apotek" element={<LaporanAnalitikkeApotek />} />
 
       <Route path="/apotek/dashboard" element={<ApotekDashboard />} />
-       <Route path="/apotek/stok-obat" element={<StokObat />} />
-         <Route path="/apotek/pesan-obat/tambah" element={<PilihPbf />} />
-        <Route path="/apotek/pesan-obat/tambah/:idPbf" element={<TambahPesananApotek />} />
-        <Route path="/apotek/pesan-obat" element={<PesanObatApotek />} />
-        <Route path="/apotek/pesanan/:id/batalkan" element={<BatalPesananApotek />} />
-        <Route path="/apotek/pesanan/:id/konfirmasi-penerimaan" element={<KonfirmasiPenerimaanApotek />} />
-        <Route path="/apotek/pesanan/riwayat/:assetId" element={<LihatRiwayatPenerimaanApotek />} />
-        <Route path="/apotek/pesanan/:id/detail" element={<DetailPesananApotek />} />
-         <Route path="/apotek/pesan-obat/perlu-dikirim" element={<PerluDikirimApotek />} />
+      <Route path="/apotek/stok-obat" element={<StokObat />} />
+      <Route path="/apotek/pesan-obat/tambah" element={<PilihPbf />} />
+      <Route path="/apotek/pesan-obat/tambah/:idPbf" element={<TambahPesananApotek />} />
+      <Route path="/apotek/pesan-obat" element={<PesanObatApotek />} />
+      <Route path="/apotek/pesanan/:id/batalkan" element={<BatalPesananApotek />} />
+      <Route path="/apotek/pesanan/:id/konfirmasi-penerimaan" element={<KonfirmasiPenerimaanApotek />} />
+      <Route path="/apotek/pesanan/riwayat/:assetId" element={<LihatRiwayatPenerimaanApotek />} />
+      <Route path="/apotek/pesanan/:id/ajukan-pengembalian" element={<AjukanPengembalianApotek />} />
+      <Route path="/apotek/pesanan/:id/detail" element={<DetailPesananApotek />} />
+      <Route path="/apotek/pesanan/:id/lacak-pengembalian" element={<LacakPengembalianApotek />} />
+      <Route path="/apotek/pesan-obat/perlu-dikirim" element={<PerluDikirimApotek />} />
       <Route path="/apotek/pesan-obat/dikirim" element={<DikirimApotek />} />
       <Route path="/apotek/pesan-obat/selesai" element={<SelesaiApotek />} />
       <Route path="/apotek/pesan-obat/dibatalkan" element={<DibatalkanApotek />} />
       <Route path="/apotek/pesan-obat/pengembalian" element={<PengembalianApotek />} />
       <Route path="/apotek/pesanan/:id/detail-pembatalan" element={<DetailPembatalanApotek />} />
-
-
         <Route path="/apotek/riwayat-pembelian" element={<RiwayatPembelian />} />
         <Route path="/apotek/penjualan" element={<Penjualan />} />
         <Route path="/apotek/laporan-analitik" element={<LaporanAnalitikApotek />} />
+
     </Routes>
   );
 }

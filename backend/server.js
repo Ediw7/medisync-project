@@ -20,12 +20,14 @@ const produksiController = require('./controllers/produsen/produksiController');
 const stokPbfRoutes = require('./routes/pbf/stokRoute');
 const pbfDistribusiRoutes = require('./routes/pbf/distribusiRoute');
 const laporanRoutes = require('./routes/pbf/laporanRoute');
+const pengembalianPbfRoute = require('./routes/pbf/pengembalianRoute');
 
 const apotekRoutes = require('./routes/apotek/apotekRoute'); 
 const pesananApotekPbfRoutes = require('./routes/pbf/pesananApotekRoute'); 
 const penerimaanApotekRoutes = require('./routes/apotek/penerimaanRoute');
 const dashboardApotekRoutes = require('./routes/apotek/dashboardRoute');
 const batalkanApotekRoute = require('./routes/apotek/batalkanRoute');
+const pengembalianApotekRoute = require('./routes/apotek/pengembalianRoute');
 
 const app = express();
 
@@ -52,13 +54,15 @@ app.use('/api/pbf/penerimaan', penerimaanRoutes);
 app.use('/api/pbf/dashboard', dashboardPbfRoutes);
 app.use('/api/pbf/laporan', laporanRoutes);
 
+
 app.use('/api/blockchain', blockchainRoutes);
 app.use('/api/public', publicRoutes);
-app.use('/api/apotek', apotekRoutes);
+
 app.use('/api/apotek/penerimaan', penerimaanApotekRoutes);
 app.use('/api/apotek/dashboard', dashboardApotekRoutes);
-
+app.use('/api/apotek/pengembalian', pengembalianApotekRoute);
 app.use('/api/apotek/batalkan', batalkanApotekRoute);
+app.use('/api/apotek', apotekRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

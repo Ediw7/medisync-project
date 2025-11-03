@@ -536,6 +536,86 @@ const pesananApotekController = {
             if (dbConnection) dbConnection.release();
         }
     },
+
+    approvePengembalianApotek: async (req, res) => {
+    const { id } = req.params; // ID Pesanan Apotek
+    const idPbf = req.user.id;
+    let dbConnection;
+
+    try {
+      dbConnection = await db.getConnection();
+      await dbConnection.beginTransaction();
+
+      const [pesanan] = await dbConnection.query(
+        "SELECT id FROM pesanan_apotek WHERE id = ? AND id_pbf = ? AND status = 'Pengembalian Diajukan'",
+        [id, idPbf]
+      );
+
+      if (pesanan.length === 0) {
+        throw new Error('Pesanan tidak ditemukan atau tidak dalam status pengajuan pengembalian.');
+      }
+
+      // Update status
+      await dbConnection.query(
+        "UPDATE pesanan_apotek SET status = 'Pengembalian Disetujui' WHERE id = ?",
+        [id]
+      );
+      
+      await dbConnection.commit();
+      res.json({ success: true, message: 'Pengajuan pengembalian telah disetujui.' });
+
+    } catch (error) {
+      if (dbConnection) await dbConnection.rollback();
+      console.error('Error in approvePengembalianApotek:', error);
+      res.status(500).json({ success: false, message: error.message || 'Kesalahan Server Internal' });
+    } finally {
+      if (dbConnection) dbConnection.release();
+    }
+  },
+
+  // --- FUNGSI BARU UNTUK MENOLAK ---
+  rejectPengembalianApotek: async (req, res) => {
+    const { id } = req.params; // ID Pesanan Apotek
+    const { alasan_penolakan } = req.body;
+    const idPbf = req.user.id;
+    let dbConnection;
+
+    try {
+      dbConnection = await db.getConnection();
+      await dbConnection.beginTransaction();
+
+      if (!alasan_penolakan || alasan_penolakan.trim() === '') {
+        throw new Error('Alasan penolakan wajib diisi.');
+      }
+
+      const [pesanan] = await dbConnection.query(
+        "SELECT id, catatan_khusus FROM pesanan_apotek WHERE id = ? AND id_pbf = ? AND status = 'Pengembalian Diajukan'",
+        [id, idPbf]
+      );
+
+      if (pesanan.length === 0) {
+        throw new Error('Pesanan tidak ditemukan atau tidak dalam status pengajuan pengembalian.');
+      }
+
+      const catatanLama = pesanan[0].catatan_khusus || '';
+      const catatanBaru = catatanLama + `\n[PENOLAKAN PENGEMBALIAN]: ${alasan_penolakan}`;
+      
+      await dbConnection.query(
+        "UPDATE pesanan_apotek SET status = 'Pengembalian Ditolak', catatan_khusus = ? WHERE id = ?",
+        [catatanBaru, id]
+      );
+
+      await dbConnection.commit();
+      res.json({ success: true, message: 'Pengajuan pengembalian telah ditolak.' });
+
+    } catch (error) {
+      if (dbConnection) await dbConnection.rollback();
+      console.error('Error in rejectPengembalianApotek:', error);
+      res.status(500).json({ success: false, message: error.message || 'Kesalahan Server Internal' });
+    } finally {
+      if (dbConnection) dbConnection.release();
+    }
+  },
   
 };
 

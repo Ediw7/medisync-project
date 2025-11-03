@@ -21,4 +21,18 @@ router.get('/riwayat/:assetId', authenticateToken, authorizeRole('pbf'), pesanan
 router.post('/', authenticateToken, authorizeRole('apotek'), pesananApotekController.createPesanan);
 // --- RUTE BARU UNTUK APOTEK MENGAJUKAN PEMBATALAN ---
 router.put('/:id/request-pembatalan', authenticateToken, authorizeRole('apotek'), pesananApotekController.requestPembatalan);
+
+router.put(
+  '/pengembalian/:id/approve',
+  authenticateToken, // <-- TAMBAHKAN INI
+  authorizeRole('pbf'), // <-- TAMBAHKAN INI
+  pesananApotekController.approvePengembalianApotek
+);
+
+router.put(
+  '/pengembalian/:id/reject',
+  authenticateToken, // <-- TAMBAHKAN INI
+  authorizeRole('pbf'), // <-- TAMBAHKAN INI
+  pesananApotekController.rejectPengembalianApotek
+);
 module.exports = router;

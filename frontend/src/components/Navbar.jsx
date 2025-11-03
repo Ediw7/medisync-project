@@ -8,6 +8,19 @@ import Logo from "../assets/logo.png";
 const Navbar = () => {
   const [isOpen, setIsOpen] = React.useState(false)
 
+  // Fungsi helper untuk smooth scroll
+  const handleScroll = (e, targetId) => {
+    e.preventDefault();
+    const targetElement = document.getElementById(targetId);
+    if (targetElement) {
+      targetElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start' 
+      });
+    }
+    setIsOpen(false); // Tutup menu mobile jika diklik
+  };
+
   return (
     <nav className="sticky top-0 z-50 pt-4 bg-gray-200/0">
       <div className="container mx-auto max-w-4xl ">
@@ -32,8 +45,11 @@ const Navbar = () => {
           </div>
 
           <div className="hidden md:flex items-center gap-6 text-base text-[#121212] relative z-10 font-semibold">
-            <Link
-              to="/about"
+
+              {/* --- PERBAIKAN 2 --- */}
+            <a
+              href="#fitur" // Ganti 'to' menjadi 'href' dan sesuaikan ID
+              onClick={(e) => handleScroll(e, 'fitur')} // Tambahkan onClick handler
               className="hover:[#047857] hover:scale-105 transition-all duration-300 ease-out
                                         relative px-3 py-1.5 group overflow-hidden"
             >
@@ -48,10 +64,12 @@ const Navbar = () => {
                              rounded-2xl blur-sm scale-0 group-hover:scale-110 
                              transition-all duration-700 ease-out"
               ></div>
-              <span className="relative z-10">ABOUT</span>
-            </Link>
-            <Link
-              to="/services"
+              <span className="relative z-10">FITUR</span>
+            </a>
+            {/* --- PERBAIKAN 1 --- */}
+            <a
+              href="#tentang" // Ganti 'to' menjadi 'href'
+              onClick={(e) => handleScroll(e, 'tentang')} // Tambahkan onClick handler
               className="hover:[#047857] hover:scale-105 transition-all duration-300 ease-out
                                         relative px-3 py-1.5 group overflow-hidden"
             >
@@ -66,10 +84,15 @@ const Navbar = () => {
                              rounded-2xl blur-sm scale-0 group-hover:scale-110 
                              transition-all duration-700 ease-out"
               ></div>
-              <span className="relative z-10">SERVICES</span>
-            </Link>
-            <Link
-              to="/contact"
+              <span className="relative z-10">TENTANG</span>
+            </a>
+            
+          
+            
+            {/* --- PERBAIKAN 3 --- */}
+            <a
+              href="#kontak" // Ganti 'to' menjadi 'href'
+              onClick={(e) => handleScroll(e, 'kontak')} // Tambahkan onClick handler
               className="hover:[#047857] hover:scale-105 transition-all duration-300 ease-out
                                         relative px-3 py-1.5 group overflow-hidden"
             >
@@ -84,8 +107,8 @@ const Navbar = () => {
                              rounded-2xl blur-sm scale-0 group-hover:scale-110 
                              transition-all duration-700 ease-out"
               ></div>
-              <span className="relative z-10">CONTACT</span>
-            </Link>
+              <span className="relative z-10">KONTAK</span>
+            </a>
           </div>
 
           <div className="hidden md:flex relative z-10">
@@ -117,6 +140,7 @@ const Navbar = () => {
           </div>
         </div>
 
+        {/* --- PERBAIKAN MENU MOBILE --- */}
         {isOpen && (
           <div
             className="md:hidden absolute left-4 right-4 mt-2 
@@ -129,8 +153,9 @@ const Navbar = () => {
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-purple-500/5 to-lime-400/5 opacity-50"></div>
 
             <div className="flex flex-col gap-1 p-2 text-gray-200 relative z-10">
-              <Link
-                to="/about"
+              <a
+                href="#tentang" // Ganti 'to' menjadi 'href'
+                onClick={(e) => handleScroll(e, 'tentang')} // Tambahkan onClick
                 className="flex items-center px-4 py-3 hover:bg-white/10 hover:text-white 
                           rounded-xl transition-all duration-300 hover:scale-[1.02]
                           relative overflow-hidden group"
@@ -139,10 +164,11 @@ const Navbar = () => {
                   className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-transparent 
                                scale-0 group-hover:scale-100 transition-transform duration-300 rounded-xl"
                 ></div>
-                <span className="text-sm relative z-10">About</span>
-              </Link>
-              <Link
-                to="/services"
+                <span className="text-sm relative z-10">Tentang</span>
+              </a>
+              <a
+                href="#fitur" // Ganti 'to' menjadi 'href' dan sesuaikan ID
+                onClick={(e) => handleScroll(e, 'fitur')} // Tambahkan onClick
                 className="flex items-center px-4 py-3 hover:bg-white/10 hover:text-white 
                           rounded-xl transition-all duration-300 hover:scale-[1.02]
                           relative overflow-hidden group"
@@ -151,10 +177,11 @@ const Navbar = () => {
                   className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-transparent 
                                scale-0 group-hover:scale-100 transition-transform duration-300 rounded-xl"
                 ></div>
-                <span className="text-sm relative z-10">Services</span>
-              </Link>
-              <Link
-                to="/contact"
+                <span className="text-sm relative z-10">Fitur</span>
+              </a>
+              <a
+                href="#kontak" // Ganti 'to' menjadi 'href'
+                onClick={(e) => handleScroll(e, 'kontak')} // Tambahkan onClick
                 className="flex items-center px-4 py-3 hover:bg-white/10 hover:text-white 
                           rounded-xl transition-all duration-300 hover:scale-[1.02]
                           relative overflow-hidden group"
@@ -163,8 +190,8 @@ const Navbar = () => {
                   className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-transparent 
                                scale-0 group-hover:scale-100 transition-transform duration-300 rounded-xl"
                 ></div>
-                <span className="text-sm relative z-10">Contact</span>
-              </Link>
+                <span className="text-sm relative z-10">Kontak</span>
+              </a>
               <div className="border-t border-white/20 mt-2 pt-2">
                 <Link
                   to="/roles"

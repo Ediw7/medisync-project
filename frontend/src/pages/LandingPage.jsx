@@ -164,10 +164,7 @@ const LandingPage = () => {
       {/* <AnimatedBackground /> */}
       <Navbar />
 
-      {/* The max-w-7xl container was removed from here to allow the hero section 
-        to have a full-width background, and was added inside each section instead.
-      */}
-      {/* The Hero Section code you provided already uses a light theme, so it fits perfectly. */}
+     
       <div>
         <div
           style={{ width: "100%", height: "700px", position: "relative" }}
@@ -257,7 +254,7 @@ const LandingPage = () => {
         {/* --- FEATURES SECTION --- */}
 
         <section
-          id="features"
+          id="fitur"
           className="py-20 bg-gradient-to-b relative overflow-hidden"
         >
           {/* Liquid Glass Background */}
@@ -302,7 +299,7 @@ const LandingPage = () => {
         </section>
 
         {/* --- BLOCKCHAIN SECTION --- */}
-        <section className="py-20  relative overflow-hidden">
+        <section id="tentang" className="py-20  relative overflow-hidden">
           {/* Liquid Glass Background */}
           <div className="absolute inset-0">
             <div className="absolute top-1/4 left-10 w-80 h-80 bg-[#22C55E]/5 rounded-full blur-3xl animate-float"></div>
@@ -466,7 +463,7 @@ const LandingPage = () => {
         </section>
       </div>
 
-      <footer className="bg-slate-900 text-white">
+      <footer id="kontak" className="bg-slate-900 text-white">
         <div className="max-w-7xl mx-auto px-6 py-12">
           {/* Main footer content */}
           <div className="flex flex-col md:flex-row items-center justify-between gap-8">

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import SidebarProdusen from "../../../components/SidebarProdusen"
 import NavbarProdusen from "../../../components/NavbarProdusen"
@@ -92,12 +92,32 @@ const TambahProduksi = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
+  // --- FUNGSI POPUP ---
+  const showCustomAlert = (message, type) => {
+    console.log("[v0] Popup triggered:", { message, type })
+    setPopupMessage(message)
+    setPopupType(type)
+    setShowPopup(true)
+  }
+
+  const closePopup = () => {
+    console.log("[v0] Popup closed")
+    setShowPopup(false)
+    if (popupType === "success") {
+        navigate("/produsen/manajemen-produksi");
+    }
+    setPopupMessage("")
+    setPopupType("success")
+  }
+  // --- AKHIR FUNGSI POPUP ---
+
+
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setError("")
+    setError("") 
     setIsSubmitting(true)
 
-
+    // --- Validasi Wajib Isi (Text & Tanggal) ---
     if (
       !formData.nama_obat ||
       !formData.jumlah ||
@@ -105,20 +125,19 @@ const TambahProduksi = () => {
       !formData.tanggal_kadaluarsa
     ) {
       showCustomAlert(
-        "Semua field wajib harus diisi: Batch ID, Nama Obat, Jumlah, Tanggal Produksi, Tanggal Kadaluarsa.",
+        "Nama Obat, Jumlah, Tanggal Produksi, dan Tanggal Kadaluarsa wajib diisi.",
         "error",
       )
       setIsSubmitting(false)
       return
     }
 
-
+    // --- Validasi Logika ---
     if (Number(formData.jumlah) <= 0) {
       showCustomAlert("Jumlah produksi harus lebih dari 0.", "error")
       setIsSubmitting(false)
       return
     }
-
 
     if (
       formData.tanggal_produksi &&
@@ -141,11 +160,27 @@ const TambahProduksi = () => {
       return
     }
 
-    if (!dokumenBpomFile || !sertifikatFile) {
-      showCustomAlert("Dokumen BPOM dan Sertifikat Analisis wajib diunggah untuk dapat menyimpan jadwal.", "error")
+    // --- PERBAIKAN VALIDASI HARGA ---
+    if (!formData.harga_per_unit || Number(formData.harga_per_unit) <= 0) {
+      showCustomAlert("Harga satuan wajib diisi dan harus lebih dari 0.", "error")
       setIsSubmitting(false)
       return
     }
+    // --- AKHIR PERBAIKAN HARGA ---
+
+    // --- PERBAIKAN VALIDASI FILE ---
+    if (!dokumenBpomFile) {
+      showCustomAlert("Dokumen BPOM wajib diunggah.", "error")
+      setIsSubmitting(false)
+      return
+    }
+    
+    if (!sertifikatFile) {
+      showCustomAlert("Sertifikat Analisis wajib diunggah.", "error")
+      setIsSubmitting(false)
+      return
+    }
+    // --- AKHIR PERBAIKAN FILE ---
 
     const token = localStorage.getItem("token")
     if (!token) {
@@ -165,7 +200,6 @@ const TambahProduksi = () => {
       }
     })
 
-
     if (dokumenBpomFile) {
       data.append("dokumen_bpom", dokumenBpomFile)
     }
@@ -174,7 +208,6 @@ const TambahProduksi = () => {
     }
 
     try {
-
       const response = await fetch("http://localhost:5000/api/produksi", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
@@ -193,22 +226,6 @@ const TambahProduksi = () => {
     }
   }
 
-  const showCustomAlert = (message, type) => {
-    console.log("[v0] Popup triggered:", { message, type })
-    setPopupMessage(message)
-    setPopupType(type)
-    setShowPopup(true)
-  }
-
-  const closePopup = () => {
-    console.log("[v0] Popup closed")
-    setShowPopup(false)
-    if (popupType === "success") {
-        navigate("/produsen/manajemen-produksi");
-    }
-    setPopupMessage("")
-    setPopupType("success")
-  }
 
    const renderPopup = () => {
     if (!showPopup) return null
@@ -264,6 +281,7 @@ const TambahProduksi = () => {
           localStorage.clear();
           navigate("/");
         }}
+        username={localStorage.getItem('username')}
       />
 
       <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
@@ -290,12 +308,6 @@ const TambahProduksi = () => {
             </div>
           </div>
 
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200 flex items-center gap-2">
-              <span>{error}</span>
-            </div>
-          )}
-
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
                 <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 px-6 py-4 border-b border-slate-200">
@@ -315,7 +327,7 @@ const TambahProduksi = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">
-                        Nama Obat (Merek/Generik)
+                        Nama Obat (Merek/Generik) <span className="text-red-500">*</span>
                       </label>
                       <input
                         name="nama_obat"
@@ -347,7 +359,7 @@ const TambahProduksi = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Bentuk Sediaan</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Bentuk Sediaan <span className="text-red-500">*</span></label>
                       <select
                         name="bentuk_sediaan"
                         value={formData.bentuk_sediaan}
@@ -368,7 +380,7 @@ const TambahProduksi = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Jumlah Produksi</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Jumlah Produksi <span className="text-red-500">*</span></label>
                       <input
                         type="number"
                         name="jumlah"
@@ -381,7 +393,7 @@ const TambahProduksi = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Tanggal Produksi</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Tanggal Produksi <span className="text-red-500">*</span></label>
                       <DatePicker
                         selected={formData.tanggal_produksi}
                         onChange={(date) => setFormData({ ...formData, tanggal_produksi: date })}
@@ -391,7 +403,7 @@ const TambahProduksi = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Tanggal Kadaluarsa</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Tanggal Kadaluarsa <span className="text-red-500">*</span></label>
                       <DatePicker
                         selected={formData.tanggal_kadaluarsa}
                         onChange={(date) => setFormData({ ...formData, tanggal_kadaluarsa: date })}
@@ -401,17 +413,20 @@ const TambahProduksi = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Harga Satuan (Rp)</label>
+                      {/* --- PERBAIKAN HARGA SATUAN --- */}
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Harga Satuan (Rp) <span className="text-red-500">*</span></label>
                       <input
                         type="number"
                         name="harga_per_unit"
                         value={formData.harga_per_unit}
                         onChange={handleInputChange}
                         placeholder="Masukkan Harga Satuan"
-                        min="0"
+                        min="1" // Harga harus lebih dari 0
                         step="0.01"
                         className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                        required // Tambahkan required
                       />
+                      {/* --- AKHIR PERBAIKAN --- */}
                     </div>
                   </div>
                 </div>
@@ -448,22 +463,13 @@ const TambahProduksi = () => {
                         className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
                         required
                       >
-                        <option value="Terjadwal" disabled={formData.status !== "Terjadwal"}>
-                          Terjadwal
-                        </option>
-                        <option value="Dalam Produksi" disabled={formData.status === "Terjadwal"}>
-                          Dalam Produksi
-                        </option>
-                        <option
-                          value="Selesai"
-                          disabled={formData.status !== "Selesai" && formData.status !== "Dalam Produksi"}
-                        >
-                          Selesai
-                        </option>
+                        <option value="Terjadwal">Terjadwal</option>
+                        <option value="Dalam Produksi">Dalam Produksi</option>
+                        <option value="Selesai">Selesai</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Penanggung Jawab</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Penanggung Jawab <span className="text-red-500">*</span></label>
                       <input
                         name="penanggung_jawab"
                         value={formData.penanggung_jawab}
@@ -507,7 +513,7 @@ const TambahProduksi = () => {
                           accept=".pdf,.png,.jpg"
                           className="hidden"
                           id="dokumen_bpom"
-                          required
+                          // 'required' dihapus dari HTML, divalidasi di JS
                         />
                         <label
                           htmlFor="dokumen_bpom"
@@ -530,7 +536,7 @@ const TambahProduksi = () => {
                           accept=".pdf,.png,.jpg"
                           className="hidden"
                           id="sertifikat_analisis"
-                          required
+                          // 'required' dihapus dari HTML, divalidasi di JS
                         />
                         <label
                           htmlFor="sertifikat_analisis"
@@ -548,7 +554,7 @@ const TambahProduksi = () => {
               <div className="flex justify-end gap-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => navigate("/produsen/manajemen-produksi")} // <-- PERBAIKAN 2
+                  onClick={() => navigate("/produsen/manajemen-produksi")}
                   className="px-6 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition"
                 >
                   Batal
@@ -566,6 +572,19 @@ const TambahProduksi = () => {
           </div>
         </main>
       </div>
+       <style jsx>{`
+        @keyframes blob {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+      `}</style>
     </div>
   )
 }

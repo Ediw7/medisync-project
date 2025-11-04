@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import NavbarApotek from '../../../components/NavbarApotek';
-import { Plus, Trash2, Loader2, ArrowLeft, User, FileText, Edit, Package, AlertTriangle, X, ShoppingCart } from 'lucide-react';
+import { Plus, Trash2, Loader2, ArrowLeft, User, FileText, Edit, Package, AlertTriangle, X, ShoppingCart, Info, Camera } from 'lucide-react'; // Import semua ikon yang relevan
 import SignatureCanvas from 'react-signature-canvas';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
@@ -23,7 +23,7 @@ const TambahPesananApotek = () => {
         id: '',
         nama_obat: '',
         keterangan: '',
-        qty: '', // <-- Diubah dari 1
+        qty: '', // Default string kosong
         satuan: '',
         harga_satuan: 0,
         stok_tersedia: 0,
@@ -124,7 +124,6 @@ const TambahPesananApotek = () => {
         setInfoApoteker({ ...infoApoteker, [name]: value });
     };
 
-    // --- PERBAIKAN 1: handleObatSelect ---
     const handleObatSelect = (e) => {
         const selectedObatId = e.target.value;
         const selectedObat = availableStock.find(obat => obat.id === selectedObatId);
@@ -134,13 +133,12 @@ const TambahPesananApotek = () => {
                 id: selectedObat.id,
                 nama_obat: selectedObat.nama_obat,
                 keterangan: `${selectedObat.dosis || ''} ${selectedObat.bentuk_sediaan || ''}`.trim(),
-                qty: '', // Diubah ke string kosong agar bisa diisi manual
+                qty: '', // Reset ke string kosong
                 satuan: selectedObat.bentuk_sediaan || 'Box',
                 harga_satuan: selectedObat.harga_per_unit || 0,
                 stok_tersedia: selectedObat.stok_saat_ini || 0,
             });
         } else {
-            // Reset ke string kosong juga
             setItemObat({ id: '', nama_obat: '', keterangan: '', qty: '', satuan: '', harga_satuan: 0, stok_tersedia: 0 });
         }
     };
@@ -149,7 +147,13 @@ const TambahPesananApotek = () => {
     const handleQtyChange = (e) => {
         const value = e.target.value;
 
-        // 1. Izinkan field kosong
+        // 1. Jika inputnya non-numerik (kecuali string kosong), abaikan.
+        // Ini mencegah 'abc', '1.5', 'e', atau '-'
+        if (value !== '' && !/^\d+$/.test(value)) {
+            return;
+        }
+
+        // 2. Jika string kosong, izinkan (user sedang menghapus)
         if (value === '') {
             setItemObat({ ...itemObat, qty: '' });
             return;
@@ -157,21 +161,24 @@ const TambahPesananApotek = () => {
 
         const newQty = parseInt(value, 10);
 
-        // 2. Jika bukan angka (misal "abc") atau 0, jangan update (atau reset ke 1)
-        if (isNaN(newQty) || newQty <= 0) {
-            setItemObat({ ...itemObat, qty: 1 }); // Default ke 1 jika input tidak valid
-            return;
+        // 3. Jika (secara teknis) NaN (seharusnya tidak terjadi karena regex)
+        if (isNaN(newQty)) {
+             setItemObat({ ...itemObat, qty: '' });
+             return;
         }
 
-        // 3. Cek stok
+        // 4. Cek stok
         if (newQty > itemObat.stok_tersedia) {
              toast.error(`Jumlah tidak boleh melebihi stok tersedia (${itemObat.stok_tersedia})`);
+             // Set ke stok maks
              setItemObat({ ...itemObat, qty: itemObat.stok_tersedia });
         } else {
-             // 4. Input valid
-             setItemObat({ ...itemObat, qty: newQty });
+             // 5. Input valid (termasuk "0" atau "123"), simpan stringnya
+             // (Logika `handleAddItem` akan memvalidasi jika nilainya > 0 saat submit)
+             setItemObat({ ...itemObat, qty: value });
         }
     };
+    // --- AKHIR PERBAIKAN ---
 
      const handleAddItem = () => {
         setError('');
@@ -180,11 +187,13 @@ const TambahPesananApotek = () => {
         if (!itemObat.id) {
             toast.error('Silakan pilih obat yang valid.'); return;
         }
-        // Diubah untuk menangani string kosong
+        
+        // Validasi qty > 0 saat submit
         const qtyToAdd = parseInt(itemObat.qty, 10);
         if (isNaN(qtyToAdd) || qtyToAdd <= 0) {
             toast.error('Jumlah pesanan harus lebih dari 0.'); return;
         }
+
         if (qtyToAdd > itemObat.stok_tersedia) {
             toast.error(`Jumlah pesanan (${qtyToAdd}) melebihi stok tersedia untuk batch ini (${itemObat.stok_tersedia}).`); return;
         }
@@ -221,7 +230,7 @@ const TambahPesananApotek = () => {
             setDetailPesanan([...detailPesanan, newItem]);
             toast.success(`${itemObat.nama_obat} (batch ${itemObat.id.slice(-6)}) ditambahkan.`);
         }
-        // Reset ke string kosong
+        
         setItemObat({ id: '', nama_obat: '', keterangan: '', qty: '', satuan: '', harga_satuan: 0, stok_tersedia: 0 });
     };
 
@@ -271,7 +280,7 @@ const TambahPesananApotek = () => {
                 telepon: infoApoteker.telepon,
                 id_pbf: parseInt(idPbf, 10),
                 items: detailPesanan.map(item => ({
-                    id_aset_blockchain: item.id,
+                    id_aset_blockchain: item.id, // Ini adalah Batch ID dari PBF
                     nama_obat: item.nama_obat,
                     keterangan: item.keterangan,
                     qty: item.qty,
@@ -301,17 +310,22 @@ const TambahPesananApotek = () => {
             setIsSubmitting(false);
         }
     };
+    
+    const handleLogout = () => { // Tambahkan handleLogout
+      localStorage.clear();
+      navigate('/');
+    };
 
     return (
         <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50">
             <div className="flex-1 flex flex-col">
-                <NavbarApotek onLogout={() => { localStorage.clear(); navigate('/'); }} username={username} />
+                <NavbarApotek onLogout={handleLogout} username={username} />
                 <main className="flex-1 overflow-auto pt-16 md:pt-20">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10">
                         {/* Header Section */}
                         <div className="mb-6 md:mb-8">
                             <button
-                                onClick={() => navigate('/apotek/pesan-obat/tambah')}
+                                onClick={() => navigate('/apotek/pesan-obat/pilih-pbf')} // Ganti ke /pilih-pbf
                                 className="mb-4 inline-flex items-center text-emerald-600 hover:text-emerald-700 transition-colors text-sm font-medium group"
                             >
                                 <ArrowLeft size={16} className="mr-1.5 group-hover:-translate-x-1 transition-transform" /> 
@@ -505,15 +519,13 @@ const TambahPesananApotek = () => {
                                         <div className="lg:col-span-2">
                                             <label className="block text-xs md:text-sm font-medium text-slate-700 mb-1.5">Jumlah</label>
                                             <input
-                                                type="number"
+                                                type="text" // Diubah ke text untuk mengizinkan string kosong
                                                 name="qty"
-                                                min="1"
-                                                max={itemObat.stok_tersedia || 1}
                                                 value={itemObat.qty}
                                                 onChange={handleQtyChange}
                                                 disabled={!itemObat.id}
                                                 className="w-full px-3 md:px-4 py-2 md:py-2.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition disabled:bg-slate-100 disabled:cursor-not-allowed"
-                                                required
+                                                placeholder="0"
                                             />
                                         </div>
                                         <div className="lg:col-span-3">
@@ -532,7 +544,7 @@ const TambahPesananApotek = () => {
                                                 type="button" 
                                                 onClick={handleAddItem} 
                                                 className="w-full bg-emerald-600 text-white py-2 md:py-2.5 px-4 rounded-lg hover:bg-emerald-700 disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors shadow-sm text-sm font-medium" 
-                                                disabled={!itemObat.id || isStokLoading}
+                                                disabled={!itemObat.id || isStokLoading || !itemObat.qty}
                                             >
                                                 <Plus size={18} /> Tambah
                                             </button>
@@ -546,7 +558,7 @@ const TambahPesananApotek = () => {
                                 <div className="flex items-center justify-between mb-4">
                                     <div>
                                         <h3 className="text-base md:text-lg font-semibold text-emerald-700 flex items-center gap-2">
-                                            <Edit size={18}/>Tanda Tangan Apoteker
+                                            <Edit size={18}/>Tanda Tangan Apoteker*
                                         </h3>
                                         <p className="text-xs md:text-sm text-slate-500 mt-1">Tanda tangan di area kosong di bawah ini</p>
                                     </div>

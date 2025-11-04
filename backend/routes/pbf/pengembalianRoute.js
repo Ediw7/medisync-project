@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const pengembalianController = require('../controllers/pbf/pengembalianController'); // <-- Panggil controller baru
-const { authenticateToken, authorizeRole } = require('../middleware/auth'); // Sesuaikan path middleware
+const pengembalianController = require('../../controllers/pbf/pengembalianController'); // <-- Panggil controller baru
+const { authenticateToken, authorizeRole } = require('../../middleware/auth'); // Sesuaikan path middleware
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');

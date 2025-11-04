@@ -79,7 +79,7 @@ const AjukanPengembalian = () => {
         success: (response) => {
             setIsLoading(false);
 
-            navigate(`/pbf/pesanan/${id}/lacak-pengembalian-pbf`, { 
+            navigate(`/pbf/pesanan/${id}/detail-pengembalian`, { 
                 state: { 
                     idPesanan: id, 
                     alasan: alasan, 

@@ -24,12 +24,10 @@ class ApotekContract extends Contract {
 
         const obat = JSON.parse(assetJSON.toString());
 
-        // Verifikasi bahwa statusnya adalah DIKIRIM_KE_APOTEK
         if (obat.statusSaatIni !== 'DIKIRIM_KE_APOTEK') {
             throw new Error(`ERROR: Aset ini tidak sedang dalam pengiriman ke Apotek.`);
         }
         
-        // Kepemilikan sudah di ApotekMSP saat ditransfer, jadi kita hanya update status
         if (obat.pemilikSaatIni !== 'ApotekMSP') {
              throw new Error(`ERROR: Aset ini tidak dimiliki oleh Apotek MSP.`);
         }
@@ -104,6 +102,7 @@ class ApotekContract extends Contract {
             selector: {
                 docType: 'obat',
                 pemilikSaatIni: 'ApotekMSP',
+                statusSaatIni: 'DITERIMA_APOTEK', // Hanya yang sudah diterima
                 jumlah: { $gt: 0 } 
             }
         };

@@ -339,7 +339,7 @@ const PesanObat = () => {
                                       <span className="text-slate-400">Riwayat T/A</span>
                                     );
                                   case 'Pengembalian Selesai':
-                                    return <Link to={`/pbf/pesanan/${item.id}/lacak-pengembalian-pbf`} className="text-purple-600 hover:text-purple-800">Lihat Riwayat</Link>;
+                                    return <Link to={`/pbf/pesanan/${item.id}/detail-pengembalian`} className="text-purple-600 hover:text-purple-800">Lihat Riwayat</Link>;
                                   case 'Pembatalan Diajukan':
                                   case 'Dibatalkan':
                                   case 'Pembatalan Ditolak':
@@ -352,9 +352,9 @@ const PesanObat = () => {
                                       </>
                                     );
                                   case 'Pengembalian Ditolak':
-                                    return <Link to={`/pbf/pesanan/${item.id}/lacak-pengembalian-pbf`} className="text-red-600 hover:text-red-800">Tinjau</Link>;
+                                    return <Link to={`/pbf/pesanan/${item.id}/detail-pengembalian`} className="text-red-600 hover:text-red-800">Lihat Detail</Link>;
                                   default:
-                                    return <Link to={`/pbf/pesanan/${item.id}/detail`} className="text-slate-600 hover:text-slate-800">Lihat Detail</Link>;
+                                    return <Link to={`/pbf/pesanan/${item.id}/detail-pengembalian`} className="text-slate-600 hover:text-slate-800">Lihat Detail</Link>;
                                 }
                               })()}
                             </div>

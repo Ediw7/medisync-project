@@ -28,7 +28,7 @@ const penerimaanApotekRoutes = require('./routes/apotek/penerimaanRoute');
 const dashboardApotekRoutes = require('./routes/apotek/dashboardRoute');
 const batalkanApotekRoute = require('./routes/apotek/batalkanRoute');
 const pengembalianApotekRoute = require('./routes/apotek/pengembalianRoute');
-
+const penjualanApotekRoute = require('./routes/apotek/penjualanRoute');
 const app = express();
 
 app.use(cors());
@@ -49,11 +49,11 @@ app.use('/api/pbf/pesanan', pesananPbfRoutes);
 app.use('/api/pbf/stok', stokPbfRoutes);
 app.use('/api/pbf/riwayat-distribusi', pbfDistribusiRoutes)
 app.use('/api/pbf/pesanan-apotek', pesananApotekPbfRoutes); 
-app.use('/api/pbf', pbfRoutes);
 app.use('/api/pbf/penerimaan', penerimaanRoutes); 
 app.use('/api/pbf/dashboard', dashboardPbfRoutes);
 app.use('/api/pbf/laporan', laporanRoutes);
-
+app.use('/api/pbf/pengembalian', pengembalianPbfRoute);
+app.use('/api/pbf', pbfRoutes);
 
 app.use('/api/blockchain', blockchainRoutes);
 app.use('/api/public', publicRoutes);
@@ -62,6 +62,7 @@ app.use('/api/apotek/penerimaan', penerimaanApotekRoutes);
 app.use('/api/apotek/dashboard', dashboardApotekRoutes);
 app.use('/api/apotek/pengembalian', pengembalianApotekRoute);
 app.use('/api/apotek/batalkan', batalkanApotekRoute);
+app.use('/api/apotek/penjualan', penjualanApotekRoute);
 app.use('/api/apotek', apotekRoutes);
 
 const PORT = process.env.PORT || 5000;

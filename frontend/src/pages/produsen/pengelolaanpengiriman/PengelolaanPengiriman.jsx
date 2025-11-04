@@ -348,9 +348,12 @@ const PengelolaanPengiriman = () => {
                                 Lihat Riwayat
                               </Link>
                             )}
-                                                                                    {item.status === 'Pembatalan Ditolak' && (
-                                <span className="text-sm text-pink-700 italic">Ditolak</span>
-                            )}
+                             {item.status === 'Pembatalan Ditolak' && (
+                                                             <Link to={`/produsen/pengelolaan-pengiriman/riwayat-pembatalan/${item.id}`} className="text-pink-700 hover:text-pink-900 font-semibold">
+                                                               Lihat Riwayat
+                                                             </Link>
+                                                         )}
+                            
                             
                                                         {item.status === 'Pengembalian Diajukan' && (
                               <Link to={`/produsen/pengelolaan-pengiriman/konfirmasi-pengembalian/${item.id}`} className="text-indigo-600 hover:text-indigo-800 font-semibold">
@@ -363,7 +366,9 @@ const PengelolaanPengiriman = () => {
                               </Link>
                             )}
                             {item.status === 'Pengembalian Ditolak' && (
-                                <span className="text-sm text-pink-700 italic">Ditolak</span>
+                                <Link to={`/produsen/pengelolaan-pengiriman/lacak-pengembalian/${item.id}`} className="text-pink-700 hover:text-pink-900 font-semibold">
+                                                               Lihat Riwayat
+                              </Link>
                             )}
                           </td>
                         </tr>

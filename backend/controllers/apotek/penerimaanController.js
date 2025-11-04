@@ -52,6 +52,7 @@ const penerimaanController = {
   confirmPenerimaan: async (req, res) => {
     const { id } = req.params; // ID Pesanan Apotek
     const idApotek = req.user.id;
+    const namaApoteker = req.user.nama_resmi;
     const buktiFoto = req.file;
 
     let gateway;
@@ -60,6 +61,10 @@ const penerimaanController = {
     try {
       if (!buktiFoto) {
         return res.status(400).json({ success: false, message: 'Bukti foto wajib diunggah.' });
+      }
+ 
+     if (!namaApoteker) {
+         throw new Error('Nama Apoteker tidak ditemukan di token. Silakan login ulang.');
       }
 
       dbConnection = await db.getConnection();
@@ -105,7 +110,7 @@ const penerimaanController = {
           const transaction = contract.createTransaction('ApotekContract:terimaBarang');
           // Endorsing policy mungkin antara Apotek dan PBF
           transaction.setEndorsingOrganizations('ApotekMSP', 'PBFMSP');
-          await transaction.submit(item.id_aset_blockchain, hashBuktiFoto);
+         await transaction.submit(item.id_aset_blockchain, hashBuktiFoto, namaApoteker);
         }
       }
 

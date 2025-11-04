@@ -221,7 +221,7 @@ const LihatRiwayatPembatalan = () => {
                        <div className="space-y-1">
                            <span className="text-sm font-medium text-slate-500">Tanggal Pengajuan Pembatalan</span>
                            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                             <span className="font-semibold text-slate-900 text-base">{formatDate(info.tanggal_pengajuan_pembatalan)}</span>
+                             <span className="font-semibold text-slate-900 text-base">{formatDate(info.updated_at)}</span>
                            </div>
                        </div>
 

@@ -2,19 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
-import {
-  Loader2,
-  ArrowLeft,
-  AlertCircle,
-  HelpCircle,
-  FileText,
-  DollarSign,
-  User,
-  Calendar,
-  XCircle,
-  CheckCircle,
-  ExternalLink,
-  Info
+import { 
+  Loader2, 
+  ArrowLeft, 
+  AlertCircle, 
+  HelpCircle, 
+  FileText, 
+  DollarSign, 
+  User, 
+  Calendar, 
+  XCircle, 
+  CheckCircle, 
+  ExternalLink, 
+  Info,
+  Package // Ditambahkan
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast'; 
@@ -23,14 +24,14 @@ import { toast } from 'react-hot-toast';
 const ConfirmationModal = ({ show, onClose, onConfirm, isSubmitting }) => {
   if (!show) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center" onClick={e => e.stopPropagation()}>
         <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-yellow-100 mb-4">
           <HelpCircle className="h-10 w-10 text-yellow-600" />
         </div>
         <h3 className="text-xl font-bold text-gray-900">Setujui Pengajuan Pembatalan?</h3>
         <p className="text-gray-500 mt-2 text-sm">
-          Anda akan menyetujui pembatalan pesanan ini. Dana akan dikembalikan ke PBF. Tindakan ini tidak dapat diurungkan.
+          Anda akan menyetujui pembatalan pesanan ini. Stok akan dikembalikan. Tindakan ini tidak dapat diurungkan.
         </p>
         <div className="mt-8 flex justify-center gap-4">
           <button
@@ -69,8 +70,8 @@ const RejectModal = ({ show, onClose, onConfirm, isSubmitting }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full" onClick={e => e.stopPropagation()}>
         <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
           <XCircle className="h-10 w-10 text-red-600" />
         </div>
@@ -123,7 +124,7 @@ const KonfirmasiPembatalan = () => {
   const [pesanan, setPesanan] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [showRejectModal, setShowRejectModal] = useState(false); // State baru
+  const [showRejectModal, setShowRejectModal] = useState(false);
   const username = localStorage.getItem('username');
 
   // --- LOGIKA FETCH DATA ---
@@ -131,12 +132,14 @@ const KonfirmasiPembatalan = () => {
     const fetchPesananData = async () => {
       setIsLoading(true);
       setError(null);
+      let token;
       try {
-        const token = localStorage.getItem('token');
+        token = localStorage.getItem('token');
         if (!token) throw new Error('Silakan login terlebih dahulu');
 
         const cleanedId = id.replace(':', ''); 
         
+        // Pastikan Anda mengambil 'updated_at' dari tabel pesanan
         const response = await axios.get(`http://localhost:5000/api/produsen/pesanan-masuk/${cleanedId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -212,7 +215,8 @@ const KonfirmasiPembatalan = () => {
     try {
         const date = new Date(dateString);
         if(isNaN(date.getTime())) return '-';
-        return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' });
+        // Gunakan UTC agar konsisten dengan data dari DB
+        return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' }); 
     } catch(e) {
         return '-'; 
     }
@@ -223,8 +227,8 @@ const KonfirmasiPembatalan = () => {
     navigate('/');
   };
 
-  // --- RENDER LOADING ---
-  if (isLoading) {
+ // ... (Render Loading, Error, Data Not Found tidak berubah) ...
+ if (isLoading) {
      return (
        <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
           <div className="relative">
@@ -236,7 +240,6 @@ const KonfirmasiPembatalan = () => {
     );
   }
 
-  // --- RENDER ERROR UTAMA ---
   if (error && !pesanan) {
      return (
        <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
@@ -262,7 +265,6 @@ const KonfirmasiPembatalan = () => {
     );
   }
 
-  // --- RENDER DATA TIDAK DITEMUKAN ---
   if (!pesanan) {
      return (
         <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
@@ -288,14 +290,21 @@ const KonfirmasiPembatalan = () => {
      );
   }
   
-  // --- HITUNG DEADLINE & STATUS ---
-  const deadlineDate = pesanan.tanggal_pengajuan_pembatalan
-    ? new Date(new Date(pesanan.tanggal_pengajuan_pembatalan).getTime() + 2 * 24 * 60 * 60 * 1000)
+  // --- PERBAIKAN: HITUNG DEADLINE & STATUS ---
+  // Gunakan 'updated_at' (waktu terakhir status diubah) sebagai tanggal pengajuan
+  const tanggalPengajuan = pesanan.tanggal_pengajuan_pembatalan || pesanan.updated_at; 
+  
+  const deadlineDate = tanggalPengajuan
+    ? new Date(new Date(tanggalPengajuan).getTime() + 2 * 24 * 60 * 60 * 1000) // Tambah 2 hari
     : null;
   const deadlineFormatted = deadlineDate ? formatDate(deadlineDate) : 'N/A';
   const canTakeAction = pesanan.status === 'Pembatalan Diajukan';
+  // --- AKHIR PERBAIKAN ---
+  
+  // Ambil alasan dari catatan_khusus
+  const alasanPembatalan = pesanan.alasan_pembatalan || (pesanan.catatan_khusus ? pesanan.catatan_khusus.split('Alasan:')[1]?.trim() : '-') || 'Tidak ada alasan.';
 
-  // --- RENDER UTAMA ---
+
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
@@ -369,19 +378,22 @@ const KonfirmasiPembatalan = () => {
                            </div>
                        </div>
                        
+                       {/* --- PERBAIKAN: TANGGAL PENGAJUAN --- */}
                        <div className="space-y-1">
                            <span className="text-sm font-medium text-slate-500">Tanggal Pengajuan</span>
                            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                             <span className="font-semibold text-slate-900 text-base">{formatDate(pesanan.tanggal_pengajuan_pembatalan)}</span>
+                             <span className="font-semibold text-slate-900 text-base">{formatDate(tanggalPengajuan)}</span>
                            </div>
                        </div>
                        
+                       {/* --- PERBAIKAN: BATAS WAKTU --- */}
                        <div className="space-y-1">
                            <span className="text-sm font-medium text-slate-500">Batas Waktu Konfirmasi</span>
                            <div className="bg-red-50 p-3 rounded-lg border border-red-200">
                              <span className="font-bold text-red-700 text-base">{deadlineFormatted}</span>
                            </div>
                        </div>
+                       {/* --- AKHIR PERBAIKAN --- */}
 
                        <div className="space-y-1">
                            <span className="text-sm font-medium text-slate-500">Surat Pesanan Awal</span>
@@ -399,19 +411,19 @@ const KonfirmasiPembatalan = () => {
                        <div className="space-y-1 md:col-span-2">
                           <span className="text-sm font-medium text-slate-500">Alasan Pembatalan dari PBF</span>
                           <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                             <p className="text-slate-900 text-base whitespace-pre-wrap">{pesanan.alasan_pembatalan || '-'}</p>
+                             <p className="text-slate-900 text-base whitespace-pre-wrap">{alasanPembatalan}</p>
                           </div>
                        </div>
                   </div>
                </div>
 
-               {/* FOOTER AKSI (Sudah diubah) */}
+               {/* FOOTER AKSI */}
                <div className="p-6 flex flex-col sm:flex-row justify-end items-center gap-3 border-t border-slate-200">
                  {canTakeAction ? (
                    <>
                      <p className="text-sm text-slate-600 mr-auto">Mohon konfirmasi sebelum batas waktu.</p>
                      <button
-                       onClick={() => setShowRejectModal(true)} // Tampilkan modal tolak
+                       onClick={() => setShowRejectModal(true)}
                        className="w-full sm:w-auto px-6 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition flex items-center justify-center gap-2"
                        disabled={isSubmitting}
                      >
@@ -419,7 +431,7 @@ const KonfirmasiPembatalan = () => {
                        Tolak Pengajuan
                      </button>
                      <button
-                       onClick={() => setShowConfirmModal(true)} // Tampilkan modal konfirmasi
+                       onClick={() => setShowConfirmModal(true)}
                        className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 transition disabled:bg-slate-400 flex items-center justify-center gap-2"
                        disabled={isSubmitting}
                      >
@@ -436,7 +448,6 @@ const KonfirmasiPembatalan = () => {
         </main>
       </div>
 
-      {/* MODAL */}
       <ConfirmationModal
         show={showConfirmModal}
         onClose={() => setShowConfirmModal(false)}
@@ -444,7 +455,6 @@ const KonfirmasiPembatalan = () => {
         isSubmitting={isSubmitting}
       />
       
-      {/* MODAL BARU */}
       <RejectModal
         show={showRejectModal}
         onClose={() => setShowRejectModal(false)}
@@ -452,7 +462,6 @@ const KonfirmasiPembatalan = () => {
         isSubmitting={isSubmitting}
       />
 
-      {/* Hapus <style jsx> */}
     </div>
   );
 };

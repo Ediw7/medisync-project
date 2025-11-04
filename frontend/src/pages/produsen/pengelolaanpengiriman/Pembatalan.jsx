@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
 import {
@@ -7,7 +7,8 @@ import {
   Loader2,
   Package,
   AlertTriangle,
-  XCircle 
+  XCircle,
+  ArrowUpDown // Ditambahkan
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -27,7 +28,7 @@ const NavItem = ({ to, children }) => {
 
   const baseClass = "py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap block text-center sm:inline-block";
   const activeClass = "bg-emerald-600 text-white shadow-md";
-  const inactiveClass = "text-slate-500 hover:text-emerald-800 hover:bg-emerald-100";
+  const inactiveClass = "text-slate-500 hover:text-emerald-800 hover:bg-emerald-100"; // Diperbaiki hover
 
   return effectiveIsActive ? (
     <span className={`${baseClass} ${activeClass}`}>
@@ -70,7 +71,10 @@ const Pembatalan = () => {
       const result = await response.json();
       if (!result.success) throw new Error(result.message || 'Data pesanan tidak tersedia');
 
-      const relevantStatuses = ['Pembatalan Diajukan', 'Dibatalkan'];
+      // --- PERBAIKAN DI SINI ---
+      const relevantStatuses = ['Pembatalan Diajukan', 'Dibatalkan', 'Pembatalan Ditolak'];
+      // --- AKHIR PERBAIKAN ---
+
       const filteredData = (result.data || []).filter(item => relevantStatuses.includes(item.status));
       setPesananData(filteredData);
     } catch (error) {
@@ -163,6 +167,11 @@ const Pembatalan = () => {
          return '-';
      }
   };
+  
+  const getSortIndicator = (key) => {
+    if (sortConfig.key !== key) return <ArrowUpDown size={14} className="text-slate-300" />;
+    return sortConfig.direction === 'ascending' ? <ArrowUpDown size={14} className="text-emerald-600" /> : <ArrowUpDown size={14} className="text-emerald-600" />;
+  };
 
   if (isLoading && pesananData.length === 0) {
      return (
@@ -249,18 +258,18 @@ const Pembatalan = () => {
                     <thead className="bg-slate-50 border-b border-slate-200">
                       <tr>
                         <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-100" onClick={() => requestSort('nama_pbf')}>
-                          PBF {sortConfig.key === 'nama_pbf' && (sortConfig.direction === 'ascending' ? '▲' : '▼')}
+                           <div className="flex items-center gap-1">PBF {getSortIndicator('nama_pbf')}</div>
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-100" onClick={() => requestSort('id')}>
-                          ID Pesanan {sortConfig.key === 'id' && (sortConfig.direction === 'ascending' ? '▲' : '▼')}
+                           <div className="flex items-center gap-1">ID Pesanan {getSortIndicator('id')}</div>
                         </th>
                          <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Nomor PO</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Surat Pesanan</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-100" onClick={() => requestSort('total_harga')}>
-                          Total Harga {sortConfig.key === 'total_harga' && (sortConfig.direction === 'ascending' ? '▲' : '▼')}
+                           <div className="flex items-center gap-1">Total Harga {getSortIndicator('total_harga')}</div>
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-100" onClick={() => requestSort('status')}>
-                          Status {sortConfig.key === 'status' && (sortConfig.direction === 'ascending' ? '▲' : '▼')}
+                           <div className="flex items-center gap-1">Status {getSortIndicator('status')}</div>
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Aksi</th>
                       </tr>
@@ -273,8 +282,8 @@ const Pembatalan = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-mono">{item.nomor_po || '-'}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
                             <Link to={`/produsen/pengelolaan-pengiriman/detail/${item.id}/surat`} className="text-emerald-600 hover:underline">Lihat Surat</Link>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-700">Rp. {item.total_harga.toLocaleString('id-ID')}</td>
+</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-700">Rp. {(item.total_harga || 0).toLocaleString('id-ID')}</td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusBadge(item.status)}`}>
                               {item.status}
@@ -282,18 +291,21 @@ const Pembatalan = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                              {item.status === 'Pembatalan Diajukan' && (
-                                                           <Link to={`/produsen/pengelolaan-pengiriman/konfirmasi-pembatalan/${item.id}`} className="text-yellow-700 hover:text-yellow-800 font-semibold">
-                                                             Konfirmasi Pembatalan
-                                                           </Link>
-                                                         )}
-                                                         {item.status === 'Dibatalkan' && (
-                                                           <Link to={`/produsen/pengelolaan-pengiriman/riwayat-pembatalan/${item.id}`} className="text-red-600 hover:text-red-800 font-semibold">
-                                                             Lihat Riwayat
-                                                           </Link>
-                                                         )}
-                                                                                                                 {item.status === 'Pembatalan Ditolak' && (
-                                                             <span className="text-sm text-pink-700 italic">Ditolak</span>
-                                                         )}
+                                <Link to={`/produsen/pengelolaan-pengiriman/konfirmasi-pembatalan/${item.id}`} className="text-yellow-700 hover:text-yellow-800 font-semibold">
+                                  Konfirmasi Pembatalan
+                                </Link>
+                             )}
+                             {item.status === 'Dibatalkan' && (
+                                <Link to={`/produsen/pengelolaan-pengiriman/riwayat-pembatalan/${item.id}`} className="text-red-600 hover:text-red-800 font-semibold">
+                                  Lihat Riwayat
+                                </Link>
+                             )}
+                            {item.status === 'Pembatalan Ditolak' && (
+                                <Link to={`/produsen/pengelolaan-pengiriman/riwayat-pembatalan/${item.id}`} className="text-pink-700 hover:text-pink-900 font-semibold">
+                                  Lihat Riwayat
+                                </Link>
+                            )}
+                            
                           </td>
                         </tr>
                       )) : (

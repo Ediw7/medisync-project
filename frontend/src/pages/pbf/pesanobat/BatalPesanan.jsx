@@ -22,33 +22,47 @@ const BatalPesanan = () => {
     'Ingin mengubah alamat pengiriman',
     'Ingin memesan ulang dengan detail yang berbeda',
     'Produk atau layanan tidak sesuai dengan yang diharapkan',
-    'Lainnya/ berubah pikiran',
+    'Lainnya', // Tetap string sederhana
   ];
-
-  const [selectedReasons, setSelectedReasons] = useState([]);
+  
+  const [selectedReason, setSelectedReason] = useState(null); // Diubah dari array ke string/null
+  const [catatanLainnya, setCatatanLainnya] = useState(''); // <-- STATE BARU
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleCheckboxChange = (reason) => {
-    setSelectedReasons((prev) =>
-      prev.includes(reason)
-        ? prev.filter((r) => r !== reason)
-        : [...prev, reason]
-    );
+  // --- PERBAIKAN: Menggunakan Radio Button Logic ---
+  const handleReasonChange = (reason) => {
+    setSelectedReason(reason);
   };
+  // --- AKHIR PERBAIKAN ---
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setIsSubmitting(true);
+    toast.dismiss();
 
-    if (selectedReasons.length === 0) {
+    if (!selectedReason) {
       const errorMsg = 'Anda harus memilih setidaknya satu alasan pembatalan.';
       setError(errorMsg);
-      toast.error(errorMsg); // Tampilkan toast error
+      toast.error(errorMsg);
       setIsSubmitting(false);
       return;
     }
+
+    // --- PERBAIKAN: Logika Alasan ---
+    let alasanFinal = selectedReason;
+    if (selectedReason === 'Lainnya') {
+      if (!catatanLainnya.trim()) {
+        const errorMsg = 'Silakan isi alasan spesifik Anda di kotak catatan.';
+        setError(errorMsg);
+        toast.error(errorMsg);
+        setIsSubmitting(false);
+        return;
+      }
+      alasanFinal = `Lainnya: ${catatanLainnya}`; // Gabungkan
+    }
+    // --- AKHIR PERBAIKAN ---
 
     try {
       const token = localStorage.getItem('token');
@@ -59,7 +73,7 @@ const BatalPesanan = () => {
       }
 
       const response = await axios.put(`http://localhost:5000/api/pbf/pesanan/${id}/request-batalkan`, {
-        alasan: selectedReasons.join(', '),
+        alasan: alasanFinal, // Kirim alasan final
       }, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -70,12 +84,12 @@ const BatalPesanan = () => {
         throw new Error(response.data.message || 'Gagal terhubung ke server.');
       }
 
-      toast.success('Pengajuan pembatalan berhasil dikirim.'); // Ganti alert
+      toast.success('Pengajuan pembatalan berhasil dikirim.');
       navigate('/pbf/pesan-obat');
     } catch (err) {
       const errorMsg = err.response?.data?.message || err.message;
       setError(errorMsg);
-      toast.error(errorMsg); // Tampilkan toast error
+      toast.error(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -127,7 +141,7 @@ const BatalPesanan = () => {
                 {/* Header Kartu */}
                 <div className="bg-slate-50 px-8 py-5 border-b border-slate-200">
                     <h2 className="text-lg font-semibold text-slate-800">Pilih Alasan Pembatalan</h2>
-                    <p className="text-sm text-slate-500 mt-1">Pilih setidaknya satu alasan. Pengajuan ini akan ditinjau oleh Produsen.</p>
+                    <p className="text-sm text-slate-500 mt-1">Pilih salah satu alasan. Pengajuan ini akan ditinjau oleh Produsen.</p>
                 </div>
                 
                 {/* Konten Form (Checkbox yang didesain ulang) */}
@@ -141,7 +155,7 @@ const BatalPesanan = () => {
                 
                   <div className="space-y-4">
                     {reasonsList.map((reason) => {
-                      const isSelected = selectedReasons.includes(reason);
+                      const isSelected = selectedReason === reason;
                       return (
                         <label 
                           key={reason} 
@@ -153,26 +167,43 @@ const BatalPesanan = () => {
                           }`}
                         >
                           <input
-                            type="checkbox"
+                            type="radio" // --- Ganti ke Radio ---
                             id={reason}
                             name="alasan_pembatalan"
                             value={reason}
                             checked={isSelected}
-                            onChange={() => handleCheckboxChange(reason)}
-                            className="hidden" // Sembunyikan checkbox asli
+                            onChange={() => handleReasonChange(reason)}
+                            className="hidden" // Sembunyikan radio asli
                           />
-                          {/* Checkbox Kustom */}
-                          {isSelected ? (
-                            <CheckCircle size={20} className="text-emerald-600 flex-shrink-0" />
-                          ) : (
-                            <div className="w-5 h-5 rounded-full border-2 border-slate-400 bg-white flex-shrink-0"></div>
-                          )}
+                          {/* Radio Kustom */}
+                          <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 transition-all ${isSelected ? 'border-emerald-600 bg-white' : 'border-slate-400 bg-white'}`}>
+                            {isSelected && <div className="w-full h-full p-0.5"><div className="w-full h-full rounded-full bg-emerald-600"></div></div>}
+                          </div>
+                          
                           <span className={`text-base ${isSelected ? 'font-semibold text-emerald-900' : 'text-slate-700'}`}>
                             {reason}
                           </span>
                         </label>
                       );
                     })}
+                    
+                    {/* --- TAMBAHAN: Textarea untuk 'Lainnya' --- */}
+                    {selectedReason === 'Lainnya' && (
+                        <div className="ml-11 pl-0.5 animate-in fade-in duration-300">
+                           <label htmlFor="catatanLainnya" className="block text-sm font-medium text-slate-700 mb-2">
+                             Silakan tulis alasan Anda:
+                           </label>
+                           <textarea
+                              id="catatanLainnya"
+                              value={catatanLainnya}
+                              onChange={(e) => setCatatanLainnya(e.target.value)}
+                              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                              placeholder="Tulis alasan spesifik Anda di sini..."
+                              rows={3}
+                            />
+                        </div>
+                    )}
+                    {/* --- AKHIR TAMBAHAN --- */}
                   </div>
                 </div>
 
@@ -189,7 +220,7 @@ const BatalPesanan = () => {
                   <button
                     type="submit"
                     className="py-2 px-5 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 transition flex items-center gap-2 text-sm disabled:bg-slate-400 disabled:cursor-not-allowed"
-                    disabled={isSubmitting || selectedReasons.length === 0} // Disable jika loading atau tidak ada alasan
+                    disabled={isSubmitting || !selectedReason} // Disable jika loading atau tidak ada alasan
                   >
                     {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
                     {isSubmitting ? 'Memproses...' : 'Kirim Pengajuan'}

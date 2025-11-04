@@ -309,7 +309,7 @@ const PbfDashboard = () => {
                              <span className="text-sm text-slate-700 block">{item.obat}</span>
                              <span className="text-xs text-slate-500 font-mono bg-slate-100 px-1.5 py-0.5 rounded">Batch: {item.batchId}</span>
                            </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-700">{item.jumlah.toLocaleString('id-ID')} Pcs</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-700">{(item.stok || 0).toLocaleString('id-ID')} Pcs</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
                             <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusBadge(item.status)}`}>
                               {item.status}

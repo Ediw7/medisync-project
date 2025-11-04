@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react'; // Import useMemo
 import { useLocation, useNavigate } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
@@ -12,7 +12,15 @@ const CetakSuratJalanMassal = () => {
   const contentRef = useRef(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  // Data dari 'navigate' (pesananDetails sekarang berisi data LENGKAP)
   const { pesananDetails, allDetails } = location.state || { pesananDetails: [], allDetails: {} };
+  const username = localStorage.getItem('username'); // Ambil username
+
+  // Ambil nama produsen dari local storage (diset saat login)
+  const namaProdusen = localStorage.getItem('namaResmi') || 'Produsen Medisync';
+  // (Anda mungkin perlu menambahkan alamat produsen ke localStorage juga saat login)
+  const alamatProdusen = 'Jl. Teknologi No. 1, Kota Industri'; 
+
 
   if (pesananDetails.length === 0) {
     return (
@@ -24,6 +32,7 @@ const CetakSuratJalanMassal = () => {
   }
 
   const handlePrint = () => {
+    // ... (Fungsi tidak berubah) ...
     const printContents = contentRef.current.innerHTML;
     const originalContents = document.body.innerHTML;
     const styles = document.querySelectorAll('style, link[rel="stylesheet"]');
@@ -57,6 +66,7 @@ const CetakSuratJalanMassal = () => {
   };
 
   const handleDownloadPDF = () => {
+    // ... (Fungsi tidak berubah) ...
     const element = contentRef.current;
     const opt = {
       margin: [10, 5, 10, 5],
@@ -69,12 +79,17 @@ const CetakSuratJalanMassal = () => {
 
     html2pdf().from(element).set(opt).save();
   };
+  
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate('/');
+  };
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
        <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div className={`flex-1 flex flex-col transition-all duration-300 print:ml-0 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
-        <NavbarProdusen onLogout={() => { localStorage.clear(); navigate('/'); }} className="print:hidden" />
+        <NavbarProdusen onLogout={handleLogout} username={username} className="print:hidden" />
        
         <main className="flex-1 overflow-auto pt-[72px] p-6 print:p-0">
           <div className="max-w-4xl mx-auto">
@@ -110,7 +125,9 @@ const CetakSuratJalanMassal = () => {
 
             {/* Surat Jalan Content */}
             <div ref={contentRef} className="space-y-12 print:space-y-0">
+              {/* --- PERBAIKAN: Gunakan pesananDetails --- */}
               {pesananDetails.map((pesanan, index) => {
+                // Kalkulasi total harga dari 'detail_pesanan' yang sekarang ada
                 const totalHargaPesanan = pesanan.detail_pesanan?.reduce((sum, item) => sum + (Number(item.total_harga) || 0), 0) || 0;
 
                 return (
@@ -123,13 +140,14 @@ const CetakSuratJalanMassal = () => {
                       <div className="flex items-center gap-4">
                         <img src={logo} alt="Company Logo" className="h-16 w-auto print:h-12" />
                         <div>
-                          <h1 className="text-2xl font-bold text-slate-800">{pesanan.nama_produsen || 'Nama Produsen'}</h1>
-                          <p className="text-xs text-slate-600 max-w-xs">{pesanan.alamat_produsen || 'Alamat Produsen'}</p>
+                          <h1 className="text-2xl font-bold text-slate-800">{namaProdusen}</h1>
+                          <p className="text-xs text-slate-600 max-w-xs">{alamatProdusen}</p>
                         </div>
                       </div>
                       <div className="text-right">
                         <h2 className="text-3xl font-bold text-slate-900 uppercase tracking-tight">Surat Jalan</h2>
-                        <p className="text-lg font-semibold text-slate-700 mt-1">No. {pesanan.nomor_surat_jalan}</p>
+                        {/* --- PERBAIKAN: Gunakan nomorSuratJalan --- */}
+                        <p className="text-lg font-semibold text-slate-700 mt-1">No. {pesanan.nomorSuratJalan}</p>
                         <p className="text-sm text-slate-500 mt-1">
                           Tanggal: {new Date(allDetails.tanggalPengiriman || Date.now()).toLocaleDateString('id-ID', { 
                             day: 'numeric', 
@@ -144,8 +162,8 @@ const CetakSuratJalanMassal = () => {
                     <section className="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-10 text-sm">
                       <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
                         <h3 className="font-bold text-slate-800 mb-2 uppercase text-xs tracking-wider">Pengirim</h3>
-                        <p className="font-semibold text-slate-700">{pesanan.nama_produsen || 'Nama Produsen'}</p>
-                        <p className="text-slate-600">{pesanan.alamat_produsen || 'Alamat Produsen'}</p>
+                        <p className="font-semibold text-slate-700">{namaProdusen}</p>
+                        <p className="text-slate-600">{alamatProdusen}</p>
                       </div>
                       <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
                         <h3 className="font-bold text-slate-800 mb-2 uppercase text-xs tracking-wider">Penerima</h3>
@@ -201,13 +219,14 @@ const CetakSuratJalanMassal = () => {
                     {/* Footer */}
                     <footer className="flex flex-col sm:flex-row justify-between items-start sm:items-end mt-16 pt-8 border-t border-slate-300 text-xs text-slate-600 gap-4">
                       <div>
-                        <p>No. Resi Pengiriman: <span className="font-semibold text-slate-900">{pesanan.nomor_resi || '-'}</span></p>
+                        {/* --- PERBAIKAN: Gunakan 'nomorResi' --- */}
+                        <p>No. Resi Pengiriman: <span className="font-semibold text-slate-900">{pesanan.nomorResi || '-'}</span></p>
                         {allDetails.catatan && <p className="mt-1">Catatan Tambahan: {allDetails.catatan}</p>}
                         <p className="mt-4 print:block hidden">Dokumen ini dicetak pada: {new Date().toLocaleString('id-ID')}</p>
                       </div>
                       <div className="text-center sm:text-right mt-8 sm:mt-0 print:block">
                         <p className="mb-16">Hormat Kami,</p>
-                        <p className="font-semibold border-t border-slate-400 pt-2">{pesanan.nama_produsen || 'Produsen'}</p>
+                        <p className="font-semibold border-t border-slate-400 pt-2">{namaProdusen}</p>
                         <p>(Pengirim)</p>
                       </div>
                     </footer>

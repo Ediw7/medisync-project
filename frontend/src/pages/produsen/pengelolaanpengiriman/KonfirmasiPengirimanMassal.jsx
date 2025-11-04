@@ -12,10 +12,39 @@ import {
     Clock,
     Truck,
     Calendar,
-    Check // <-- PERBAIKAN 1: DITAMBAHKAN
+    Check
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast'; 
+
+// === GENERATE NOMOR RESI ===
+const generateProNumber = (prefix, orderId) => {
+  const date = new Date();
+  const year = date.getFullYear().toString().slice(-2);
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  const timestamp = date.getTime().toString().slice(-4);
+  const paddedOrderId = String(orderId).padStart(3, '0');
+  return `${prefix}-${year}${month}${day}-${paddedOrderId}-${timestamp}`;
+};
+
+// === GENERATE NOMOR SURAT JALAN ===
+const toRoman = (num) => {
+  const map = { M:1000, CM:900, D:500, CD:400, C:100, XC:90, L:50, XL:40, X:10, IX:9, V:5, IV:4, I:1 };
+  let result = '';
+  for (let key in map) while (num >= map[key]) { result += key; num -= map[key]; }
+  return result;
+};
+
+const generateSuratJalanNumber = (orderId) => {
+  const nomorIzin = localStorage.getItem('nomorIzin');
+  if (!nomorIzin) return 'ERROR-NO-IZIN';
+  const date = new Date();
+  const year = date.getFullYear().toString().slice(-2);
+  const month = date.getMonth() + 1;
+  const paddedOrderId = String(orderId).padStart(6, '0');
+  return `SJ/${paddedOrderId}/${nomorIzin}/${toRoman(month)}/${year}`;
+};
 
 const KonfirmasiPengirimanMassal = () => {
   const navigate = useNavigate();
@@ -23,13 +52,21 @@ const KonfirmasiPengirimanMassal = () => {
   const payload = location.state; 
 
   const [isCollapsed, setIsCollapsed] = useState(false);
-  
   const [processingStatus, setProcessingStatus] = useState('idle'); 
   const [pesananDetails, setPesananDetails] = useState([]); 
   const [processedDetails, setProcessedDetails] = useState([]);
   const [errorMessage, setErrorMessage] = useState('');
   const [errorList, setErrorList] = useState([]); 
   const username = localStorage.getItem('username');
+
+  // === GENERATE NOMOR RESI & SJ OTOMATIS PER PESANAN ===
+  const enrichPesananWithTracking = (details) => {
+    return details.map(item => ({
+      ...item,
+      nomorResi: generateProNumber('RES', item.id),
+      nomorSuratJalan: generateSuratJalanNumber(item.id),
+    }));
+  };
 
   useEffect(() => {
     if (!payload || !payload.selectedIds || payload.selectedIds.length === 0) {
@@ -50,7 +87,8 @@ const KonfirmasiPengirimanMassal = () => {
         );
 
         if (response.data.success) {
-          setPesananDetails(response.data.data);
+          const enriched = enrichPesananWithTracking(response.data.data);
+          setPesananDetails(enriched);
           setProcessingStatus('idle'); 
         } else {
           throw new Error(response.data.message || 'Gagal mengambil detail pesanan.');
@@ -84,11 +122,26 @@ const KonfirmasiPengirimanMassal = () => {
         const token = localStorage.getItem('token');
         if (!token) throw new Error("Otentikasi gagal. Silakan login kembali.");
         
-        const response = await axios.post('http://localhost:5000/api/produsen/pesanan-masuk/proses-pengiriman-massal', payload, {
+        // Kirim data lengkap dengan nomor resi & surat jalan
+        const payloadWithTracking = {
+          ...payload,
+          pesananDetails: pesananDetails.map(p => ({
+            id: p.id,
+            nomorResi: p.nomorResi,
+            nomorSuratJalan: p.nomorSuratJalan,
+            tanggalPengiriman: payload.tanggalPengiriman,
+            waktuPengiriman: payload.waktuPengiriman,
+            opsiPengiriman: payload.opsiPengiriman,
+            catatan: payload.catatan,
+            alamatTujuan: p.alamat_pbf,
+          }))
+        };
+
+        const response = await axios.post('http://localhost:5000/api/produsen/pesanan-masuk/proses-pengiriman-massal', payloadWithTracking, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
-        if(response.data.data) {
+        if (response.data.data) {
             setProcessedDetails(response.data.data); 
         }
 
@@ -102,13 +155,24 @@ const KonfirmasiPengirimanMassal = () => {
           setProcessingStatus('success');
           toast.success('Semua pesanan berhasil diproses dan dicatat ke blockchain.');
           
+          // --- PERBAIKAN DI SINI ---
+          // 'pesananDetails' (dari state) sudah memiliki semua info lengkap (nama, alamat, detail_pesanan, resi, sj)
+          // 'response.data.data' hanya berisi ID yang sukses. Kita filter 'pesananDetails' berdasarkan ID yang sukses.
+          
+          const successIds = response.data.data.map(item => item.id);
+          
+          const successfulFullDetails = pesananDetails.filter(item => 
+              successIds.includes(item.id)
+          );
+          
           navigate('/produsen/pengelolaan-pengiriman/cetak-surat-jalan-massal', { 
              state: { 
-               pesananDetails: response.data.data, 
+               pesananDetails: successfulFullDetails, // <-- KIRIM DATA LENGKAP YANG SUDAH DI-FILTER
                allDetails: payload 
              } 
            });
-        }
+          // --- AKHIR PERBAIKAN ---
+       }
       } catch (err) {
         const errorMsg = err.response?.data?.message || err.message || 'Terjadi kesalahan tidak terduga.';
         setErrorMessage(errorMsg);
@@ -143,10 +207,14 @@ const KonfirmasiPengirimanMassal = () => {
               <div className="absolute -top-20 -right-20 w-72 h-72 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
 
               <div className="relative flex items-center gap-3">
-                <div className={`flex items-center justify-center w-12 h-12 rounded-xl shadow-lg
+                
+                {/* --- PERBAIKAN SYNTAX DI SINI --- */}
+                <div className={`flex items-center justify-center w-12 h-12 rounded-xl shadow-lg 
                    ${processingStatus === 'idle' || processingStatus === 'loading_details' ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : 
                      processingStatus === 'success' ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : 
                      'bg-red-500'}`}>
+                {/* --- AKHIR PERBAIKAN SYNTAX --- */}
+                  
                   {processingStatus === 'loading_details' && <Loader2 className="text-white animate-spin" size={24} />}
                   {processingStatus === 'idle' && <FileText className="text-white" size={24} />}
                   {processingStatus === 'success' && <CheckCircle2 className="text-white" size={24} />}
@@ -244,17 +312,13 @@ const KonfirmasiPengirimanMassal = () => {
                     <table className="min-w-full">
                       <thead className="bg-slate-50 border-b border-slate-200">
                         <tr>
-                          {/* --- PERBAIKAN 2: Header Tabel --- */}
                           <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">PBF & ID</th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Nomor PO</th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Alamat</th>
-                           {(processingStatus === 'success' || processingStatus === 'partial_error') && (
-                              <>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Nomor Resi</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Nomor Surat Jalan</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                              </>
-                           )}
+                          <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Nomor Resi</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">No Surat Jalan</th>
+                          {/* Selalu tampilkan kolom status */}
+                          <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-slate-100">
@@ -263,35 +327,47 @@ const KonfirmasiPengirimanMassal = () => {
                            const isSuccess = !!processedItem;
                            const isFailed = (processingStatus === 'partial_error' || processingStatus === 'error') && !isSuccess;
                            
+                           // Logika Status Diperbarui
+                           let statusText = "Menunggu";
+                           let statusClass = "bg-gray-100 text-gray-800 border-gray-200";
+
+                           if (processingStatus === 'submitting') {
+                             statusText = "Memproses...";
+                             statusClass = "bg-blue-100 text-blue-800 border-blue-200";
+                           } else if (isSuccess) {
+                             statusText = "Berhasil";
+                             statusClass = "bg-emerald-100 text-emerald-800 border-emerald-200";
+                           } else if (isFailed) {
+                             const errorMsg = errorList.find(e => e.id === item.id)?.message || "Gagal";
+                             statusText = errorMsg.length > 30 ? errorMsg.substring(0, 30) + "..." : errorMsg;
+                             statusClass = "bg-red-100 text-red-800 border-red-200";
+                           }
+                           
                            return (
-                              <tr key={item.id} className={isFailed ? "bg-red-50/50" : "hover:bg-gray-50"}>
-                                {/* --- PERBAIKAN 3: Isi Tabel --- */}
+                              <tr key={item.id} className={isSuccess ? "bg-emerald-50/50" : (isFailed ? "bg-red-50/50" : "hover:bg-gray-50")}>
                                 <td className="px-4 py-4 whitespace-nowrap">
                                   <p className="font-medium text-sm text-slate-900">{item.nama_pbf}</p>
                                   <p className="text-xs text-slate-500 font-mono">#{String(item.id).padStart(6, '0')}</p>
                                 </td>
                                 <td className="px-4 py-4 whitespace-nowrap font-mono text-sm text-slate-600">{item.nomor_po}</td>
-                                <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600 max-w-xs truncate">{item.alamat_pbf}</td>
-                                {/* --- AKHIR PERBAIKAN 3 --- */}
-                                
-                                {(processingStatus === 'success' || processingStatus === 'partial_error') && (
-                                  <>
-                                    <td className="px-4 py-4 whitespace-nowrap font-mono text-sm text-slate-600">{processedItem?.nomorResi || '-'}</td>
-                                    <td className="px-4 py-4 whitespace-nowrap font-mono text-sm text-slate-600">{processedItem?.nomorSuratJalan || '-'}</td>
-                                    <td className="px-4 py-4 whitespace-nowrap">
-                                      {isSuccess && (
-                                        <span className="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                                          Berhasil
-                                        </span>
-                                      )}
-                                       {isFailed && (
-                                        <span className="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 border border-red-200">
-                                          Gagal
-                                        </span>
-                                      )}
-                                    </td>
-                                  </>
-                                )}
+                                <td className="px-4 py-4 text-sm text-slate-600 max-w-xs truncate">{item.alamat_pbf}</td>
+
+                                {/* NO RESI & NO SJ OTOMATIS */}
+                                <td className="px-4 py-4 whitespace-nowrap font-mono text-sm text-emerald-700">
+                                  {/* Tampilkan resi yang di-generate ATAU resi yang diproses */}
+                                  {processedItem?.nomorResi || item.nomorResi}
+                                </td>
+                                <td className="px-4 py-4 whitespace-nowrap font-mono text-sm text-emerald-700">
+                                  {/* Tampilkan SJ yang di-generate ATAU SJ yang diproses */}
+                                  {processedItem?.nomorSuratJalan || item.nomorSuratJalan}
+                                </td>
+
+                                {/* STATUS */}
+                                <td className="px-4 py-4 whitespace-nowrap">
+                                  <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full border ${statusClass}`} title={statusText}>
+                                    {statusText}
+                                  </span>
+                                </td>
                               </tr>
                            );
                         })}
@@ -318,7 +394,7 @@ const KonfirmasiPengirimanMassal = () => {
                      
                      {processingStatus === 'idle' && 'Konfirmasi & Proses Pengiriman'}
                      {processingStatus === 'submitting' && 'Memproses...'}
-                     {(processingStatus === 'success' || processingStatus === 'partial_error') && `Cetak Surat Jalan (${processedDetails.length})`}
+                     {(processingStatus === 'success' || processingStatus === 'partial_error') && `Cetak Surat Jalan (${pesananDetails.length})`}
                    </button>
                 </div>
               </div>

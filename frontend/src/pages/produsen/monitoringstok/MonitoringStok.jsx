@@ -110,7 +110,7 @@ const MonitoringStok = () => {
             const tahunIni = new Date().getFullYear();
             const tanggalData = new Date(item.tanggal_pengiriman);
             return tanggalData.getMonth() === bulanIni && tanggalData.getFullYear() === tahunIni;
-        }).reduce((sum, item) => sum + (item.jumlah_total_obat || 0), 0); 
+      }).reduce((sum, item) => sum + Number(item.jumlah_total_obat || 0), 0);
 
         setStokData(dataWithStockStatus);
         setStats({

@@ -50,15 +50,43 @@ const publicController = {
     getBlockchainDetail: async (req, res) => {
         const { batch_id } = req.params;
         let gateway;
+        let dbConnection; // <-- Tambahkan koneksi DB
+
         try {
+            // 1. Ambil Data Blockchain
             gateway = await getGateway();
             const network = await gateway.getNetwork('medisyncchannel');
             const contract = network.getContract('medisync');
 
             const result = await contract.evaluateTransaction('ProdusenContract:readObat', batch_id);
             const blockchainData = JSON.parse(result.toString());
+            
+            // 2. Ambil ID dari Blockchain
+            const idProdusen = blockchainData.idProdusen; 
+            const idPbf = blockchainData.idPbf;
+            const idApotek = blockchainData.idApotek;
 
-            // Data dikembalikan langsung dari blockchain tanpa tambahan dari database
+            let namaProdusen = blockchainData.namaPerusahaan || 'Data Produsen T/A';
+            let namaPbf = null; // Default null
+            let namaApotek = null; // Default null
+
+            // 3. Ambil Data Relasional dari MySQL
+            dbConnection = await db.getConnection();
+            
+            if (idProdusen) {
+                const [produsen] = await dbConnection.query('SELECT nama_resmi FROM users WHERE id = ?', [idProdusen]);
+                if (produsen.length > 0) namaProdusen = produsen[0].nama_resmi;
+            }
+            if (idPbf) {
+                const [pbf] = await dbConnection.query('SELECT nama_resmi FROM users WHERE id = ?', [idPbf]);
+                if (pbf.length > 0) namaPbf = pbf[0].nama_resmi;
+            }
+            if (idApotek) {
+                const [apotek] = await dbConnection.query('SELECT nama_resmi FROM users WHERE id = ?', [idApotek]);
+                if (apotek.length > 0) namaApotek = apotek[0].nama_resmi;
+            }
+
+            // 4. Gabungkan Data
             const responseData = {
                 batch_id: blockchainData.id,
                 nama_obat: blockchainData.namaObat,
@@ -68,7 +96,12 @@ const publicController = {
                 jumlah: blockchainData.jumlah,
                 hash_sertifikat: blockchainData.hashDokumen.hasilUjiMutu,
                 status_saat_ini: blockchainData.statusSaatIni,
-                riwayat: blockchainData.riwayat
+                riwayat: blockchainData.riwayat,
+                
+                // --- DATA TAMBAHAN DARI MYSQL ---
+                nama_perusahaan: namaProdusen, // Ganti namaPerusahaan dari chaincode
+                nama_pbf: namaPbf,
+                nama_apotek: namaApotek
             };
 
             res.json({ success: true, data: responseData });
@@ -77,6 +110,7 @@ const publicController = {
             res.status(500).json({ success: false, message: `Gagal mengambil data blockchain: ${error.message}` });
         } finally {
             if (gateway) gateway.disconnect();
+            if (dbConnection) dbConnection.release(); // Pastikan koneksi DB ditutup
         }
     }
 };

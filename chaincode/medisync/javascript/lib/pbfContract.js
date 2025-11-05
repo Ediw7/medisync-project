@@ -9,7 +9,7 @@ class PbfContract extends Contract {
         return assetJSON && assetJSON.length > 0;
     }
 
-    // --- FUNGSI DIPERBAIKI ---
+    // --- FUNGSI terimaBarang (Sudah Benar, tidak diubah) ---
     async terimaBarang(ctx, batchId, hashBuktiFoto, namaPbf) {
         const mspID = ctx.clientIdentity.getMSPID();
         if (mspID !== 'PBFMSP') {
@@ -36,25 +36,24 @@ class PbfContract extends Contract {
         obat.pemilikSaatIni = 'PBFMSP';
         obat.statusSaatIni = 'DITERIMA_PBF';
         
-        // --- PERBAIKAN STRUKTUR RIWAYAT ---
         const riwayatBaru = {
             pemilik: 'PBFMSP',
             status: 'DITERIMA_PBF',
             timestamp: timestamp,
-            detail: `Barang diterima oleh PBF.`, // Detail umum
-            penerima: namaPbf,                 // Variabel baru
-            hashBukti: hashBuktiFoto         // Variabel baru
+            detail: `Barang diterima oleh PBF.`,
+            penerima: namaPbf,
+            hashBukti: hashBuktiFoto
         };
         
         obat.riwayat.push(riwayatBaru);
-        // --- AKHIR PERBAIKAN ---
 
         await ctx.stub.putState(batchId, Buffer.from(JSON.stringify(obat)));
         return JSON.stringify(obat);
     }
-    // --- AKHIR FUNGSI DIPERBAIKI ---
+    // --- AKHIR FUNGSI terimaBarang ---
 
 
+    // --- FUNGSI transferToApotek (DIPERBAIKI) ---
     async transferToApotek(ctx, idPesanan, hashSuratJalan, namaApotek, obatIdsJson, jumlahPesananJson) {
         const mspID = ctx.clientIdentity.getMSPID();
         if (mspID !== 'PBFMSP') {
@@ -95,13 +94,16 @@ class PbfContract extends Contract {
                 throw new Error(`ERROR: Stok obat ${obatId} (${obatAsli.jumlah}) tidak cukup untuk pesanan ${jumlahDipesan}.`);
             }
 
+            // 1. Update Aset Asli (PBF)
             obatAsli.jumlah -= jumlahDipesan;
-            obatAsli.riwayat.push({
+            
+            const riwayatPbfBaru = {
                 pemilik: 'PBFMSP',
                 status: 'DIKIRIM_KE_APOTEK',
                 timestamp: timestamp,
                 detail: `Transfer ke ${namaApotek} (Pesanan: ${idPesanan}). Jumlah: ${jumlahDipesan}. Sisa stok: ${obatAsli.jumlah}.`
-            });
+            };
+            obatAsli.riwayat.push(riwayatPbfBaru); // Tambahkan riwayat ke aset PBF
 
              if (obatAsli.jumlah > 0) {
                 obatAsli.statusSaatIni = 'STOK_SEBAGIAN_DIKIRIM';
@@ -111,7 +113,19 @@ class PbfContract extends Contract {
             
             await ctx.stub.putState(obatAsli.id, Buffer.from(JSON.stringify(obatAsli)));
 
+            // 2. Buat Aset Baru (Apotek)
             const apotekAssetId = `${obatId}-${idPesanan}`;
+            
+            // --- PERBAIKAN LOGIKA RIWAYAT ---
+            // Buat event riwayat baru untuk aset Apotek
+            const riwayatApotekBaru = {
+                pemilik: 'ApotekMSP',
+                status: 'DIKIRIM_KE_APOTEK',
+                timestamp: timestamp,
+                detail: `Diterima dari PBFMSP (Pesanan: ${idPesanan}). Surat Jalan hash: ${hashSuratJalan}, Jumlah: ${jumlahDipesan}`
+            };
+            // --- AKHIR PERBAIKAN ---
+
             const apotekAsset = {
                 docType: 'obat',
                 id: apotekAssetId,
@@ -132,12 +146,14 @@ class PbfContract extends Contract {
                     suratJalan: hashSuratJalan
                 },
                 namaPerusahaan: obatAsli.namaPerusahaan,
-                riwayat: [{
-                    pemilik: 'ApotekMSP',
-                    status: 'DIKIRIM_KE_APOTEK',
-                    timestamp: timestamp,
-                    detail: `Diterima dari PBFMSP (Pesanan: ${idPesanan}). Surat Jalan hash: ${hashSuratJalan}, Jumlah: ${jumlahDipesan}`
-                }],
+                
+                // --- PERBAIKAN LOGIKA RIWAYAT ---
+                // Salin riwayat dari aset PBF, lalu tambahkan riwayat baru Apotek
+                riwayat: [ ...obatAsli.riwayat, riwayatApotekBaru ],
+                idProdusen: obatAsli.idProdusen, 
+                idPbf: obatAsli.idPbf,
+                // --- AKHIR PERBAIKAN ---
+                
                 idBatchAsal: obatId
             };
 

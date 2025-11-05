@@ -110,7 +110,7 @@ const penerimaanController = {
           const transaction = contract.createTransaction('ApotekContract:terimaBarang');
           // Endorsing policy mungkin antara Apotek dan PBF
           transaction.setEndorsingOrganizations('ApotekMSP', 'PBFMSP');
-         await transaction.submit(item.id_aset_blockchain, hashBuktiFoto, namaApoteker);
+         await transaction.submit(item.id_aset_blockchain, hashBuktiFoto, namaApoteker, idApotek.toString());
         }
       }
 

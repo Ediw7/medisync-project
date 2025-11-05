@@ -494,6 +494,7 @@ updateStatusWithDetails: async (req, res) => {
       const contract = network.getContract('medisync');
 
       const namaPbf = existing[0].nama_pbf;
+      const idPbf = existing[0].id_pbf;
       const obatIds = detailRows.map(row => row.batch_id);
       const jumlahPesanan = detailRows.map(row => ({ obatId: row.batch_id, jumlah: row.jumlah_pesanan }));
 
@@ -504,6 +505,7 @@ updateStatusWithDetails: async (req, res) => {
         id.toString().padStart(6, '0'), // Pastikan ID pesanan sesuai format
         hashSuratJalan || 'TIDAK_ADA_HASH',
         namaPbf,
+        idPbf.toString(),
         JSON.stringify(obatIds),
         JSON.stringify(jumlahPesanan)
       );

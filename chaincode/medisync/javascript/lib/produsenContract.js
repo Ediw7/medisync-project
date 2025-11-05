@@ -9,14 +9,17 @@ class ProdusenContract extends Contract {
         return assetJSON && assetJSON.length > 0;
     }
 
-    async createObat(ctx, id, namaObat, nomorIzinEdar, komposisi, dosis, tanggalProduksi, tanggalKadaluarsa, bentukSediaan, penanggungJawab, jumlah, hargaPerUnit, hashHasilUjiMutu, namaPerusahaan) {
+   async createObat(ctx, id, namaObat, nomorIzinEdar, komposisi, dosis, tanggalProduksi, tanggalKadaluarsa, bentukSediaan, penanggungJawab, jumlah, hargaPerUnit, hashHasilUjiMutu, namaPerusahaan, idProdusen) {
         const mspID = ctx.clientIdentity.getMSPID();
         if (mspID !== 'ProdusenMSP') {
             throw new Error(`ERROR: Organisasi ${mspID} tidak diizinkan untuk membuat aset obat.`);
         }
 
         if (!namaPerusahaan || namaPerusahaan.trim() === '') {
-            throw new Error('ERROR: Nama perusahaan (dari nama_resmi di DB users) wajib disediakan dan tidak boleh kosong.');
+            throw new Error('ERROR: Nama perusahaan (dari nama_resmi di DB users) wajib disediakan.');
+        }
+        if (!idProdusen) { // Validasi ID Produsen
+            throw new Error('ERROR: ID Produsen (dari DB users) wajib disediakan.');
         }
 
         const exists = await this.assetExists(ctx, id);
@@ -46,17 +49,25 @@ class ProdusenContract extends Contract {
                 suratJalan: ''
             },
             namaPerusahaan: namaPerusahaan,
+            
+            // --- PENAMBAHAN ID RELASIONAL ---
+            idProdusen: idProdusen,
+            idPbf: null, // PBF belum ada
+            idApotek: null, // Apotek belum ada
+            // --- AKHIR PENAMBAHAN ---
+            
             riwayat: [{
                 pemilik: mspID,
                 status: 'DIPRODUKSI',
-                timestamp: timestamp
+                timestamp: timestamp,
+                detail: `Diproduksi oleh ${namaPerusahaan}`,
+                idProdusen: idProdusen // Simpan ID Produsen di riwayat
             }]
         };
 
         await ctx.stub.putState(id, Buffer.from(JSON.stringify(obat)));
         return JSON.stringify(obat);
     }
-
     async readObat(ctx, id) {
         const assetJSON = await ctx.stub.getState(id);
         if (!assetJSON || assetJSON.length === 0) {
@@ -111,10 +122,15 @@ class ProdusenContract extends Contract {
     // --- AKHIR FUNGSI BARU ---
 
 
-    async transferToPbf(ctx, idPesanan, hashSuratJalan, namaPbf, obatIdsJson, jumlahPesananJson) {
+   // --- FUNGSI transferToPbf (DIPERBAIKI) ---
+    // Menambahkan idPbf (dari MySQL)
+    async transferToPbf(ctx, idPesanan, hashSuratJalan, namaPbf, idPbf, obatIdsJson, jumlahPesananJson) {
         const mspID = ctx.clientIdentity.getMSPID();
         if (mspID !== 'ProdusenMSP') {
             throw new Error(`ERROR: Hanya Produsen yang bisa mentransfer ke PBF.`);
+        }
+        if (!idPbf) { // Validasi ID PBF
+             throw new Error('ERROR: ID PBF (dari DB users) wajib disediakan.');
         }
 
         const obatIds = JSON.parse(obatIdsJson);
@@ -146,6 +162,7 @@ class ProdusenContract extends Contract {
                 throw new Error(`ERROR: Stok obat ${obatId} (${obatAsli.jumlah}) tidak cukup untuk pesanan ${jumlahDipesan}.`);
             }
 
+            // 1. Update Aset Asli (Produsen)
             obatAsli.jumlah -= jumlahDipesan;
             obatAsli.riwayat.push({
                 pemilik: 'ProdusenMSP',
@@ -155,7 +172,17 @@ class ProdusenContract extends Contract {
             });
             await ctx.stub.putState(obatAsli.id, Buffer.from(JSON.stringify(obatAsli)));
 
+            // 2. Buat Aset Baru (PBF)
             const pbfAssetId = `${obatId}-${idPesanan}`; 
+            
+            // Buat event riwayat baru
+            const riwayatPbfBaru = {
+                pemilik: 'PBFMSP',
+                status: 'DIKIRIM_KE_PBF',
+                timestamp: timestamp,
+                detail: `Diterima dari ProdusenMSP (Pesanan: ${idPesanan}). Surat Jalan hash: ${hashSuratJalan}, Jumlah: ${jumlahDipesan}`
+            };
+            
             const pbfAsset = {
                 docType: 'obat',
                 id: pbfAssetId,
@@ -176,12 +203,14 @@ class ProdusenContract extends Contract {
                     suratJalan: hashSuratJalan
                 },
                 namaPerusahaan: obatAsli.namaPerusahaan,
-                riwayat: [{
-                    pemilik: 'PBFMSP',
-                    status: 'DIKIRIM_KE_PBF',
-                    timestamp: timestamp,
-                    detail: `Diterima dari ProdusenMSP (Pesanan: ${idPesanan}). Surat Jalan hash: ${hashSuratJalan}, Jumlah: ${jumlahDipesan}`
-                }],
+                
+                // --- PERBAIKAN: Salin riwayat lama & ID ---
+                riwayat: [ ...obatAsli.riwayat, riwayatPbfBaru ], // Salin riwayat lama
+                idProdusen: obatAsli.idProdusen, // Salin ID Produsen
+                idPbf: idPbf, // Simpan ID PBF baru
+                idApotek: null, // Apotek belum ada
+                // --- AKHIR PERBAIKAN ---
+
                 idBatchAsal: obatId
             };
 

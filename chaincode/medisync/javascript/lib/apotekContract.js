@@ -11,7 +11,8 @@ class ApotekContract extends Contract {
         return assetJSON && assetJSON.length > 0;
     }
 
-    async terimaBarang(ctx, id, hashBuktiPenerimaan, namaApoteker) {
+    // --- PERBAIKAN: Tambahkan 'idApotek' sebagai argumen ke-4 ---
+    async terimaBarang(ctx, id, hashBuktiPenerimaan, namaApoteker, idApotek) {
         const mspID = ctx.clientIdentity.getMSPID();
         if (mspID !== 'ApotekMSP') {
             throw new Error(`ERROR: Hanya Apotek yang dapat menerima barang.`);
@@ -31,22 +32,37 @@ class ApotekContract extends Contract {
         if (obat.pemilikSaatIni !== 'ApotekMSP') {
              throw new Error(`ERROR: Aset ini tidak dimiliki oleh Apotek.`);
         }
+        
+        // Validasi argumen baru
+        if (!namaApoteker || namaApoteker.trim() === '') {
+             throw new Error('ERROR: Nama Apoteker (penerima) wajib diisi.');
+        }
+        if (!idApotek || idApotek.trim() === '') {
+             throw new Error('ERROR: ID Apotek (penerima) wajib diisi.');
+        }
 
         const timestamp = new Date(ctx.stub.getTxTimestamp().seconds.low * 1000).toISOString();
 
         obat.statusSaatIni = 'DITERIMA_APOTEK';
+        obat.idApotek = idApotek; // <-- Sekarang 'idApotek' sudah ada
         
-        obat.riwayat.push({
+        const riwayatBaru = {
             pemilik: 'ApotekMSP',
             status: 'DITERIMA_APOTEK',
             timestamp: timestamp,
-            detail: `Diterima oleh Apoteker: ${namaApoteker} dengan bukti hash: ${hashBuktiPenerimaan}`
-        });
+            detail: `Barang diterima oleh Apotek.`,
+            penerima: namaApoteker,
+            idApotek: idApotek, // <-- Sekarang 'idApotek' sudah ada
+            hashBukti: hashBuktiPenerimaan
+        };
+        
+        obat.riwayat.push(riwayatBaru);
 
         await ctx.stub.putState(id, Buffer.from(JSON.stringify(obat)));
         console.log(`Aset ${id} berhasil diterima oleh Apotek.`);
         return JSON.stringify(obat);
     }
+    // --- AKHIR PERBAIKAN ---
 
     async jualKeKonsumen(ctx, id, infoKonsumen, jumlahJual) {
         const mspID = ctx.clientIdentity.getMSPID();
@@ -64,12 +80,9 @@ class ApotekContract extends Contract {
             throw new Error(`ERROR: Obat ini tidak dimiliki oleh Apotek.`);
         }
         
-        // --- PERBAIKAN LOGIKA STATUS ---
-        // Anda hanya bisa menjual obat yang statusnya DITERIMA_APOTEK
         if (obat.statusSaatIni !== 'DITERIMA_APOTEK') {
             throw new Error(`ERROR: Obat ini belum diterima atau sudah habis. Status: ${obat.statusSaatIni}`);
         }
-        // ---
 
         const jumlahJualInt = parseInt(jumlahJual, 10);
         if (isNaN(jumlahJualInt) || jumlahJualInt <= 0) {
@@ -83,7 +96,6 @@ class ApotekContract extends Contract {
 
         obat.jumlah -= jumlahJualInt;
 
-        // Status tidak berubah jika masih ada sisa
         let statusDetail = `TERJUAL_SEBAGIAN`;
         if (obat.jumlah === 0) {
             obat.statusSaatIni = 'STOK_HABIS';
@@ -108,16 +120,14 @@ class ApotekContract extends Contract {
       throw new Error(`ERROR: Hanya Apotek yang dapat melihat stoknya.`);
     }
 
-    // --- PERBAIKAN QUERY ---
     const queryString = {
       selector: {
         docType: 'obat',
         pemilikSaatIni: 'ApotekMSP',
-        statusSaatIni: 'DITERIMA_APOTEK', // Hapus $or dan spasi
+        statusSaatIni: 'DITERIMA_APOTEK', 
         jumlah: { $gt: 0 }
       }
     };
-    // --- AKHIR PERBAIKAN ---
 
     const iterator = await ctx.stub.getQueryResult(JSON.stringify(queryString));
     const allResults = [];

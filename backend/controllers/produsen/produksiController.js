@@ -522,7 +522,8 @@ recordToBlockchain: async (req, res) => {
       prodData.jumlah,
       prodData.harga_per_unit || 0,
       prodData.hash_sertifikat_analisis || 'TIDAK ADA HASH',
-      namaPerusahaan
+      namaPerusahaan,
+      id_produsen.toString()
     );
     console.log('ON-CHAIN transaction successful.');
 

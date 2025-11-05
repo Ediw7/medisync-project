@@ -136,7 +136,7 @@ const TrackingPengiriman = () => {
 
     switch (order.status) {
         case 'Dikirim':
-            return <Link to={`/pbf/tracking-pengiriman/lacak/${order.id}`} className="text-emerald-600 hover:text-emerald-800 font-semibold">Lihat Status</Link>;
+            return <Link to={`/pbf/tracking-pengiriman/lihatstatus/${order.id}`} className="text-emerald-600 hover:text-emerald-800 font-semibold">Lihat Status</Link>;
         case 'Selesai':
             return assetId ? (
                 <Link to={`/pbf/tracking-pengiriman/riwayat/${assetId}`} className="text-purple-600 hover:text-purple-800 font-semibold">Lihat Riwayat</Link>
@@ -299,11 +299,11 @@ const TrackingPengiriman = () => {
                           >
                             <div className="flex items-center gap-1">Nomor Pesanan {getSortIndicator('nomor_pesanan')}</div>
                           </th>
-                           <th 
+                          <th 
                             className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-100"
-                            onClick={() => sortData('tanggal_pengiriman')}
+                            onClick={() => sortData('tanggal_pesanan')}
                           >
-                            <div className="flex items-center gap-1">Tgl. Kirim {getSortIndicator('tanggal_pengiriman')}</div>
+                            <div className="flex items-center gap-1">Tgl. Pesan {getSortIndicator('tanggal_pesanan')}</div>
                           </th>
                           <th 
                             className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-100"
@@ -322,11 +322,11 @@ const TrackingPengiriman = () => {
                         <tr key={order.id} className="hover:bg-gray-50">
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{order.nama_apotek}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-mono">{order.nomor_pesanan}</td>
-                           <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                            {formatDate(order.tanggal_pengiriman)}
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                            {formatDate(order.tanggal_pesanan)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-700">
-                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(order.total_harga)}
+                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 2 }).format(order.total_harga)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(order.status)}`}>

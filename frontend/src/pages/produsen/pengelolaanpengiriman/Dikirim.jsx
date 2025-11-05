@@ -272,7 +272,9 @@ const Dikirim = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
                            <Link to={`/produsen/pengelolaan-pengiriman/detail/${item.id}/surat`} className="text-emerald-600 hover:underline">Lihat Surat</Link>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-700">Rp. {item.total_harga.toLocaleString('id-ID')}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-700">
+                            Rp {Number(item.total_harga || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusBadge(item.status)}`}>
                               {item.status}

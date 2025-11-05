@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import NavbarApotek from '../../../components/NavbarApotek';
 import {
   Search,
@@ -7,11 +7,7 @@ import {
   ShoppingCart,
   Loader2,
   AlertTriangle,
-  Package,
   Calendar,
-  FileText,
-  CheckCircle,
-  CheckCircle2,
   XCircle,
   Info,
   X
@@ -20,7 +16,6 @@ import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import NavItemApotek from '../../../components/NavItemApotek';
 
-// --- KOMPONEN CARD PESANAN (Salin dari file utama) ---
 const OrderCard = ({ item, getStatusBadge, formatDate, renderAction }) => {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden transition-all duration-300 hover:shadow-md">
@@ -44,7 +39,9 @@ const OrderCard = ({ item, getStatusBadge, formatDate, renderAction }) => {
         </div>
         <div className="sm:text-right">
           <p className="text-xs text-slate-500">Total</p>
-          <p className="text-sm font-semibold text-emerald-700">Rp {(item.total_harga || 0).toLocaleString('id-ID')}</p>
+         <p className="text-sm font-semibold text-emerald-700">
+            Rp {Number(item.total_harga || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}
+          </p>
         </div>
       </div>
       <div className="p-4 flex justify-end bg-slate-50/50 border-t border-slate-100">
@@ -53,7 +50,7 @@ const OrderCard = ({ item, getStatusBadge, formatDate, renderAction }) => {
     </div>
   );
 };
-// --- AKHIR KOMPONEN CARD ---
+
 
 const DibatalkanApotek = () => {
   const navigate = useNavigate();

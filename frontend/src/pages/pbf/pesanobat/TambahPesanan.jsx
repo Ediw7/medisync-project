@@ -8,13 +8,28 @@ import {
   Loader2, 
   CheckCircle, 
   XCircle, 
-  Upload, 
-  AlertCircle,  // <-- FIX 1: Ditambahkan
-  ChevronDown   // <-- FIX 2: Ditambahkan
+  AlertCircle, 
+  ChevronDown  
 } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
 import { FaClipboardList } from "react-icons/fa";
 import { toast } from 'react-hot-toast';
+
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+
+const formatDateForAPI = (date) => {
+  if (!date) return null;
+  try {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  } catch (error) {
+    console.error("Error formatting date:", date, error);
+    return null;
+  }
+};
 
 const TambahPesanan = () => {
   const navigate = useNavigate();
@@ -31,7 +46,7 @@ const TambahPesanan = () => {
     nomor_sipa: '',
     kontak_telepon: '',
     kontak_email: '',
-    tanggal_pesanan: new Date().toISOString().split('T')[0],
+    tanggal_pesanan: new Date(),
     tujuan_distribusi: '', 
     catatan_khusus: '',
     total_harga: 0,
@@ -204,7 +219,7 @@ const TambahPesanan = () => {
           
           
           setStokObat(result.data);
-          console.log('Stok loaded from:', result.source); // Akan log 'on-chain'
+          console.log('Stok loaded from:', result.source); 
           console.log(`Stok ditemukan untuk Produsen ${idProdusen}:`, result.data.length);
         } else {
           throw new Error(result.message || 'Gagal memuat stok obat.');
@@ -241,13 +256,12 @@ const TambahPesanan = () => {
 
   const handleItemSelect = (e) => {
     const selectedId = e.target.value;
-    // 'id' di sini adalah 'id' dari on-chain (batch_id)
     const selected = stokObat.find((o) => o.id.toString() === selectedId); 
     if (selected) {
       const harga = Number(selected.harga_per_unit) || 0;
-      const jumlah = 1; 
+      const jumlah = 0; 
       setItemObat({
-        id_produksi: String(selected.id), // Gunakan ID on-chain (P11-...)
+        id_produksi: String(selected.id), 
         nama_obat: selected.nama_obat,
         bentuk_sediaan: selected.bentuk_sediaan || '',
         dosis: selected.dosis || '',
@@ -291,7 +305,7 @@ const TambahPesanan = () => {
       
     } else {
       setDetailObat([...detailObat, {
-        id_produksi: String(itemObat.id_produksi), // Ini akan menjadi batch_id (P11-...)
+        id_produksi: String(itemObat.id_produksi), 
         nama_obat: itemObat.nama_obat,
         bentuk_sediaan: itemObat.bentuk_sediaan,
         dosis: itemObat.dosis,
@@ -377,7 +391,7 @@ const TambahPesanan = () => {
         nomor_sipa: infoPemesanan.nomor_sipa,
         kontak_telepon: infoPemesanan.kontak_telepon,
         kontak_email: infoPemesanan.kontak_email,
-        tanggal_pesanan: infoPemesanan.tanggal_pesanan,
+        tanggal_pesanan: formatDateForAPI(infoPemesanan.tanggal_pesanan),
         tujuan_distribusi: infoPemesanan.tujuan_distribusi, 
         catatan_khusus: infoPemesanan.catatan_khusus || null,
         items: detailObat,
@@ -554,11 +568,10 @@ const TambahPesanan = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Tanggal Pesanan</label>
-                      <input
-                        name="tanggal_pesanan"
-                        type="date"
-                        value={infoPemesanan.tanggal_pesanan}
-                        onChange={handleInfoChange}
+                      <DatePicker
+                        selected={infoPemesanan.tanggal_pesanan}
+                        onChange={(date) => setInfoPemesanan({ ...infoPemesanan, tanggal_pesanan: date })}
+                        dateFormat="dd/MM/yyyy" 
                         className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
                         required
                       />

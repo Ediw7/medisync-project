@@ -127,13 +127,17 @@ const penjualanController = {
       );
       const penjualanId = penjualanResult.insertId;
 
+      // ... di dalam prosesPenjualan
       for (const item of items) {
+        // Nama field dari frontend Penjualan.jsx
         const { id_aset_blockchain, jumlah_jual, harga_satuan, total_item, nama_obat } = item;
         
+        // 2a. Catat detail penjualan di MySQL
         await dbConnection.query(
-          'INSERT INTO detail_penjualan (id_penjualan, id_aset_blockchain, jumlah_jual, harga_satuan, total_harga) VALUES (?, ?, ?, ?, ?)',
-          [penjualanId, id_aset_blockchain, jumlah_jual, harga_satuan, total_item]
+          'INSERT INTO detail_penjualan (id_penjualan, id_aset_blockchain, nama_obat, jumlah_jual, harga_satuan, total_harga) VALUES (?, ?, ?, ?, ?, ?)',
+          [penjualanId, id_aset_blockchain, nama_obat, jumlah_jual, harga_satuan, total_item]
         );
+// ... (sisa loop)
 
         console.log(`🔗 Submitting blockchain: jualKeKonsumen(${id_aset_blockchain}, ${nama_pelanggan || 'Konsumen'}, ${jumlah_jual})`);
         

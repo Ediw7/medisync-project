@@ -4,7 +4,6 @@ import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
 import {
   Search,
-  Eye,
   Package, 
   Truck,
   Box, 
@@ -355,9 +354,9 @@ const MonitoringStok = () => {
                                 <button
                                    onClick={() => navigate(`/produsen/produksi/detailstok/${item.id}`)}
                                    className="text-emerald-600 hover:text-emerald-800 p-1 hover:bg-emerald-100 rounded-md transition-colors"
-                                   title="Lihat Detail Stok"
+                                   
                                 >
-                                  <Eye size={18} />
+                                 Lihat Detail
                                 </button>
                               </td>
                             </tr>

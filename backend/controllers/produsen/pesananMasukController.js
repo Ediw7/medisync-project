@@ -702,11 +702,16 @@ updateStatusWithDetails: async (req, res) => {
           if (obatIds.length === 0) {
              throw new Error('Tidak ada ID batch obat yang valid untuk pesanan ini.');
           }
+          const idPbf = pesanan[0].id_pbf; // 1. Ambil ID PBF
+          if (!idPbf) {
+             throw new Error(`id_pbf tidak ditemukan untuk pesanan ${pesananId}.`);
+          }
+
 
           // Panggil Chaincode
           const transaction = contract.createTransaction('ProdusenContract:transferToPbf');
           const resultBuffer = await transaction.submit(
-            pesananId.toString(), hashSuratJalan, pesanan[0].nama_pbf,
+            pesananId.toString(), hashSuratJalan, pesanan[0].nama_pbf,idPbf.toString(),
             JSON.stringify(obatIds), JSON.stringify(jumlahPesanan)
           );
 
@@ -724,7 +729,7 @@ updateStatusWithDetails: async (req, res) => {
                   [assetId, correspondingDetail.detail_pesanan_id]
                 );
                 // Perbarui juga assetId di detailRows untuk dikirim ke frontend
-                correspondingDetail.id_aset_blockchain = assetId; 
+               correspondingDetail.id_aset_blockchain = assetId;
               }
             }
           }

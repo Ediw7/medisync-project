@@ -342,7 +342,7 @@ const SuratPesananApotek = () => {
                     ) : null}
                     <span className={`text-slate-400 text-xs italic border-b border-slate-400 w-full text-center ${info.tanda_tangan_apoteker ? 'hidden' : 'block'}`}>( Tanda Tangan Digital )</span>
                   </div>
-                  <p className="font-bold underline text-slate-800 mt-2">{info.nama_apoteker || '(Nama Apoteker)'}</p>
+                 <p className="font-bold underline text-slate-800 mt-2">{info.jabatan || '(Nama Apoteker)'}</p>
                   <p className="text-slate-600">Apoteker Penanggung Jawab</p>
                   <p className="text-slate-600">SIPA: {info.nomor_sipa || '(Nomor SIPA)'}</p>
                 </div>

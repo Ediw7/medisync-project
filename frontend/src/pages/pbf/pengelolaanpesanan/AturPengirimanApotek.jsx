@@ -13,7 +13,7 @@ const AturPengirimanApotek = () => {
   const [error, setError] = useState(null);
   const [pesanan, setPesanan] = useState(null);
   const [waktuPengiriman, setWaktuPengiriman] = useState('09:00-12:00');
-  const [opsiPengiriman] = useState('kurir_internal');
+    const [opsiPengiriman, setOpsiPengiriman] = useState(location.state?.opsiPengiriman || 'kargo')
   const [catatan, setCatatan] = useState('');
 
   const calculateShippingDates = (orderDate) => {
@@ -193,7 +193,7 @@ const AturPengirimanApotek = () => {
                   <h2 className="text-lg font-semibold text-emerald-900 flex items-center gap-2">
                     <Calendar size={20} /> Jadwal Pengiriman
                   </h2>
-                  <p className="text-sm text-emerald-700 mt-1">Metode: Kurir Internal</p>
+
                 </div>
 
                 <div className="p-6 space-y-6">
@@ -286,7 +286,8 @@ const AturPengirimanApotek = () => {
                     <div className="text-left sm:text-right">
                       <p className="text-xs font-medium text-slate-500 mb-1">Total Harga</p>
                       <p className="text-lg font-bold text-emerald-700 flex items-center gap-1">
-                        Rp. {pesanan?.total_harga?.toLocaleString('id-ID', { minimumFractionDigits: 0 }) || '...'}
+                        
+                        Rp {Number(pesanan?.total_harga || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}
                       </p>
                       <p className="text-xs text-slate-500 mt-0.5">Pembayaran via Apotek</p>
                     </div>

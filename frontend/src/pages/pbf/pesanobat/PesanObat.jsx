@@ -199,8 +199,8 @@ const PesanObat = () => {
               </div>
             )}
 
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="p-6 border-b border-slate-200">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200">
+             <div className="p-6 border-b border-slate-200 relative z-10">
                 <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
                   <Package size={20} className="text-emerald-600" />
                   Daftar Pesanan Obat
@@ -286,7 +286,7 @@ const PesanObat = () => {
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto rounded-b-2xl">
                 <table className="min-w-full">
                   <thead className="bg-slate-50 border-b-2 border-slate-200">
                     <tr>

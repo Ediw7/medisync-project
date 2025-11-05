@@ -4,7 +4,6 @@ import SidebarPbf from '../../../components/SidebarPbf';
 import NavbarPbf from '../../../components/NavbarPbf';
 import {
   Search,
-  Eye,
   Package,
   Truck,
   AlertTriangle,
@@ -12,7 +11,6 @@ import {
   TrendingUp,
   ArrowUpRight,
   Calendar,
-  Clock
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import {FaBoxOpen} from "react-icons/fa";
@@ -317,9 +315,9 @@ const MonitoringStokPbf = () => {
                               <button
                                  onClick={() => navigate(`/pbf/stok/detail/${item.detail_pesanan_id}`)}
                                  className="text-emerald-600 hover:text-emerald-800 p-1 hover:bg-emerald-100 rounded-md transition-colors"
-                                 title="Lihat Detail Stok"
+                           
                               >
-                                <Eye size={18} />
+                                Lihat Detail
                               </button>
                             </td>
                           </tr>

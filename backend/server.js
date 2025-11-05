@@ -29,6 +29,7 @@ const dashboardApotekRoutes = require('./routes/apotek/dashboardRoute');
 const batalkanApotekRoute = require('./routes/apotek/batalkanRoute');
 const pengembalianApotekRoute = require('./routes/apotek/pengembalianRoute');
 const penjualanApotekRoute = require('./routes/apotek/penjualanRoute');
+const laporanApotekRoute = require('./routes/apotek/laporanApotekRoute');
 const app = express();
 
 app.use(cors());
@@ -63,6 +64,7 @@ app.use('/api/apotek/dashboard', dashboardApotekRoutes);
 app.use('/api/apotek/pengembalian', pengembalianApotekRoute);
 app.use('/api/apotek/batalkan', batalkanApotekRoute);
 app.use('/api/apotek/penjualan', penjualanApotekRoute);
+app.use('/api/apotek/laporan', laporanApotekRoute);
 app.use('/api/apotek', apotekRoutes);
 
 const PORT = process.env.PORT || 5000;

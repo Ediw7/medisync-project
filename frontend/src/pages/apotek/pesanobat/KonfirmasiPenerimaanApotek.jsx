@@ -4,7 +4,6 @@ import NavbarApotek from '../../../components/NavbarApotek';
 import {
   ArrowLeft,
   Camera,
-  CheckCircle,
   Package,
   Truck,
   Loader2,
@@ -14,10 +13,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   Info,
-  Calendar,
-  Clock,
-  ClipboardCopy,
-  ImageIcon
 } from 'lucide-react';
 import axios from 'axios';
 import html2pdf from 'html2pdf.js';
@@ -484,7 +479,9 @@ const KonfirmasiPenerimaanApotek = () => {
                               <td className="px-4 py-3 font-mono text-slate-600">{item.id_aset_blockchain || item.batch_id || '-'}</td>
                               {/* --- PERBAIKAN: Gunakan 'item.jumlah_pesanan' --- */}
                               <td className="px-4 py-3 text-center font-medium text-emerald-700">{(item.jumlah_pesanan || 0).toLocaleString('id-ID')} {item.satuan || 'Box'}</td>
-                              <td className="px-4 py-3 text-right font-semibold text-slate-800">Rp {Number(item.total_harga || 0).toLocaleString('id-ID')}</td>
+                             <td className="px-4 py-3 text-right font-semibold text-slate-800">
+                                Rp {Number(item.total_harga || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}
+                              </td>
                             </tr>
                           ))
                         ) : (
@@ -498,9 +495,9 @@ const KonfirmasiPenerimaanApotek = () => {
                       <tfoot className="bg-slate-50 font-semibold">
                         <tr>
                           <td colSpan="4" className="px-4 py-3 text-right text-slate-800">Total Keseluruhan</td>
-                          {/* --- PERBAIKAN: Gunakan 'info.total_harga' --- */}
-                          <td className="px-4 py-3 text-right text-xl text-emerald-700">
-                            Rp {Number(info.total_harga || 0).toLocaleString('id-ID')}
+                    
+                         <td className="px-4 py-3 text-right text-xl text-emerald-700">
+                            Rp {Number(info.total_harga || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}
                           </td>
                         </tr>
                       </tfoot>

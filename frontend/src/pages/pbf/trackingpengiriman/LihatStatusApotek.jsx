@@ -224,7 +224,7 @@ const LihatStatusApotek = () => {
         <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
           <div className="max-w-5xl mx-auto">
             <button
-              onClick={() => navigate('/pbf/pengelolaan-pesanan')}
+              onClick={() => navigate('/pbf/tracking-pengiriman')}
               className="mb-6 inline-flex items-center text-emerald-600 hover:text-emerald-700 transition-colors text-sm font-medium"
             >
               <ArrowLeft size={16} className="mr-1" /> Kembali ke Pengelolaan Pesanan

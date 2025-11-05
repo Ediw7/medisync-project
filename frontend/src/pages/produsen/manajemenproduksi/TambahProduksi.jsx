@@ -460,12 +460,20 @@ const TambahProduksi = () => {
                         name="status"
                         value={formData.status}
                         onChange={handleInputChange}
+                    
                         className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
                         required
                       >
+                        
                         <option value="Terjadwal">Terjadwal</option>
-                        <option value="Dalam Produksi">Dalam Produksi</option>
-                        <option value="Selesai">Selesai</option>
+                        
+                        
+                        <option value="Dalam Produksi" disabled>
+                          Dalam Produksi
+                        </option>
+                        <option value="Selesai" disabled>
+                          Selesai
+                        </option>
                       </select>
                     </div>
                     <div>

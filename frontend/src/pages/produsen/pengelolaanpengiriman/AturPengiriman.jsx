@@ -230,7 +230,7 @@ const AturPengiriman = () => {
                   <h2 className="text-lg font-semibold text-emerald-900 flex items-center gap-2">
                     <Calendar size={20} /> Jadwal Pengiriman
                   </h2>
-                  <p className="text-sm text-emerald-700 mt-1">Metode: Kargo (Default)</p>
+          
                 </div>
 
                 <div className="p-6 space-y-6">

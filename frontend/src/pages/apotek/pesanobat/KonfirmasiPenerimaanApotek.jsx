@@ -17,7 +17,7 @@ import {
   Calendar,
   Clock,
   ClipboardCopy,
-  ImageIcon // Ditambahkan
+  ImageIcon
 } from 'lucide-react';
 import axios from 'axios';
 import html2pdf from 'html2pdf.js';
@@ -113,7 +113,6 @@ const StatusLine = ({ isCompleted }) => (
 const KonfirmasiPenerimaanApotek = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [isCollapsed, setIsCollapsed] = useState(false); // State untuk sidebar (jika Anda ingin menambahkannya)
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pesanan, setPesanan] = useState(null);
@@ -138,9 +137,7 @@ const KonfirmasiPenerimaanApotek = () => {
         });
 
         if (response.data.success && response.data.data) {
-          // Cek status di sini
           if (response.data.data.pesanan?.status !== 'Dikirim') {
-            // Tetap set data, tapi set error juga
             setError(`Pesanan ini berstatus "${response.data.data.pesanan?.status || 'Tidak Diketahui'}". Hanya pesanan "Dikirim" yang dapat dikonfirmasi.`);
             toast.error(`Pesanan ini berstatus "${response.data.data.pesanan?.status}".`, { duration: 4000 });
           }
@@ -150,7 +147,7 @@ const KonfirmasiPenerimaanApotek = () => {
         }
       } catch (err) {
         const errorMsg = err.response?.data?.message || err.message;
-        setError(errorMsg); // Set error
+        setError(errorMsg); 
         toast.error(errorMsg || 'Gagal memuat data.');
         if (err.message.includes('login') || err.response?.status === 401) navigate('/login/apotek');
       } finally {
@@ -179,7 +176,6 @@ const KonfirmasiPenerimaanApotek = () => {
   };
 
   const handleOpenConfirmModal = () => {
-     // Cek error lagi sebelum membuka modal
      if (pesanan?.pesanan?.status !== 'Dikirim') {
          toast.error("Tidak dapat mengkonfirmasi pesanan yang belum dikirim.");
          return;
@@ -206,7 +202,6 @@ const KonfirmasiPenerimaanApotek = () => {
 
     try {
       const token = localStorage.getItem('token');
-      // Panggil endpoint PBF (penerimaanController)
       const response = await axios.put(
         `http://localhost:5000/api/apotek/penerimaan/konfirmasi/${id}`,
         formData,
@@ -220,7 +215,7 @@ const KonfirmasiPenerimaanApotek = () => {
 
       if (response.data.success) {
         toast.success('Penerimaan berhasil dikonfirmasi!', { id: toastId });
-        navigate('/apotek/pesan-obat/selesai'); // Arahkan ke tab Selesai
+        navigate('/apotek/pesan-obat/selesai'); 
       } else {
         throw new Error(response.data.message || 'Gagal konfirmasi');
       }
@@ -271,7 +266,7 @@ const KonfirmasiPenerimaanApotek = () => {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
-        timeZone: 'UTC' // Paksa UTC agar konsisten dengan input YYYY-MM-DD
+        timeZone: 'UTC'
       });
     } catch (e) {
       return 'N/A';
@@ -286,7 +281,7 @@ const KonfirmasiPenerimaanApotek = () => {
       return date.toLocaleString('id-ID', {
         day: 'numeric', month: 'short', year: 'numeric',
         hour: '2-digit', minute: '2-digit',
-        timeZone: 'Asia/Jakarta' // Tampilkan waktu lokal
+        timeZone: 'Asia/Jakarta'
       });
     } catch (e) {
       return null;
@@ -353,9 +348,12 @@ const KonfirmasiPenerimaanApotek = () => {
   }
 
   const { pesanan: info, detail_pesanan: detail } = pesanan;
-  const totalHargaKeseluruhan = detail ? detail.reduce((acc, item) => acc + (Number(item.total_harga) || 0), 0) : (info.total_harga || 0);
+  
+  // --- PERBAIKAN: Ambil total harga dari 'info' (objek pesanan utama) ---
+  const totalHargaKeseluruhan = info.total_harga || 0;
+  // --- AKHIR PERBAIKAN ---
 
-  const isDipersiapkanCompleted = true; // Jika halaman ini load, pasti sudah dipersiapkan
+  const isDipersiapkanCompleted = true;
   const isDikirimCompleted = ['Dikirim', 'Selesai'].includes(info.status);
   const isSelesaiCompleted = info.status === 'Selesai';
   const currentStatusStep = isSelesaiCompleted ? 'Selesai' : (isDikirimCompleted ? 'Dikirim' : 'Dipersiapkan');
@@ -399,7 +397,6 @@ const KonfirmasiPenerimaanApotek = () => {
               </div>
             </div>
 
-            {/* Tampilkan error spesifik jika status tidak 'Dikirim' */}
             {error && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-2 text-sm">
                 <AlertTriangle size={20} />
@@ -407,121 +404,127 @@ const KonfirmasiPenerimaanApotek = () => {
               </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Kolom Kiri: Detail */}
-              <div className="lg:col-span-2 space-y-6">
-                <div ref={contentRef} className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-                  <section className="p-6">
-                    <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-                      <Package size={20} className="text-emerald-600" />
-                      Detail Pengiriman
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-1">
-                        <span className="text-sm font-medium text-slate-500">Dikirim Dari (PBF)</span>
-                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                          <span className="font-semibold text-slate-900 text-base">{info.nama_pbf}</span>
-                          <p className="text-sm text-slate-600">{info.alamat_pbf}</p>
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-sm font-medium text-slate-500">Diterima Oleh (Apotek)</span>
-                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                          <span className="font-semibold text-slate-900 text-base">{info.nama_apotek}</span>
-                          <p className="text-sm text-slate-600">{info.alamat_apotek}</p>
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-sm font-medium text-slate-500">Tanggal Pesan</span>
-                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                          <span className="font-medium text-slate-700">{formatDate(info.tanggal_pesanan)}</span>
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-sm font-medium text-slate-500">Tanggal Kirim</span>
-                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                          <span className="font-medium text-slate-700">{formatDate(info.tanggal_pengiriman) || 'Belum dikirim'}</span>
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-sm font-medium text-slate-500">No. Surat Jalan</span>
-                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                          <span className="font-medium text-slate-700 font-mono">{info.nomor_surat_jalan || '-'}</span>
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-sm font-medium text-slate-500">No. Resi</span>
-                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                          <span className="font-medium text-slate-700 font-mono">{info.nomor_resi || '-'}</span>
-                        </div>
+            {/* --- Layout Vertikal (space-y-6) --- */}
+            <div className="space-y-6">
+              
+              {/* Kartu Detail */}
+              <div ref={contentRef} className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+                <section className="p-6">
+                  <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
+                    <Package size={20} className="text-emerald-600" />
+                    Detail Pengiriman
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-1">
+                      <span className="text-sm font-medium text-slate-500">Dikirim Dari (PBF)</span>
+                      <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <span className="font-semibold text-slate-900 text-base">{info.nama_pbf}</span>
+                        <p className="text-sm text-slate-600">{info.alamat_pbf}</p>
                       </div>
                     </div>
-                  </section>
+                    <div className="space-y-1">
+                      <span className="text-sm font-medium text-slate-500">Diterima Oleh (Apotek)</span>
+                      <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <span className="font-semibold text-slate-900 text-base">{info.nama_apotek}</span>
+                        <p className="text-sm text-slate-600">{info.alamat_apotek}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-sm font-medium text-slate-500">Tanggal Pesan</span>
+                      <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <span className="font-medium text-slate-700">{formatDate(info.tanggal_pesanan)}</span>
+                      </div>
+                    </div>
+                    
+                    {/* --- PERBAIKAN DATA: Tampilkan data dari 'info' --- */}
+                    <div className="space-y-1">
+                      <span className="text-sm font-medium text-slate-500">Tanggal Kirim</span>
+                      <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <span className="font-medium text-slate-700">{formatDate(info.tanggal_pengiriman) || 'Belum dikirim'}</span>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-sm font-medium text-slate-500">No. Surat Jalan</span>
+                      <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <span className="font-medium text-slate-700 font-mono">{info.nomor_surat_jalan || '-'}</span>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-sm font-medium text-slate-500">No. Resi</span>
+                      <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <span className="font-medium text-slate-700 font-mono">{info.nomor_resi || '-'}</span>
+                      </div>
+                    </div>
+                    {/* --- AKHIR PERBAIKAN DATA --- */}
+                  </div>
+                </section>
 
-                  <section className="p-6 border-t border-slate-200">
-                    <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-                      <FileText size={20} className="text-emerald-600" />
-                      Detail Barang Diterima
-                    </h3>
-                    <div className="overflow-x-auto border border-slate-200 rounded-lg">
-                      <table className="w-full text-sm">
-                        <thead className="bg-slate-50 text-slate-700">
-                          <tr>
-                            <th className="px-4 py-3 text-left font-semibold border-b border-slate-200">No.</th>
-                            <th className="px-4 py-3 text-left font-semibold border-b border-slate-200">Nama Obat</th>
-                            <th className="px-4 py-3 text-left font-semibold border-b border-slate-200">Batch ID</th>
-                            <th className="px-4 py-3 text-center font-semibold border-b border-slate-200">Jumlah</th>
-                            <th className="px-4 py-3 text-right font-semibold border-b border-slate-200">Total Harga</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {detail && detail.length > 0 ? (
-                            detail.map((item, index) => (
-                              <tr key={item.id || index} className="hover:bg-slate-50">
-                                <td className="px-4 py-3">{index + 1}</td>
-                                <td className="px-4 py-3 font-medium text-slate-800">{item.nama_obat}</td>
-                                <td className="px-4 py-3 font-mono text-slate-600">{item.id_aset_blockchain || item.batch_id || '-'}</td>
-                                <td className="px-4 py-3 text-center font-medium text-emerald-700">{(item.jumlah || 0).toLocaleString('id-ID')} Box</td>
-                                <td className="px-4 py-3 text-right font-semibold text-slate-800">Rp {Number(item.total_harga || 0).toLocaleString('id-ID')}</td>
-                              </tr>
-                            ))
-                          ) : (
-                            <tr>
-                              <td colSpan="5" className="text-center py-6 text-slate-500 border-t border-slate-200">
-                                Tidak ada detail barang.
-                              </td>
+                <section className="p-6 border-t border-slate-200">
+                  <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
+                    <FileText size={20} className="text-emerald-600" />
+                    Detail Barang Diterima
+                  </h3>
+                  <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-50 text-slate-700">
+                        <tr>
+                          <th className="px-4 py-3 text-left font-semibold border-b border-slate-200">No.</th>
+                          <th className="px-4 py-3 text-left font-semibold border-b border-slate-200">Nama Obat</th>
+                          <th className="px-4 py-3 text-left font-semibold border-b border-slate-200">Batch ID</th>
+                          <th className="px-4 py-3 text-center font-semibold border-b border-slate-200">Jumlah</th>
+                          <th className="px-4 py-3 text-right font-semibold border-b border-slate-200">Total Harga</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {detail && detail.length > 0 ? (
+                          detail.map((item, index) => (
+                            <tr key={item.id || index} className="hover:bg-slate-50">
+                              <td className="px-4 py-3">{index + 1}</td>
+                              <td className="px-4 py-3 font-medium text-slate-800">{item.nama_obat}</td>
+                              <td className="px-4 py-3 font-mono text-slate-600">{item.id_aset_blockchain || item.batch_id || '-'}</td>
+                              {/* --- PERBAIKAN: Gunakan 'item.jumlah_pesanan' --- */}
+                              <td className="px-4 py-3 text-center font-medium text-emerald-700">{(item.jumlah_pesanan || 0).toLocaleString('id-ID')} {item.satuan || 'Box'}</td>
+                              <td className="px-4 py-3 text-right font-semibold text-slate-800">Rp {Number(item.total_harga || 0).toLocaleString('id-ID')}</td>
                             </tr>
-                          )}
-                        </tbody>
-                        <tfoot className="bg-slate-50 font-semibold">
+                          ))
+                        ) : (
                           <tr>
-                            <td colSpan="4" className="px-4 py-3 text-right text-slate-800">Total Keseluruhan</td>
-                            <td className="px-4 py-3 text-right text-xl text-emerald-700">
-                              Rp {totalHargaKeseluruhan.toLocaleString('id-ID')}
+                            <td colSpan="5" className="text-center py-6 text-slate-500 border-t border-slate-200">
+                              Tidak ada detail barang.
                             </td>
                           </tr>
-                        </tfoot>
-                      </table>
-                    </div>
-                  </section>
-                </div>
+                        )}
+                      </tbody>
+                      <tfoot className="bg-slate-50 font-semibold">
+                        <tr>
+                          <td colSpan="4" className="px-4 py-3 text-right text-slate-800">Total Keseluruhan</td>
+                          {/* --- PERBAIKAN: Gunakan 'info.total_harga' --- */}
+                          <td className="px-4 py-3 text-right text-xl text-emerald-700">
+                            Rp {Number(info.total_harga || 0).toLocaleString('id-ID')}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </section>
+              </div>
 
-                <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-                  <div className="p-8 py-12">
-                    <h3 className="text-lg font-bold text-slate-900 mb-8 text-center">Status Pengiriman</h3>
-                    <div className="flex items-start justify-center gap-0">
-                      <StatusStep icon={Package} label="Dipersiapkan" timestamp={getTimestamp('Dipersiapkan')} isCompleted={isDipersiapkanCompleted} isCurrent={currentStatusStep === 'Dipersiapkan'} />
-                      <StatusLine isCompleted={isDikirimCompleted} />
-                      <StatusStep icon={Truck} label="Dikirim" timestamp={getTimestamp('Dikirim')} isCompleted={isDikirimCompleted} isCurrent={currentStatusStep === 'Dikirim'} />
-                      <StatusLine isCompleted={isSelesaiCompleted} />
-                      <StatusStep icon={CheckCircle2} label="Diterima" timestamp={getTimestamp('Selesai')} isCompleted={isSelesaiCompleted} isCurrent={currentStatusStep === 'Selesai'} />
-                    </div>
+              {/* Kartu Status */}
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+                <div className="p-8 py-12">
+                  <h3 className="text-lg font-bold text-slate-900 mb-8 text-center">Status Pengiriman</h3>
+                  <div className="flex items-start justify-center gap-0">
+                    <StatusStep icon={Package} label="Dipersiapkan" timestamp={getTimestamp('Dipersiapkan')} isCompleted={isDipersiapkanCompleted} isCurrent={currentStatusStep === 'Dipersiapkan'} />
+                    <StatusLine isCompleted={isDikirimCompleted} />
+                    <StatusStep icon={Truck} label="Dikirim" timestamp={getTimestamp('Dikirim')} isCompleted={isDikirimCompleted} isCurrent={currentStatusStep === 'Dikirim'} />
+                    <StatusLine isCompleted={isSelesaiCompleted} />
+                    <StatusStep icon={CheckCircle2} label="Diterima" timestamp={getTimestamp('Selesai')} isCompleted={isSelesaiCompleted} isCurrent={currentStatusStep === 'Selesai'} />
                   </div>
                 </div>
               </div>
-              
-              {/* Kolom Kanan: Aksi */}
-              <div className="lg:sticky lg:top-24 space-y-6">
+            
+              {/* Kartu Aksi */}
+              <div className="space-y-6">
                 <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
                   <div className="p-6">
                     <h3 className="text-lg font-semibold text-slate-900 mb-4">Aksi Penerimaan</h3>
@@ -532,11 +535,12 @@ const KonfirmasiPenerimaanApotek = () => {
                         </p>
                         <button 
                           onClick={handleOpenConfirmModal} 
-                          className="w-full py-3 px-6 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 flex items-center justify-center gap-2 transition" 
+                          className="w-full py-3 px-6 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 flex items-center justify-center gap-2 transition shadow-md" 
                           disabled={isSubmitting}
                         >
                           <CheckCircle2 size={18} /> Konfirmasi Penerimaan
                         </button>
+                        {/* --- PERBAIKAN: Tombol 'Ajukan Pengembalian' ditambahkan --- */}
                         <Link to={`/apotek/pesanan/${id}/ajukan-pengembalian`} className="mt-3 w-full py-3 px-6 bg-red-100 text-red-700 font-medium rounded-lg hover:bg-red-200 border border-red-200 transition text-center text-sm flex items-center justify-center gap-2">
                           <AlertTriangle size={18} /> Ajukan Pengembalian
                         </Link>

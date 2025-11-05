@@ -1,10 +1,21 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // <-- 1. Import Link
 import NavbarApotek from '../../../components/NavbarApotek';
-import { Search, Trash2, QrCode, ShoppingCart, Plus, Loader2, AlertTriangle, X, CheckCircle2 } from 'lucide-react';
+import { 
+    Search, 
+    Trash2, 
+    QrCode, 
+    ShoppingCart, 
+    Plus, 
+    Loader2, 
+    AlertTriangle, 
+    X, 
+    CheckCircle2,
+    History // <-- 2. Import History
+} from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
-import QRCode from 'react-qr-code'; // Pastikan Anda sudah install: npm install react-qr-code
+import QRCode from 'react-qr-code'; // Pastikan Anda sudah install: npm install react-qr-code --legacy-peer-deps
 
 // --- MODAL HASIL PENJUALAN (BARU) ---
 const HasilPenjualanModal = ({ show, onClose, soldAssetIds }) => {
@@ -74,12 +85,14 @@ const Penjualan = () => {
   const [error, setError] = useState(null);
   const username = localStorage.getItem('username');
 
+  // --- State untuk Stok dan Search ---
   const [stokApotek, setStokApotek] = useState([]);
   const [isStokLoading, setIsStokLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStokId, setSelectedStokId] = useState('');
   const [jumlahJual, setJumlahJual] = useState(1);
   
+  // --- State untuk Modal Hasil ---
   const [showHasilModal, setShowHasilModal] = useState(false);
   const [hasilPenjualan, setHasilPenjualan] = useState([]);
 
@@ -135,10 +148,16 @@ const Penjualan = () => {
   // --- Filter stok berdasarkan pencarian ---
   const searchResults = useMemo(() => {
     if (!searchTerm) return [];
-    return availableStock.filter(item => 
-      item.nama_obat.toLowerCase().includes(searchTerm.toLowerCase()) || // Ganti namaObat
-      item.id.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    
+    return availableStock.filter(item => {
+      const nama = item.nama_obat || ''; // Fallback ke string kosong
+      const id = item.id || ''; // Fallback ke string kosong
+      
+      return nama.toLowerCase().includes(lowerSearchTerm) || 
+             id.toLowerCase().includes(lowerSearchTerm);
+    });
   }, [searchTerm, availableStock]);
 
   const handleSelectStok = (stokId) => {
@@ -284,22 +303,36 @@ const Penjualan = () => {
         <main className="flex-1 overflow-auto pt-[72px]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             
-            {/* Header */}
+            {/* --- PERBAIKAN HEADER --- */}
             <div className="mb-10 relative">
               <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
               <div className="absolute -top-20 -right-20 w-72 h-72 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-              <div className="relative flex items-center gap-3">
-                <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg">
-                  <ShoppingCart className="text-white" size={24} />
+              
+              <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                {/* Judul */}
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg">
+                    <ShoppingCart className="text-white" size={24} />
+                  </div>
+                  <div>
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-emerald-900 to-teal-900 bg-clip-text text-transparent">
+                      Kasir Penjualan
+                    </h1>
+                    <p className="text-slate-600 text-lg mt-1">Pilih obat dari stok untuk dijual kepada konsumen.</p>
+                  </div>
                 </div>
-                <div>
-                  <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-emerald-900 to-teal-900 bg-clip-text text-transparent">
-                    Kasir Penjualan
-                  </h1>
-                  <p className="text-slate-600 text-lg mt-1">Pilih obat dari stok untuk dijual kepada konsumen.</p>
-                </div>
+                
+                {/* Tombol Riwayat Baru */}
+                <Link
+                  to="/apotek/riwayat-penjualan"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white text-emerald-700 border border-emerald-300 hover:bg-emerald-50 py-2.5 px-5 rounded-lg font-medium shadow-sm hover:shadow-md transition-all duration-200 whitespace-nowrap"
+                >
+                  <History size={18} />
+                  Lihat Riwayat Penjualan
+                </Link>
               </div>
             </div>
+            {/* --- AKHIR PERBAIKAN HEADER --- */}
             
             {error && (
               <div className="p-4 mb-6 bg-red-50 text-red-700 rounded-xl border border-red-200 flex items-center gap-2 text-sm shadow-sm">

@@ -14,4 +14,12 @@ router.get('/stok', penjualanController.getStokApotek);
 // Memproses transaksi penjualan
 router.post('/proses', penjualanController.prosesPenjualan);
 
+// GET /api/apotek/penjualan/riwayat
+// Mengambil daftar semua penjualan
+router.get('/riwayat', penjualanController.getAllPenjualan);
+
+// GET /api/apotek/penjualan/riwayat/:id
+// Mengambil detail satu penjualan
+router.get('/riwayat/:id', penjualanController.getDetailPenjualan);
+
 module.exports = router;

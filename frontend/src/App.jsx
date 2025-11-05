@@ -111,6 +111,8 @@ import LacakPengembalianApotek from './pages/apotek/pesanobat/LacakPengembalianA
 
 import RiwayatPembelian from './pages/apotek/riwayatpembelian/RiwayatPembelian';
 import Penjualan from './pages/apotek/penjualan/Penjualan';
+import RiwayatPenjualan from './pages/apotek/penjualan/RiwayatPenjualan';
+import DetailPenjualan from './pages/apotek/penjualan/DetailPenjualan';
 import LaporanAnalitikApotek from './pages/apotek/laporananalitikapotek/LaporanAnalitikApotek';
 
 function App() {
@@ -227,6 +229,8 @@ function App() {
       <Route path="/apotek/pesanan/:id/detail-pembatalan" element={<DetailPembatalanApotek />} />
         <Route path="/apotek/riwayat-pembelian" element={<RiwayatPembelian />} />
         <Route path="/apotek/penjualan" element={<Penjualan />} />
+        <Route path="/apotek/riwayat-penjualan" element={<RiwayatPenjualan />} />
+      <Route path="/apotek/penjualan/riwayat/:id" element={<DetailPenjualan />} />
         <Route path="/apotek/laporan-analitik" element={<LaporanAnalitikApotek />} />
 
     </Routes>

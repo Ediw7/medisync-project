@@ -104,32 +104,47 @@ const apotekController = {
     const { id } = req.params;
     const idApotek = req.user.id;
     try {
+        // PERBAIKAN 1: Tambahkan LEFT JOIN surat_jalan_pbf dan pilih kolomnya
         const sqlPesanan = `
-            SELECT pa.*, pbf.nama_resmi AS nama_pbf, pbf.alamat AS alamat_pbf
+            SELECT 
+              pa.*, 
+              pbf.nama_resmi AS nama_pbf, 
+              pbf.alamat AS alamat_pbf,
+              sjp.nomor_resi,
+              sjp.nomor_surat_jalan,
+              sjp.tanggal_pengiriman
             FROM pesanan_apotek pa
             JOIN users pbf ON pa.id_pbf = pbf.id
+            LEFT JOIN surat_jalan_pbf sjp ON pa.id = sjp.id_pesanan_apotek
             WHERE pa.id = ? AND pa.id_apotek = ?
         `;
+        
         const [pesananRows] = await db.query(sqlPesanan, [id, idApotek]);
         if (pesananRows.length === 0) {
             return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan.' });
         }
-        const sqlDetail = 'SELECT * FROM detail_pesanan_apotek WHERE id_pesanan_apotek = ?';
+
+        // PERBAIKAN 2: Alias 'jumlah' menjadi 'jumlah_pesanan' dan hitung 'total_harga'
+        const sqlDetail = `
+            SELECT 
+              *, 
+              jumlah AS jumlah_pesanan,
+              (jumlah * harga_satuan) AS total_harga
+            FROM detail_pesanan_apotek 
+            WHERE id_pesanan_apotek = ?
+        `;
+        
         const [detailRows] = await db.query(sqlDetail, [id]);
         const pesananData = pesananRows[0];
-        let alasan_pembatalan = '-'; // Alasan dari Apotek
-        let alasan_penolakan = '-';  // Alasan dari PBF
+        let alasan_pembatalan = '-';
+        let alasan_penolakan = '-'; 
 
         if (pesananData.catatan_khusus) {
             const catatan = pesananData.catatan_khusus;
-            
-            // Cari alasan pengajuan (dari Apotek)
             const alasanApotekMatch = catatan.match(/Alasan: (.*?)(?=\n\[PENOLAKAN\]|$)/);
             if (alasanApotekMatch && alasanApotekMatch[1]) {
                 alasan_pembatalan = alasanApotekMatch[1].trim();
             }
-
-            // Cari alasan penolakan (dari PBF)
             const alasanPbfMatch = catatan.match(/\[PENOLAKAN\]: (.*)/);
             if (alasanPbfMatch && alasanPbfMatch[1]) {
                 alasan_penolakan = alasanPbfMatch[1].trim();
@@ -141,10 +156,10 @@ const apotekController = {
             data: { 
                 pesanan: { 
                     ...pesananData, 
-                    alasan_pembatalan: alasan_pembatalan, // Ini alasan Apotek
-                    alasan_penolakan: alasan_penolakan    // Ini alasan PBF
+                    alasan_pembatalan: alasan_pembatalan,
+                    alasan_penolakan: alasan_penolakan
                 }, 
-                detail_pesanan: detailRows 
+                detail_pesanan: detailRows // <-- Sekarang berisi data yang benar
             },
         });
 

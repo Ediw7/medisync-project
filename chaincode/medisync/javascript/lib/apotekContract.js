@@ -11,7 +11,7 @@ class ApotekContract extends Contract {
         return assetJSON && assetJSON.length > 0;
     }
 
-    async terimaBarang(ctx, id, hashBuktiPenerimaan) {
+    async terimaBarang(ctx, id, hashBuktiPenerimaan, namaApoteker) {
         const mspID = ctx.clientIdentity.getMSPID();
         if (mspID !== 'ApotekMSP') {
             throw new Error(`ERROR: Hanya Apotek yang dapat menerima barang.`);
@@ -29,17 +29,18 @@ class ApotekContract extends Contract {
         }
         
         if (obat.pemilikSaatIni !== 'ApotekMSP') {
-             throw new Error(`ERROR: Aset ini tidak dimiliki oleh Apotek MSP.`);
+             throw new Error(`ERROR: Aset ini tidak dimiliki oleh Apotek.`);
         }
 
         const timestamp = new Date(ctx.stub.getTxTimestamp().seconds.low * 1000).toISOString();
 
         obat.statusSaatIni = 'DITERIMA_APOTEK';
+        
         obat.riwayat.push({
             pemilik: 'ApotekMSP',
             status: 'DITERIMA_APOTEK',
             timestamp: timestamp,
-            detail: `Diterima oleh Apotek dengan bukti hash: ${hashBuktiPenerimaan}`
+            detail: `Diterima oleh Apoteker: ${namaApoteker} dengan bukti hash: ${hashBuktiPenerimaan}`
         });
 
         await ctx.stub.putState(id, Buffer.from(JSON.stringify(obat)));
@@ -62,6 +63,13 @@ class ApotekContract extends Contract {
         if (obat.pemilikSaatIni !== 'ApotekMSP') {
             throw new Error(`ERROR: Obat ini tidak dimiliki oleh Apotek.`);
         }
+        
+        // --- PERBAIKAN LOGIKA STATUS ---
+        // Anda hanya bisa menjual obat yang statusnya DITERIMA_APOTEK
+        if (obat.statusSaatIni !== 'DITERIMA_APOTEK') {
+            throw new Error(`ERROR: Obat ini belum diterima atau sudah habis. Status: ${obat.statusSaatIni}`);
+        }
+        // ---
 
         const jumlahJualInt = parseInt(jumlahJual, 10);
         if (isNaN(jumlahJualInt) || jumlahJualInt <= 0) {
@@ -75,9 +83,11 @@ class ApotekContract extends Contract {
 
         obat.jumlah -= jumlahJualInt;
 
-        const statusDetail = `TERJUAL_SEBAGIAN`;
+        // Status tidak berubah jika masih ada sisa
+        let statusDetail = `TERJUAL_SEBAGIAN`;
         if (obat.jumlah === 0) {
             obat.statusSaatIni = 'STOK_HABIS';
+            statusDetail = 'TERJUAL_HABIS';
         }
 
         obat.riwayat.push({
@@ -92,32 +102,35 @@ class ApotekContract extends Contract {
         return JSON.stringify(obat);
     }
 
-    async queryStokApotek(ctx) {
-        const mspID = ctx.clientIdentity.getMSPID();
-        if (mspID !== 'ApotekMSP') {
-            throw new Error(`ERROR: Hanya Apotek yang dapat melihat stoknya.`);
-        }
-
-        const queryString = {
-            selector: {
-                docType: 'obat',
-                pemilikSaatIni: 'ApotekMSP',
-                statusSaatIni: 'DITERIMA_APOTEK', // Hanya yang sudah diterima
-                jumlah: { $gt: 0 } 
-            }
-        };
-
-        const iterator = await ctx.stub.getQueryResult(JSON.stringify(queryString));
-        const allResults = [];
-        let result = await iterator.next();
-        while (!result.done) {
-            const res = result.value.value.toString('utf8');
-            allResults.push(JSON.parse(res));
-            result = await iterator.next();
-        }
-        await iterator.close();
-        return JSON.stringify(allResults);
+  async queryStokApotek(ctx) {
+    const mspID = ctx.clientIdentity.getMSPID();
+    if (mspID !== 'ApotekMSP') {
+      throw new Error(`ERROR: Hanya Apotek yang dapat melihat stoknya.`);
     }
+
+    // --- PERBAIKAN QUERY ---
+    const queryString = {
+      selector: {
+        docType: 'obat',
+        pemilikSaatIni: 'ApotekMSP',
+        statusSaatIni: 'DITERIMA_APOTEK', // Hapus $or dan spasi
+        jumlah: { $gt: 0 }
+      }
+    };
+    // --- AKHIR PERBAIKAN ---
+
+    const iterator = await ctx.stub.getQueryResult(JSON.stringify(queryString));
+    const allResults = [];
+    let result = await iterator.next();
+    while (!result.done) {
+      const res = result.value.value.toString('utf8');
+      const asset = JSON.parse(res);
+      allResults.push(asset);
+      result = await iterator.next();
+    }
+    await iterator.close();
+    return JSON.stringify(allResults);
+  }
 }
 
 module.exports = ApotekContract;

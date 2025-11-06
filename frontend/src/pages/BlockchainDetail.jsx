@@ -1,15 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  ArrowLeft, Copy, Clock, CheckCircle2, AlertCircle, Shield, Package, 
+  ArrowLeft, Copy, CheckCircle2, AlertCircle, Shield, Package, 
   Loader2, 
-  FileText, 
-  Info, 
   CircleDot, 
-  ShoppingCart, 
-  X, 
-  ImageIcon,
-  Building // <-- Tambahkan Ikon Building
+  ShoppingCart
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 

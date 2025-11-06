@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom'; // <-- 1. Import Link
 import {
   FaUserCircle,
   FaSignOutAlt,
@@ -29,6 +29,7 @@ const NavbarApotek = ({ onLogout }) => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const username = localStorage.getItem('username');
+  const email = localStorage.getItem('email'); // <-- 2. Ambil email
 
   const closeAllMenus = () => {
     setShowProfileMenu(false);
@@ -39,6 +40,7 @@ const NavbarApotek = ({ onLogout }) => {
     <nav className="fixed top-0 left-0 w-full bg-gradient-to-b from-[#18A375] via-[#16956D] to-[#129967] text-white shadow-lg z-50">
       <div className="flex justify-between items-center px-4 lg:px-6 py-1 relative">
 
+        {/* ... (Bagian Kiri & Menu Navigasi tidak berubah) ... */}
         <div className="flex items-center space-x-3">
           <button
             onClick={() => {
@@ -54,12 +56,8 @@ const NavbarApotek = ({ onLogout }) => {
               <FaBars className="text-white text-xl" />
             )}
           </button>
-
-
           <img src={logo} alt="MediSync Logo" className="h-10 w-auto" />
         </div>
-
-
         <div className="hidden lg:flex items-center space-x-1">
           {menuItems.map((item) => (
             <NavLink
@@ -78,6 +76,8 @@ const NavbarApotek = ({ onLogout }) => {
             </NavLink>
           ))}
         </div>
+        {/* ... (Akhir Bagian Kiri & Menu Navigasi) ... */}
+
 
         <div className="flex items-center space-x-2 lg:space-x-4">
           <div className="py-2">
@@ -94,7 +94,6 @@ const NavbarApotek = ({ onLogout }) => {
 
           <div className="hidden lg:block h-8 w-px bg-white/20" />
 
-
           <div className="relative">
             <button
               onClick={() => {
@@ -110,6 +109,7 @@ const NavbarApotek = ({ onLogout }) => {
               </div>
             </button>
 
+            {/* Profile Dropdown */}
             {showProfileMenu && (
               <>
                 <div
@@ -119,17 +119,20 @@ const NavbarApotek = ({ onLogout }) => {
                 <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
                   <div className="p-4 border-b border-gray-200 bg-gray-50">
                     <p className="font-semibold text-gray-800">{username || 'Apotek'}</p>
-                    <p className="text-xs text-gray-500">apotek@medisync.com</p>
+                    {/* 3. Tampilkan email dinamis */}
+                    <p className="text-xs text-gray-500">{email || 'apotek@medisync.com'}</p>
                   </div>
                   <div className="py-2">
-                    <button className="w-full flex items-center space-x-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left">
+                    {/* --- PERBAIKAN DI SINI --- */}
+                    <Link
+                      to="/apotek/profil" // 4. Arahkan ke halaman profil
+                      onClick={closeAllMenus} // 5. Tutup menu saat diklik
+                      className="w-full flex items-center space-x-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
+                    >
                       <FaUser className="text-gray-600" />
                       <span className="text-sm text-gray-700">Profil Saya</span>
-                    </button>
-                    <button className="w-full flex items-center space-x-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left">
-                      <FaCog className="text-gray-600" />
-                      <span className="text-sm text-gray-700">Pengaturan</span>
-                    </button>
+                    </Link>
+                    {/* --- AKHIR PERBAIKAN --- */}
                   </div>
                 </div>
               </>
@@ -138,7 +141,7 @@ const NavbarApotek = ({ onLogout }) => {
         </div>
       </div>
 
-
+      {/* Mobile Menu Dropdown (Tidak Berubah) */}
       {isMobileMenuOpen && (
         <div className="absolute top-full left-0 w-full lg:hidden bg-[#16956D] shadow-lg py-3 px-3 space-y-1">
           {menuItems.map((item) => (

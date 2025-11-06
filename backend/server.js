@@ -24,6 +24,7 @@ const pengembalianPbfRoute = require('./routes/pbf/pengembalianRoute');
 const pbfProfilRoutes = require('./routes/pbf/profilRoute');
 
 const apotekRoutes = require('./routes/apotek/apotekRoute'); 
+const apotekProfilRoutes = require('./routes/apotek/profilRoute');
 const pesananApotekPbfRoutes = require('./routes/pbf/pesananApotekRoute'); 
 const penerimaanApotekRoutes = require('./routes/apotek/penerimaanRoute');
 const dashboardApotekRoutes = require('./routes/apotek/dashboardRoute');
@@ -68,6 +69,7 @@ app.use('/api/apotek/batalkan', batalkanApotekRoute);
 app.use('/api/apotek/penjualan', penjualanApotekRoute);
 app.use('/api/apotek/laporan', laporanApotekRoute);
 app.use('/api/apotek', apotekRoutes);
+app.use('/api/apotek', apotekProfilRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

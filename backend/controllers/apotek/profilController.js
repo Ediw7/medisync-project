@@ -1,0 +1,121 @@
+'use strict';
+const db = require('../../config/db');
+const bcrypt = require('bcrypt');
+
+const profilController = {
+  
+  // --- FUNGSI UNTUK MENGAMBIL PROFIL APOTEK ---
+  getProfile: async (req, res) => {
+    try {
+      const [rows] = await db.query(
+        // Ambil semua kolom yang relevan untuk Apotek
+        `SELECT 
+          id, username, email, nama_resmi, nomor_izin, alamat, 
+          kontak_telepon, nama_apoteker, nomor_sipa 
+         FROM users 
+         WHERE id = ? AND role = 'apotek'`, // Filter berdasarkan role 'apotek'
+        [req.user.id]
+      );
+      if (rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Profil Apotek tidak ditemukan.' });
+      }
+      res.json({ success: true, data: rows[0] });
+    } catch (error) {
+      console.error('Error in getProfile (Apotek):', error);
+      res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+    }
+  },
+
+  // --- FUNGSI UNTUK MEMPERBARUI PROFIL APOTEK ---
+  updateProfile: async (req, res) => {
+    const idApotek = req.user.id;
+    const {
+      nama_resmi,
+      alamat,
+      email,
+      kontak_telepon,
+      nomor_izin, // Ini adalah SIA
+      nama_apoteker,
+      nomor_sipa
+    } = req.body;
+
+    if (!nama_resmi || !alamat || !email || !nomor_izin || !nama_apoteker || !nomor_sipa) {
+        return res.status(400).json({ success: false, message: 'Semua field wajib diisi.' });
+    }
+
+    try {
+      const sql = `
+        UPDATE users 
+        SET 
+          nama_resmi = ?, 
+          alamat = ?, 
+          email = ?, 
+          kontak_telepon = ?, 
+          nomor_izin = ?, 
+          nama_apoteker = ?, 
+          nomor_sipa = ?
+        WHERE id = ? AND role = 'apotek'
+      `;
+
+      await db.query(sql, [
+        nama_resmi,
+        alamat,
+        email,
+        kontak_telepon || null,
+        nomor_izin,
+        nama_apoteker || null,
+        nomor_sipa || null,
+        idApotek
+      ]);
+
+      // Ambil data yang baru diupdate untuk dikirim kembali
+      const [updatedRows] = await db.query(
+        "SELECT id, username, email, nama_resmi, nomor_izin, alamat, kontak_telepon, nama_apoteker, nomor_sipa FROM users WHERE id = ?",
+        [idApotek]
+      );
+
+      res.json({ success: true, message: 'Profil Apotek berhasil diperbarui.', data: updatedRows[0] });
+
+    } catch (error) {
+      console.error('Error in updateProfile (Apotek):', error);
+      res.status(500).json({ success: false, message: 'Kesalahan Server Internal', error: error.message });
+    }
+  },
+
+  // --- FUNGSI UNTUK MENGGANTI PASSWORD APOTEK ---
+  changePassword: async (req, res) => {
+    const idApotek = req.user.id;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Semua field wajib diisi.' });
+    }
+
+    try {
+      const [users] = await db.query("SELECT password FROM users WHERE id = ?", [idApotek]);
+      if (users.length === 0) {
+        return res.status(404).json({ success: false, message: 'User tidak ditemukan.' });
+      }
+
+      const user = users[0];
+
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!isMatch) {
+        return res.status(400).json({ success: false, message: 'Password saat ini salah.' });
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      const hashedNewPassword = await bcrypt.hash(newPassword, salt);
+
+      await db.query("UPDATE users SET password = ? WHERE id = ?", [hashedNewPassword, idApotek]);
+
+      res.json({ success: true, message: 'Password berhasil diubah.' });
+
+    } catch (error) {
+      console.error('Error in changePassword (Apotek):', error);
+      res.status(500).json({ success: false, message: 'Kesalahan Server Internal', error: error.message });
+    }
+  }
+};
+
+module.exports = profilController;

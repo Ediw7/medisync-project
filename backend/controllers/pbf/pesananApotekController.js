@@ -240,6 +240,56 @@ const pesananApotekController = {
         }
     },
 
+    // --- SALIN FUNGSI INI ---
+  getMassalDetails: async (req, res) => {
+    const { selectedIds } = req.body;
+    const idPbf = req.user.id; // PBF yang sedang login
+
+    if (!selectedIds || !Array.isArray(selectedIds) || selectedIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'selectedIds harus berupa array yang tidak kosong.' });
+    }
+
+    try {
+      const placeholders = selectedIds.map(() => '?').join(',');
+      
+      const sql = `
+        SELECT 
+          pa.id, 
+          pa.nomor_pesanan,
+          pa.status,
+          pa.nama_apotek,
+          pa.alamat_apotek
+        FROM pesanan_apotek pa
+        WHERE pa.id_pbf = ? AND pa.id IN (${placeholders})
+      `;
+      
+      const params = [idPbf, ...selectedIds];
+      
+      const [rows] = await db.query(sql, params);
+
+      if (rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Tidak ada data pesanan yang ditemukan untuk ID yang dipilih.' });
+      }
+
+      // --- PERBAIKAN DI SINI: Ambil detail untuk setiap pesanan ---
+      for (const pesanan of rows) {
+        const [detailRows] = await db.query(
+          `SELECT * FROM detail_pesanan_apotek WHERE id_pesanan_apotek = ?`,
+          [pesanan.id]
+        );
+        pesanan.detail_pesanan = detailRows; // Lampirkan array detail barang
+      }
+      // --- AKHIR PERBAIKAN ---
+
+      res.json({ success: true, data: rows }); // Kirim data yang sudah lengkap
+
+    } catch (error) {
+      console.error('Error in getMassalDetails (PBF):', error);
+      res.status(500).json({ success: false, message: 'Kesalahan Server Internal', error: error.message });
+    }
+  },
+  // --- BATAS AKHIR FUNGSI ---
+
      // --- FUNGSI BARU: Untuk halaman SuratJalanPbf.jsx ---
     getSuratJalanById: async (req, res) => {
         const { id } = req.params;
@@ -401,6 +451,7 @@ const pesananApotekController = {
                             'UPDATE detail_pesanan_apotek SET id_aset_blockchain = ? WHERE id = ?',
                             [assetId, correspondingDetail.detail_pesanan_id]
                         );
+                        correspondingDetail.id_aset_blockchain = assetId;
                         console.log(`Updated detail_pesanan_apotek ID ${correspondingDetail.detail_pesanan_id} with NEW blockchain asset ID ${assetId}`);
                     }
                 }

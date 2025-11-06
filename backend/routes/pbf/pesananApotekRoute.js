@@ -9,6 +9,13 @@ const pesananController = require('../../controllers/pbf/pesananController');
 router.get('/', authenticateToken, authorizeRole('pbf'), pesananApotekController.getAllPesananMasuk);
 router.get('/:id', authenticateToken, authorizeRole('pbf'), pesananApotekController.getPesananById);
 
+router.post(
+    '/detail-pesanan-massal', 
+    authenticateToken, 
+    authorizeRole('pbf'), 
+    pesananApotekController.getMassalDetails
+);
+
 router.put('/:id/atur-pengiriman', authenticateToken, authorizeRole('pbf'), pesananApotekController.updateStatusAndCreateSuratJalan);
 router.post('/proses-pengiriman-massal', authenticateToken, authorizeRole('pbf'), pesananApotekController.prosesPengirimanMassal);
 

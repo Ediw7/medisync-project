@@ -340,7 +340,7 @@ const pesananController = {
                 idPesanan = assetIdParts[assetIdParts.length - 1]; // Ambil bagian terakhir
                 const sql = `
                   SELECT 
-                    pa.id, pa.nomor_pesanan, pa.status, pa.tanggal_pesanan, pa.total_harga, pa.updated_at,
+                    pa.id, pa.nomor_pesanan, pa.status, pa.tanggal_pesanan, pa.total_harga, 
                     sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman, sjp.opsi_pengiriman,
                     pbf.nama_resmi AS nama_pbf,
                     apotek.nama_resmi AS nama_apotek,
@@ -378,20 +378,21 @@ const pesananController = {
             }
 
             // --- PERBAIKAN: TAMBAHKAN QUERY DETAIL_PESANAN ---
-            const idPesananFromOffChain = offChainRows[0].id;
+           const idPesananFromOffChain = offChainRows[0].id;
             const detailSql = isApotekOrder ? 
-              `SELECT dp.*, pr.batch_id
+              // PERBAIKAN: Tidak perlu JOIN, cukup SELECT dari detail_pesanan_apotek
+              // dan alias-kan 'id_aset_blockchain' sebagai 'batch_id' agar konsisten
+              `SELECT dp.*, dp.id_aset_blockchain AS batch_id
                FROM detail_pesanan_apotek dp
-               LEFT JOIN produksi pr ON dp.id_produksi = pr.id
                WHERE dp.id_pesanan_apotek = ?`
               :
+              // Bagian ini (untuk Produsen -> PBF) sudah benar
               `SELECT dp.*, pr.batch_id
                FROM detail_pesanan dp
                LEFT JOIN produksi pr ON dp.id_produksi = pr.id
                WHERE dp.id_pesanan = ?`;
             
             const [detail_pesanan] = await db.query(detailSql, [idPesananFromOffChain]);
-            // --- AKHIR PERBAIKAN ---
 
             return res.json({
                 success: true,

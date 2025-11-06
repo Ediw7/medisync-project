@@ -1,137 +1,185 @@
-import React, { useState, useRef } from 'react';
-import { QrReader } from 'react-qr-reader'; // ✅ gunakan react-qr-reader, bukan @zxing
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { QrReader } from 'react-qr-reader';
 import { X, Camera, Upload, AlertTriangle, RefreshCw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-const QrScanner = ({ onScanResult, onClose }) => {
+const QrScanner = React.memo(({ onScanResult, onClose }) => {
   const [error, setError] = useState(null);
   const [isScanning, setIsScanning] = useState(true);
+  const [hasScanned, setHasScanned] = useState(false);
+  const [scannerKey, setScannerKey] = useState(0); // Reset scanner
   const fileInputRef = useRef(null);
+  const videoRef = useRef(null);
 
-  const handleScan = (result) => {
-    if (result?.text) {
+  // --- STOP VIDEO SEBELUM RESET ---
+  const stopVideo = useCallback(() => {
+    if (videoRef.current?.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+    }
+  }, []);
+
+  // --- SCAN HANDLER ---
+  const handleScan = useCallback((result) => {
+    if (result?.text && !hasScanned) {
+      setHasScanned(true);
+      setIsScanning(false);
+      stopVideo();
       onScanResult(result.text);
+      toast.success('QR Code berhasil dipindai!');
+      setTimeout(() => onClose(), 1500);
+    }
+  }, [hasScanned, onScanResult, onClose, stopVideo]);
+
+  // --- ERROR HANDLER ---
+  const handleError = useCallback((err) => {
+    stopVideo();
+    let msg = 'Gagal mengakses kamera.';
+    if (err.name === 'NotAllowedError') msg = 'Akses kamera ditolak. Izinkan di pengaturan.';
+    else if (err.name === 'NotFoundError') msg = 'Kamera tidak ditemukan.';
+    else if (err.name === 'AbortError') msg = 'Kamera terganggu. Coba lagi.';
+    setError(msg);
+    setIsScanning(false);
+  }, [stopVideo]);
+
+  // --- RESET SCANNER ---
+  const resetScanner = useCallback(() => {
+    stopVideo();
+    setIsScanning(true);
+    setError(null);
+    setHasScanned(false);
+    setScannerKey(prev => prev + 1); // Force remount
+  }, [stopVideo]);
+
+  // --- UPLOAD GAMBAR (ZXING) ---
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const { BrowserQRCodeReader } = await import('@zxing/library');
+      const reader = new BrowserQRCodeReader();
+      const result = await reader.decodeFromImageUrl(URL.createObjectURL(file));
+      if (result?.text) {
+        setHasScanned(true);
+        onScanResult(result.text);
+        toast.success('QR dari gambar berhasil!');
+        setTimeout(() => onClose(), 1500);
+      }
+    } catch (err) {
+      toast.error('QR tidak ditemukan di gambar.');
+    } finally {
+      e.target.value = null;
     }
   };
 
-  const handleError = (err) => {
-    console.error("QR Camera Error:", err);
-    setError("Gagal mengakses kamera. Pastikan Anda memberikan izin dan kamera tidak sedang digunakan.");
-    setIsScanning(false);
-  };
-
-  // Fungsi untuk memicu klik input file
-  const handleUploadClick = () => {
-    fileInputRef.current.click();
-  };
-
-  // Fungsi untuk menangani file yang diupload (sementara belum diimplementasikan)
-  const handleFileChange = (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-    toast.error("Fitur upload file belum diimplementasikan.");
-    event.target.value = null;
-  };
+  // --- CLEANUP ON UNMOUNT ---
+  useEffect(() => {
+    return () => stopVideo();
+  }, [stopVideo]);
 
   return (
-    <div 
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in-0 duration-300"
-      onClick={onClose}
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div 
-        className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md relative border border-slate-200 animate-in zoom-in-95 duration-300"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Tombol Close */}
-        <button 
-          onClick={onClose} 
-          className="absolute -top-3 -right-3 z-10 text-white bg-slate-800 rounded-full p-1.5 shadow-lg hover:bg-red-600 transition-colors"
-        >
-          <X size={20} />
-        </button>
+      <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
         
-        <h2 className="text-xl font-bold mb-4 text-center text-slate-900 flex items-center justify-center gap-2">
-          <Camera size={22} className="text-emerald-600" />
-          Pindai QR Code Obat
-        </h2>
+        {/* HEADER */}
+        <div className="flex items-center justify-between p-5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
+          <h3 className="text-xl font-bold flex items-center gap-3">
+            <Camera size={22} /> Pindai QR Code Obat
+          </h3>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-full hover:bg-white/20 transition-all"
+          >
+            <X size={22} />
+          </button>
+        </div>
 
-        {/* Kontainer Scanner */}
-        <div className="w-full h-80 bg-slate-900 border-4 border-slate-300 rounded-xl overflow-hidden relative shadow-inner">
+        {/* SCANNER VIEW */}
+        <div className="relative h-80 bg-black overflow-hidden">
           {isScanning ? (
             <QrReader
-              constraints={{ facingMode: 'environment' }}
+              key={scannerKey}
               onResult={(result, error) => {
                 if (result) handleScan(result);
-                if (error && error.name !== "NotFoundException") {
-                  handleError(error);
-                }
+                if (error) handleError(error);
               }}
-              scanDelay={500}
-              containerStyle={{ width: '100%', height: '100%' }}
+              constraints={{ facingMode: 'environment' }}
+              scanDelay={1000}
               videoContainerStyle={{ width: '100%', height: '100%' }}
               videoStyle={{ objectFit: 'cover' }}
+              className="w-full h-full"
+              // Fix willReadFrequently
+              onLoad={(video) => {
+                videoRef.current = video;
+                const canvas = video?.querySelector('canvas');
+                if (canvas) {
+                  const ctx = canvas.getContext('2d');
+                  if (ctx) ctx.willReadFrequently = true;
+                }
+              }}
             />
           ) : (
-            // Tampilan jika kamera error
-            <div className="flex flex-col items-center justify-center h-full text-center p-4">
-              <AlertTriangle size={40} className="text-red-500 mb-4" />
-              <p className="text-white font-medium mb-2">Kamera Error</p>
-              <p className="text-slate-400 text-sm mb-4">{error}</p>
+            <div className="flex flex-col items-center justify-center h-full p-6 text-center space-y-4">
+              <AlertTriangle className="w-14 h-14 text-red-500 animate-pulse" />
+              <p className="text-gray-700 font-medium">{error}</p>
               <button
-                onClick={() => {
-                  setIsScanning(true);
-                  setError(null);
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition"
+                onClick={resetScanner}
+                className="flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all font-medium"
               >
-                <RefreshCw size={16} />
-                Coba Lagi
+                <RefreshCw size={18} /> Coba Lagi
               </button>
             </div>
           )}
-          
-          {/* Garis laser (opsional) */}
+
+          {/* LASER LINE */}
           {isScanning && (
-            <div className="absolute top-1/2 left-0 w-full h-1 bg-red-500 shadow-[0_0_10px_2px_rgba(239,68,68,0.7)] animate-laser-scan"></div>
+            <div className="absolute inset-x-8 top-1/2 h-1 bg-red-500/90 shadow-lg animate-laser">
+              <div className="h-full w-full bg-gradient-to-r from-transparent via-red-400 to-transparent"></div>
+            </div>
           )}
         </div>
-        
-        <p className="mt-4 text-sm text-center text-slate-500">
-          Arahkan kamera ke QR code pada kemasan obat.
-        </p>
 
-        {/* Tombol Upload */}
-        <div className="mt-4 pt-4 border-t border-slate-200">
+        {/* FOOTER */}
+        <div className="p-5 bg-gradient-to-t from-gray-50 to-white border-t">
+          <p className="text-center text-sm text-gray-600 mb-4 font-medium">
+            Arahkan kamera ke QR code pada kemasan obat.
+          </p>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full flex items-center justify-center gap-3 py-3 bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 transition-all font-medium text-sm"
+          >
+            <Upload size={18} /> Atau Unggah dari Galeri
+          </button>
           <input
-            type="file"
-            accept="image/png, image/jpeg"
             ref={fileInputRef}
+            type="file"
+            accept="image/*"
             onChange={handleFileChange}
             className="hidden"
           />
-          <button
-            onClick={handleUploadClick}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition"
-          >
-            <Upload size={16} />
-            Atau Unggah dari Galeri
-          </button>
         </div>
       </div>
 
-      {/* CSS animasi laser */}
-      <style>{`
-        @keyframes laser-scan {
-          0% { transform: translateY(-100px); opacity: 0.8; }
-          50% { transform: translateY(100px); opacity: 1; }
-          100% { transform: translateY(-100px); opacity: 0.8; }
+      {/* ANIMASI */}
+      <style jsx>{`
+        @keyframes laser {
+          0%, 100% { transform: translateY(-50%) scaleY(1); opacity: 0.8; }
+          50% { transform: translateY(-50%) scaleY(2); opacity: 1; }
         }
-        .animate-laser-scan {
-          animation: laser-scan 2.5s infinite ease-in-out;
+        .animate-laser { animation: laser 1.8s infinite ease-in-out; }
+        .animate-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
         }
       `}</style>
     </div>
   );
-};
+});
+
+QrScanner.displayName = 'QrScanner';
 
 export default QrScanner;

@@ -9,6 +9,8 @@ const pesananMasukRoutes = require('./routes/produsen/pesananMasukRoute');
 const pembatalanRoutes = require('./routes/produsen/pembatalanRoute');
 const riwayatRoute = require('./routes/produsen/riwayatRoute');
 const laporananalitikRoutes = require('./routes/produsen/laporananalitikRoute');
+const produsenProfilRoutes = require('./routes/produsen/profilRoute');
+
 
 const pesananPbfRoutes = require('./routes/pbf/pesananRoute'); 
 const pbfRoutes = require('./routes/pbf/pbfRoute');
@@ -41,6 +43,8 @@ app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Gunakan semua rute
+app.use('/api/produsen', produsenProfilRoutes);
+
 app.use('/api/auth', authRoutes);
 app.use('/api/produksi', produksiRoutes);
 app.use('/api/produsen/pesanan-masuk', pesananMasukRoutes);

@@ -9,6 +9,7 @@ import RegisterPage from './pages/RegisterPage';
 import BlockchainDetail from './pages/BlockchainDetail';
 
 import ProdusenDashboard from './pages/produsen/ProdusenDashboard';
+import ProfilProdusen from './pages/produsen/profil/ProfilProdusen';
 import ManajemenProduksi from './pages/produsen/manajemenproduksi/ManajemenProduksi';
 import TambahProduksi from './pages/produsen/manajemenproduksi/TambahProduksi';
 import EditProduksi from './pages/produsen/manajemenproduksi/EditProduksi';
@@ -130,6 +131,7 @@ function App() {
       
        {/* Rute Produsen */}
       <Route path="/produsen/dashboard" element={<ProdusenDashboard />} />
+      <Route path="/produsen/profil" element={<ProfilProdusen />} />
       <Route path="/produsen/manajemen-produksi" element={<ManajemenProduksi />} />
       <Route path="/produsen/produksi/tambah" element={<TambahProduksi />} />
       <Route path="/produsen/produksi/edit/:id" element={<EditProduksi />} />

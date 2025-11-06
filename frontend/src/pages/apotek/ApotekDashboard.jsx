@@ -1,14 +1,259 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import NavbarApotek from '../../components/NavbarApotek';
-import { Box, ShoppingBag, FileText, AlertTriangle, Loader2, TrendingUp, Package, Calendar, ArrowUpRight } from 'lucide-react';
+import { 
+  Box, 
+  ShoppingBag, 
+  FileText, 
+  AlertTriangle, 
+  Loader2, 
+  TrendingUp, 
+  Package, 
+  Calendar, 
+  ArrowUpRight,
+  BarChart2, // <-- Baru
+  PlusCircle, // <-- Baru
+  FilePlus // <-- Baru
+} from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { Bar } from 'react-chartjs-2'; // <-- Baru
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js'; // <-- Baru
 
+// --- REGISTRASI CHART.JS ---
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
+
+// --- HELPER SAPAAN ---
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 11) return "Selamat Pagi";
+  if (hour < 15) return "Selamat Siang";
+  if (hour < 19) return "Selamat Sore";
+  return "Selamat Malam";
+};
+
+// --- HELPER FORMAT TANGGAL (BARU) ---
+const formatDate = (dateString) => {
+  if (!dateString) return '-';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '-';
+    return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch (e) { return '-'; }
+};
+
+// --- KARTU KPI (Desain Asli Anda - Sudah Bagus) ---
+const StatCard = ({ icon, value, label, unit, isCurrency = false, trend, color = "emerald" }) => {
+  const colorClasses = {
+    emerald: "from-emerald-500 to-teal-600",
+    blue: "from-blue-500 to-cyan-600",
+    purple: "from-purple-500 to-pink-600",
+    orange: "from-orange-500 to-red-600"
+  };
+
+  return (
+    <div className="group relative bg-white p-5 rounded-xl shadow-sm border border-slate-200 hover:shadow-md hover:border-slate-300 transition-all duration-300 overflow-hidden">
+      <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${colorClasses[color]} opacity-5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500`}></div>
+      <div className="relative flex items-start justify-between">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-3">
+            <div className={`p-2.5 rounded-xl bg-gradient-to-br ${colorClasses[color]} shadow-lg`}>
+              {React.cloneElement(icon, { className: "text-white", size: 20 })}
+            </div>
+            {trend && (
+              <span className="flex items-center text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
+                <TrendingUp size={12} className="mr-1" />
+                {trend}
+              </span>
+            )}
+          </div>
+          <p className="text-3xl font-bold text-slate-900 mb-1">
+            {isCurrency ? `Rp ${Number(value || 0).toLocaleString('id-ID')}` : Number(value || 0).toLocaleString('id-ID')}
+            {unit && <span className="text-lg font-medium text-slate-500 ml-1">{unit}</span>}
+          </p>
+          <p className="text-sm text-slate-600 font-medium">{label}</p>
+        </div>
+        <ArrowUpRight className="text-slate-300 group-hover:text-slate-400 transition-colors" size={20} />
+      </div>
+    </div>
+  );
+};
+
+// --- KOMPONEN GRAFIK PENJUALAN (BARU) ---
+const SalesChart = () => {
+  // Data dummy (gantilah dengan data API Anda jika ada)
+  const data = {
+    labels: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'],
+    datasets: [
+      {
+        label: 'Penjualan (Rp)',
+        data: [120000, 190000, 300000, 500000, 200000, 300000, 450000],
+        backgroundColor: '#10B981',
+        borderColor: '#059669',
+        borderWidth: 1,
+        borderRadius: 5,
+        barThickness: 30,
+      },
+    ],
+  };
+  
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      title: {
+        display: true,
+        text: 'Penjualan 7 Hari Terakhir',
+        font: { size: 16, weight: '600' },
+        color: '#1e293b',
+        padding: { bottom: 20 }
+      },
+      tooltip: {
+        callbacks: {
+          label: (context) => `Rp ${context.raw.toLocaleString('id-ID')}`
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: (value) => `Rp${value / 1000}k`
+        }
+      },
+      x: { grid: { display: false } }
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 h-96">
+      <Bar data={data} options={options} />
+    </div>
+  );
+};
+
+// --- KOMPONEN AKSI CEPAT (BARU) ---
+const QuickActions = () => (
+  <div className="bg-white rounded-2xl shadow-sm border border-slate-200">
+    <div className="p-5 border-b border-slate-200">
+      <h3 className="text-lg font-semibold text-slate-800">Aksi Cepat</h3>
+    </div>
+    <div className="p-6 space-y-4">
+      <Link to="/apotek/penjualan" className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition shadow-sm">
+        <PlusCircle size={18} />
+        Buat Penjualan Baru
+      </Link>
+      <Link to="/apotek/pesan-obat" className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition shadow-sm">
+        <FilePlus size={18} />
+        Pesan Obat ke PBF
+      </Link>
+    </div>
+  </div>
+);
+
+// --- KOMPONEN STOK KRITIS (Desain List Baru) ---
+const CriticalStockList = ({ data }) => (
+  <div className="bg-white rounded-2xl shadow-sm border border-slate-200">
+    <div className="p-5 border-b border-slate-200">
+      <h3 className="text-lg font-semibold text-slate-800">Stok Kritis & Terbaru</h3>
+    </div>
+    <div className="p-3">
+      {data.length > 0 ? (
+        <ul className="divide-y divide-slate-100 max-h-96 overflow-y-auto">
+          {data.map((item, index) => (
+            <li key={index} className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-lg">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">{item.namaObat}</p>
+                <p className="text-xs text-slate-500 font-mono">{item.batchId}</p>
+              </div>
+              <div className="text-right flex-shrink-0 ml-4">
+                <p className="text-sm font-bold text-emerald-700">{item.stok.toLocaleString('id-ID')} box</p>
+                <p className="text-xs text-orange-600">{item.kadaluarsa}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="text-center py-10 text-slate-400">
+          <Package size={32} className="mx-auto mb-2 opacity-50" />
+          <span className="text-sm">Tidak ada data stok.</span>
+        </div>
+      )}
+    </div>
+  </div>
+);
+
+// --- KOMPONEN PESANAN TERBARU (Tabel) ---
+const RecentOrdersTable = ({ data, getStatusBadge }) => (
+  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+    <div className="p-5 border-b border-slate-200">
+      <h3 className="text-lg font-semibold text-slate-800">Pesanan Terbaru ke PBF</h3>
+    </div>
+    <div className="overflow-x-auto">
+      <table className="min-w-full">
+        <thead className="bg-slate-50">
+          <tr className="border-b-2 border-slate-200">
+            <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Tanggal</th>
+            <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Obat</th>
+            <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Jumlah</th>
+            <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Status</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {data.length > 0 ? data.map(item => (
+            <tr key={item.id} className="hover:bg-blue-50/50 transition-colors">
+              <td className="px-4 py-4 whitespace-nowrap">
+                <span className="text-sm font-semibold text-slate-900">{formatDate(item.tanggal)}</span>
+              </td>
+              <td className="px-4 py-4 whitespace-nowrap">
+                <span className="text-sm text-slate-600 truncate max-w-xs block">{item.obat}</span>
+              </td>
+              <td className="px-4 py-4 whitespace-nowrap">
+                <span className="text-sm font-medium text-blue-700">{item.jumlah.toLocaleString('id-ID')} box</span>
+              </td>
+              <td className="px-4 py-4 whitespace-nowrap">
+                <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusBadge(item.status)}`}>
+                  {item.status}
+                </span>
+              </td>
+            </tr>
+          )) : (
+            <tr>
+              <td colSpan="4" className="text-center py-10 text-slate-400">
+                <FileText size={32} className="mx-auto mb-2 opacity-50" />
+                <span>Tidak ada pesanan terbaru.</span>
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  </div>
+);
+
+
+// --- KOMPONEN UTAMA DASHBOARD ---
 const ApotekDashboard = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const username = localStorage.getItem('username');
+  const greeting = getGreeting(); // Sapaan dinamis
 
   const [stats, setStats] = useState({
     totalStok: 0,
@@ -69,45 +314,6 @@ const ApotekDashboard = () => {
     navigate('/');
   };
 
-  const StatCard = ({ icon, value, label, unit, isCurrency = false, trend, color = "emerald" }) => {
-    const colorClasses = {
-      emerald: "from-emerald-500 to-teal-600",
-      blue: "from-blue-500 to-cyan-600",
-      purple: "from-purple-500 to-pink-600",
-      orange: "from-orange-500 to-red-600"
-    };
-
-    return (
-      <div className="group relative bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-xl hover:border-slate-300 transition-all duration-300 overflow-hidden">
-        <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${colorClasses[color]} opacity-5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500`}></div>
-        
-        <div className="relative flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-3">
-              <div className={`p-2.5 rounded-xl bg-gradient-to-br ${colorClasses[color]} shadow-lg`}>
-                {React.cloneElement(icon, { className: "text-white", size: 24 })}
-              </div>
-              {trend && (
-                <span className="flex items-center text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
-                  <TrendingUp size={12} className="mr-1" />
-                  {trend}
-                </span>
-              )}
-            </div>
-            
-            <p className="text-3xl font-bold text-slate-900 mb-1">
-              {isCurrency ? `Rp ${value.toLocaleString('id-ID')}` : value.toLocaleString('id-ID')}
-              {unit && <span className="text-lg font-medium text-slate-500 ml-1">{unit}</span>}
-            </p>
-            <p className="text-sm text-slate-600 font-medium">{label}</p>
-          </div>
-          
-          <ArrowUpRight className="text-slate-300 group-hover:text-slate-400 transition-colors" size={20} />
-        </div>
-      </div>
-    );
-  };
-
   const getStatusBadge = (status) => {
     const styles = {
       'Menunggu Konfirmasi': 'bg-amber-50 text-amber-700 border-amber-200',
@@ -138,27 +344,19 @@ const ApotekDashboard = () => {
         <NavbarApotek onLogout={handleLogout} />
         
         <main className="flex-1 overflow-auto pt-[72px]">
-          <div className="max-w-7xl mx-auto px-6 py-8">
-            {/* Header Section with Gradient */}
-            <div className="mb-10 relative">
+          <div className="max-w-screen-xl mx-auto px-6 py-8">
+            
+            {/* Header Section */}
+            <div className="mb-8 relative">
               <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
               <div className="absolute -top-20 -right-20 w-72 h-72 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
               
               <div className="relative">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg">
-                    <Package className="text-white" size={24} />
-                  </div>
-                  <div>
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-emerald-900 to-teal-900 bg-clip-text text-transparent">
-                      Dasbor Apotek
-                    </h1>
-                  </div>
-                </div>
-                <p className="text-slate-600 text-lg flex items-center gap-2">
-                  <span>Selamat datang kembali,</span>
-                  <span className="font-semibold text-emerald-700">{username || 'Pengguna'}</span>
-                  <span>👋</span>
+                <h1 className="text-4xl font-bold text-slate-900">
+                  {greeting}, <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">{username || 'Pengguna'}!</span>
+                </h1>
+                <p className="text-slate-600 text-lg mt-2">
+                  Berikut adalah ringkasan aktivitas apotek Anda hari ini.
                 </p>
                 <div className="flex items-center gap-2 mt-2 text-sm text-slate-500">
                   <Calendar size={16} />
@@ -174,136 +372,59 @@ const ApotekDashboard = () => {
               </div>
             )}
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <StatCard 
-                icon={<Box />} 
-                value={stats.totalStok} 
-                label="Total Stok Obat" 
-                unit="box" 
-                color="emerald"
-              />
-              <StatCard 
-                icon={<ShoppingBag />} 
-                value={stats.penjualanHariIni} 
-                label="Penjualan Hari Ini" 
-                isCurrency={true}
-                color="blue"
-              />
-              <StatCard 
-                icon={<FileText />} 
-                value={stats.pesananAktif} 
-                label="Pesanan Aktif"
-                color="purple"
-              />
-              <StatCard 
-                icon={<AlertTriangle />} 
-                value={stats.akanKadaluarsa} 
-                label="Obat Akan Kedaluwarsa" 
-                color="orange"
-              />
-            </div>
+            {/* --- STRUKTUR UTAMA DASHBOARD (BARU) --- */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-            {/* Data Tables Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Stok Terbaru Card */}
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow duration-300">
-                <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-4">
-                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                    <Box size={20} />
-                    Stok Obat Terbaru
-                  </h2>
+              {/* --- Kolom Utama (Kiri) --- */}
+              <div className="lg:col-span-2 space-y-6">
+                
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <StatCard 
+                    icon={<Box />} 
+                    value={stats.totalStok} 
+                    label="Total Stok Obat" 
+                    unit="box" 
+                    color="emerald"
+                  />
+                  <StatCard 
+                    icon={<ShoppingBag />} 
+                    value={stats.penjualanHariIni} 
+                    label="Penjualan Hari Ini" 
+                    isCurrency={true}
+                    color="blue"
+                  />
+                  <StatCard 
+                    icon={<FileText />} 
+                    value={stats.pesananAktif} 
+                    label="Pesanan Aktif"
+                    color="purple"
+                  />
+                  <StatCard 
+                    icon={<AlertTriangle />} 
+                    value={stats.akanKadaluarsa} 
+                    label="Obat Akan Kedaluwarsa" 
+                    color="orange"
+                  />
                 </div>
-                <div className="p-6">
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full">
-                      <thead>
-                        <tr className="border-b-2 border-slate-200">
-                          <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Nama Obat</th>
-                          <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">ID Batch</th>
-                          <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Stok</th>
-                          <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Kedaluwarsa</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {stokTerbaru.length > 0 ? stokTerbaru.map((item, index) => (
-                          <tr key={index} className="hover:bg-emerald-50/50 transition-colors">
-                            <td className="px-4 py-4 whitespace-nowrap">
-                              <span className="text-sm font-semibold text-slate-900">{item.namaObat}</span>
-                            </td>
-                            <td className="px-4 py-4 whitespace-nowrap">
-                              <span className="text-sm text-slate-600 font-mono bg-slate-100 px-2 py-1 rounded">{item.batchId}</span>
-                            </td>
-                            <td className="px-4 py-4 whitespace-nowrap">
-                              <span className="text-sm font-medium text-emerald-700">{item.stok.toLocaleString('id-ID')} box</span>
-                            </td>
-                            <td className="px-4 py-4 whitespace-nowrap">
-                              <span className="text-sm font-medium text-orange-600 bg-orange-50 px-2 py-1 rounded-lg">{item.kadaluarsa}</span>
-                            </td>
-                          </tr>
-                        )) : (
-                          <tr>
-                            <td colSpan="4" className="text-center py-8 text-slate-400">
-                              <Package size={32} className="mx-auto mb-2 opacity-50" />
-                              <span>Tidak ada data stok.</span>
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+
+                {/* Grafik Penjualan */}
+                <SalesChart />
+                
+                {/* Tabel Pesanan Terbaru */}
+                <RecentOrdersTable data={pesananTerbaru} getStatusBadge={getStatusBadge} />
+
               </div>
 
-              {/* Pesanan Terbaru Card */}
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow duration-300">
-                <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-4">
-                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                    <ShoppingBag size={20} />
-                    Pesanan Terbaru
-                  </h2>
-                </div>
-                <div className="p-6">
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full">
-                      <thead>
-                        <tr className="border-b-2 border-slate-200">
-                          <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Tanggal</th>
-                          <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Obat</th>
-                          <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Jumlah</th>
-                          <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {pesananTerbaru.length > 0 ? pesananTerbaru.map(item => (
-                          <tr key={item.id} className="hover:bg-blue-50/50 transition-colors">
-                            <td className="px-4 py-4 whitespace-nowrap">
-                              <span className="text-sm font-semibold text-slate-900">{item.tanggal}</span>
-                            </td>
-                            <td className="px-4 py-4 whitespace-nowrap">
-                              <span className="text-sm text-slate-600 truncate max-w-xs block">{item.obat}</span>
-                            </td>
-                            <td className="px-4 py-4 whitespace-nowrap">
-                              <span className="text-sm font-medium text-blue-700">{item.jumlah.toLocaleString('id-ID')} box</span>
-                            </td>
-                            <td className="px-4 py-4 whitespace-nowrap">
-                              <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusBadge(item.status)}`}>
-                                {item.status}
-                              </span>
-                            </td>
-                          </tr>
-                        )) : (
-                          <tr>
-                            <td colSpan="4" className="text-center py-8 text-slate-400">
-                              <FileText size={32} className="mx-auto mb-2 opacity-50" />
-                              <span>Tidak ada pesanan terbaru.</span>
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+              {/* --- Sidebar Kanan --- */}
+              <div className="lg:col-span-1 space-y-6">
+                
+                {/* Aksi Cepat */}
+                <QuickActions />
+
+                {/* Stok Kritis */}
+                <CriticalStockList data={stokTerbaru} />
+                
               </div>
             </div>
           </div>

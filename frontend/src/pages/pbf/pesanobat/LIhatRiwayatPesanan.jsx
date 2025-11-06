@@ -407,8 +407,9 @@ const LihatRiwayatPesanan = () => {
                               <span className="block text-xs text-slate-500 font-mono">{item.batch_id || assetId.split('-')[0]}</span>
                             </td>
                             <td className="px-4 py-3 text-slate-600">{item.jumlah_pesanan} Box</td>
-                            <td className="px-4 py-3 text-slate-600">Rp {Number(item.harga_per_unit || 0).toLocaleString('id-ID')}</td>
-                            <td className="px-4 py-3 text-right font-semibold text-slate-800">Rp {Number(item.total_harga || 0).toLocaleString('id-ID')}</td>
+                            <td className="px-4 py-3 text-slate-600">Rp  {Number(item.harga_per_unit || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}</td>
+                            <td className="px-4 py-3 text-right font-semibold text-slate-800">Rp  {Number(item.total_harga || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}</td>
+                            
                           </tr>
                         ))
                       ) : (
@@ -423,8 +424,7 @@ const LihatRiwayatPesanan = () => {
                       <tr>
                         <td colSpan="3" className="px-4 py-3 text-right text-slate-800">Total Keseluruhan</td>
                         <td className="px-4 py-3 text-right text-xl text-emerald-700">
-                          Rp {Number(offChain.total_harga || 0).toLocaleString('id-ID')}
-                        </td>
+                          Rp {Number(offChain.total_harga || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}</td>
                       </tr>
                     </tfoot>
                   </table>

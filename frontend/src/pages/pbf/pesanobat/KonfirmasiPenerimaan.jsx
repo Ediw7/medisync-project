@@ -464,7 +464,7 @@ const KonfirmasiPenerimaan = () => {
                               <td className="px-4 py-3 font-medium text-slate-800">{item.nama_obat}</td>
                               <td className="px-4 py-3 font-mono text-slate-600">{item.id_aset_blockchain || item.batch_id || '-'}</td>
                               <td className="px-4 py-3 text-center font-medium text-emerald-700">{(item.jumlah_pesanan || 0).toLocaleString('id-ID')} Box</td>
-                              <td className="px-4 py-3 text-right font-semibold text-slate-800">Rp {Number(item.total_harga || 0).toLocaleString('id-ID')}</td>
+                              <td className="px-4 py-3 text-right font-semibold text-slate-800">Rp {Number(item.total_harga || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}</td>
                             </tr>
                           ))
                         ) : (
@@ -479,7 +479,8 @@ const KonfirmasiPenerimaan = () => {
                         <tr>
                           <td colSpan="4" className="px-4 py-3 text-right text-slate-800">Total Keseluruhan</td>
                           <td className="px-4 py-3 text-right text-xl text-emerald-700">
-                            Rp {totalHargaKeseluruhan.toLocaleString('id-ID')}
+                            Rp  {Number(totalHargaKeseluruhan || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}
+                           
                           </td>
                         </tr>
                       </tfoot>

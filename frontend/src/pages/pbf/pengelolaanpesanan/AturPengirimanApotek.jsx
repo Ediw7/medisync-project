@@ -13,8 +13,12 @@ const AturPengirimanApotek = () => {
   const [error, setError] = useState(null);
   const [pesanan, setPesanan] = useState(null);
   const [waktuPengiriman, setWaktuPengiriman] = useState('09:00-12:00');
-    const [opsiPengiriman, setOpsiPengiriman] = useState(location.state?.opsiPengiriman || 'kargo')
-  const [catatan, setCatatan] = useState('');
+  const [opsiPengiriman, setOpsiPengiriman] = useState(location.state?.opsiPengiriman || 'standar'); // Diperbaiki dari 'kargo'
+  
+  // --- PERBAIKAN 1: Pisahkan state catatan ---
+  const [catatanKurir, setCatatanKurir] = useState('');
+  const [catatanPenerima, setCatatanPenerima] = useState('');
+  // --- AKHIR PERBAIKAN 1 ---
 
   const calculateShippingDates = (orderDate) => {
     const dates = [];
@@ -104,15 +108,18 @@ const AturPengirimanApotek = () => {
       return;
     }
 
+    // --- PERBAIKAN 2: Kirim kedua catatan ke state ---
     navigate(`/pbf/pengelolaan-pesanan/rincian-pengiriman/${id}`, {
       state: {
         pesanan,
         tanggalPengiriman: selectedDate,
         waktuPengiriman,
-        catatan,
+        catatanKurir,
+        catatanPenerima,
         opsiPengiriman
       },
     });
+    // --- AKHIR PERBAIKAN 2 ---
   };
 
   // --- LOADING STATE ---
@@ -237,6 +244,8 @@ const AturPengirimanApotek = () => {
                     <MapPin size={20} /> Informasi Tujuan & Catatan
                   </h2>
                 </div>
+                
+                {/* --- PERBAIKAN 3: Pisahkan Textarea --- */}
                 <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Alamat Tujuan</label>
@@ -247,18 +256,38 @@ const AturPengirimanApotek = () => {
                       <p>SIPA: {pesanan?.nomor_sipa || '...'}</p>
                     </div>
                   </div>
-                  <div>
-                    <label htmlFor="catatan" className="block text-sm font-semibold text-slate-700 mb-2">Catatan Pengiriman (Opsional)</label>
-                    <textarea
-                      id="catatan"
-                      value={catatan}
-                      onChange={(e) => setCatatan(e.target.value)}
-                      rows={5}
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition resize-none"
-                      placeholder="Instruksi khusus untuk kurir..."
-                    />
+                  
+                  {/* Kolom Kanan: Dua Catatan */}
+                  <div className="space-y-4">
+                    <div>
+                      <label htmlFor="catatan_kurir" className="block text-sm font-semibold text-slate-700 mb-2">
+                        Catatan untuk Kurir (Opsional)
+                      </label>
+                      <textarea
+                        id="catatan_kurir"
+                        value={catatanKurir}
+                        onChange={(e) => setCatatanKurir(e.target.value)}
+                        rows={3}
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition resize-none"
+                        placeholder="Instruksi khusus untuk kurir"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="catatan_penerima" className="block text-sm font-semibold text-slate-700 mb-2">
+                        Catatan untuk Penerima (Opsional)
+                      </label>
+                      <textarea
+                        id="catatan_penerima"
+                        value={catatanPenerima}
+                        onChange={(e) => setCatatanPenerima(e.target.value)}
+                        rows={3}
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition resize-none"
+                        placeholder="Catatan internal untuk Apotek"
+                      />
+                    </div>
                   </div>
                 </div>
+                {/* --- AKHIR PERBAIKAN 3 --- */}
               </div>
 
               {/* RINGKASAN PESANAN */}
@@ -344,10 +373,3 @@ const AturPengirimanApotek = () => {
 };
 
 export default AturPengirimanApotek;
-
-
-
-
-
-
-               

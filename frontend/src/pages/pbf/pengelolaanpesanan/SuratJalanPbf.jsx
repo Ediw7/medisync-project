@@ -318,7 +318,16 @@ const SuratJalanPbf = () => {
               <footer className="flex flex-col sm:flex-row justify-between items-start sm:items-end mt-16 pt-8 border-t border-slate-300 text-xs text-slate-600 gap-4">
                   <div>
                     <p>No. Resi Pengiriman: <span className="font-semibold text-slate-900">{info.nomor_resi || '-'}</span></p>
-                    {info.catatan && <p className="mt-1">Catatan Tambahan: {info.catatan}</p>}
+                    
+                    {/* --- PERBAIKAN DI SINI --- */}
+                    {/* Tampilkan catatan_kurir, BUKAN catatan (yang lama) */}
+                    {info.catatan_kurir && (
+                      <p className="mt-1">
+                        <span className="font-semibold">Catatan Kurir:</span> {info.catatan_kurir}
+                      </p>
+                    )}
+                    {/* --- AKHIR PERBAIKAN --- */}
+
                     <p className="mt-4 print:block hidden">Dokumen ini dicetak pada: {new Date().toLocaleString('id-ID')}</p>
                   </div>
                   <div className="text-center sm:text-right mt-8 sm:mt-0 print:block">

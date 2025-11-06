@@ -427,12 +427,13 @@ const TambahPesananApotek = () => {
                                                         </div>
                                                         <div>
                                                             <span className="text-slate-500 text-xs">Harga Satuan:</span>
-                                                            <p className="font-medium">Rp {Number(item.harga_satuan).toLocaleString('id-ID')}</p>
+                                                            <p className="font-medium">Rp   {Number(item.harga_satuan || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}</p>
+                                                          
                                                         </div>
                                                         <div className="col-span-2">
                                                             <span className="text-slate-500 text-xs">Total:</span>
                                                             <p className="font-bold text-slate-900">
-                                                                Rp {Number(item.total_harga).toLocaleString('id-ID')}
+                                                                Rp {Number(item.total_harga || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}
                                                             </p>
                                                         </div>
                                                     </div>
@@ -463,7 +464,8 @@ const TambahPesananApotek = () => {
                                                             <td className="px-4 py-3 text-center font-medium text-emerald-700">{item.qty}</td>
                                                             <td className="px-4 py-3 text-right text-slate-600">Rp {Number(item.harga_satuan).toLocaleString('id-ID')}</td>
                                                             <td className="px-4 py-3 font-semibold text-slate-800 text-right">
-                                                                Rp {Number(item.total_harga).toLocaleString('id-ID')}
+                                                                Rp {Number(item.total_harga || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}
+                                                                  
                                                             </td>
                                                             <td className="px-4 py-3 text-center">
                                                                 <button 
@@ -486,7 +488,8 @@ const TambahPesananApotek = () => {
                                             <div className="flex justify-between items-center">
                                                 <span className="text-sm md:text-base font-semibold text-slate-700">Total Harga Keseluruhan:</span>
                                                 <span className="text-lg md:text-xl font-bold text-slate-900">
-                                                    Rp {totalHarga.toLocaleString('id-ID')}
+                                                    Rp {Number(totalHarga || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}
+                                                    
                                                 </span>
                                             </div>
                                         </div>

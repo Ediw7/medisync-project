@@ -300,7 +300,7 @@ const pesananApotekController = {
                     pa.id AS pesanan_id, pa.nomor_pesanan, pa.tanggal_pesanan, pa.status, pa.total_harga,
                     pa.nama_apotek, pa.alamat_apotek, pa.telepon AS kontak_telepon,
                     pbf.nama_resmi AS nama_pbf, pbf.alamat AS alamat_pbf,
-                    sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman, 
+                    sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman,sjp.catatan_kurir,sjp.catatan_penerima 
                     sjp.waktu_pengiriman, sjp.opsi_pengiriman, sjp.status_blockchain
                 FROM pesanan_apotek pa
                 JOIN users pbf ON pa.id_pbf = pbf.id
@@ -366,7 +366,10 @@ const pesananApotekController = {
 // --- FUNGSI INI DIROMBAK TOTAL ---
     updateStatusAndCreateSuratJalan: async (req, res) => {
         const { id } = req.params; // id_pesanan_apotek
-        const { status, nomorResi, nomorSuratJalan, tanggalPengiriman, alamatTujuan, waktuPengiriman, catatan, hashSuratJalan, opsiPengiriman } = req.body;
+        const { 
+        status, nomorResi, nomorSuratJalan, tanggalPengiriman, alamatTujuan, 
+        waktuPengiriman, catatanKurir, catatanPenerima, hashSuratJalan, opsiPengiriman 
+    } = req.body;
         const idPbf = req.user.id;
 
         let gateway;
@@ -391,14 +394,26 @@ const pesananApotekController = {
             }
 
             const sqlSuratJalan = `
-                INSERT INTO surat_jalan_pbf (id_pesanan_apotek, nomor_resi, nomor_surat_jalan, tanggal_pengiriman, alamat_tujuan, waktu_pengiriman, catatan, hash_surat_jalan, opsi_pengiriman)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON DUPLICATE KEY UPDATE 
-                    nomor_resi = VALUES(nomor_resi), nomor_surat_jalan = VALUES(nomor_surat_jalan), tanggal_pengiriman = VALUES(tanggal_pengiriman),
-                    alamat_tujuan = VALUES(alamat_tujuan), waktu_pengiriman = VALUES(waktu_pengiriman), catatan = VALUES(catatan),
-                    hash_surat_jalan = VALUES(hash_surat_jalan), opsi_pengiriman = VALUES(opsi_pengiriman)`;
-            
-            await dbConnection.query(sqlSuratJalan, [id, nomorResi, nomorSuratJalan, tanggalPengiriman, alamatTujuan, waktuPengiriman || null, catatan || null, hashSuratJalan || null, opsiPengiriman?.toLowerCase() || 'standar']);
+            INSERT INTO surat_jalan_pbf (
+              id_pesanan_apotek, nomor_resi, nomor_surat_jalan, tanggal_pengiriman, alamat_tujuan, 
+              waktu_pengiriman, catatan_kurir, catatan_penerima, hash_surat_jalan, opsi_pengiriman
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE 
+                nomor_resi = VALUES(nomor_resi), nomor_surat_jalan = VALUES(nomor_surat_jalan), 
+                tanggal_pengiriman = VALUES(tanggal_pengiriman), alamat_tujuan = VALUES(alamat_tujuan), 
+                waktu_pengiriman = VALUES(waktu_pengiriman), catatan_kurir = VALUES(catatan_kurir), 
+                catatan_penerima = VALUES(catatan_penerima), hash_surat_jalan = VALUES(hash_surat_jalan), 
+                opsi_pengiriman = VALUES(opsi_pengiriman)`;
+        
+        await dbConnection.query(sqlSuratJalan, [
+            id, nomorResi, nomorSuratJalan, tanggalPengiriman, alamatTujuan, 
+            waktuPengiriman || null, 
+            catatanKurir || null,      // <-- Diubah
+            catatanPenerima || null,   // <-- Diubah
+            hashSuratJalan || null, 
+            opsiPengiriman?.toLowerCase() || 'standar'
+        ]);
             
             const [detailRows] = await dbConnection.query(
                 `SELECT dp.id as detail_pesanan_id, dp.id_aset_blockchain, dp.jumlah
@@ -477,7 +492,10 @@ const pesananApotekController = {
 
 
     prosesPengirimanMassal: async (req, res) => {
-        const { selectedIds, tanggalPengiriman, waktuPengiriman, catatan, opsiPengiriman } = req.body;
+        const { 
+        selectedIds, tanggalPengiriman, waktuPengiriman, 
+        catatanKurir, catatanPenerima, opsiPengiriman 
+    } = req.body;
         const idPbf = req.user.id;
 
         if (!selectedIds || selectedIds.length === 0) {
@@ -514,10 +532,19 @@ const pesananApotekController = {
                     const hashSuratJalan = `HASH_SJPBF_${timestamp}_${pesananId}`;
 
                     await dbConnection.query(
-                      `INSERT INTO surat_jalan_pbf (id_pesanan_apotek, nomor_resi, nomor_surat_jalan, tanggal_pengiriman, alamat_tujuan, waktu_pengiriman, catatan, hash_surat_jalan, opsi_pengiriman)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                      [pesananId, nomorResi, nomorSuratJalan, tanggalPengiriman, pesanan[0].alamat_apotek, waktuPengiriman || null, catatan || null, hashSuratJalan, opsiPengiriman]
-                    );
+                  `INSERT INTO surat_jalan_pbf (
+                    id_pesanan_apotek, nomor_resi, nomor_surat_jalan, tanggal_pengiriman, alamat_tujuan, 
+                    waktu_pengiriman, catatan_kurir, catatan_penerima, hash_surat_jalan, opsi_pengiriman
+                   )
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                  [
+                    pesananId, nomorResi, nomorSuratJalan, tanggalPengiriman, pesanan[0].alamat_apotek, 
+                    waktuPengiriman || null, 
+                    catatanKurir || null,      // <-- Diubah
+                    catatanPenerima || null,   // <-- Diubah
+                    hashSuratJalan, opsiPengiriman
+                  ]
+                );
                     
                     const [detailRows] = await dbConnection.query(
                         `SELECT dp.id as detail_pesanan_id, dp.id_aset_blockchain, dp.jumlah, dp.nama_obat, dp.harga_satuan FROM detail_pesanan_apotek dp WHERE dp.id_pesanan_apotek = ?`, [pesananId]

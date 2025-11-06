@@ -259,7 +259,7 @@ const TambahPesanan = () => {
     const selected = stokObat.find((o) => o.id.toString() === selectedId); 
     if (selected) {
       const harga = Number(selected.harga_per_unit) || 0;
-      const jumlah = 0; 
+      const jumlah = ""; 
       setItemObat({
         id_produksi: String(selected.id), 
         nama_obat: selected.nama_obat,

@@ -304,7 +304,8 @@ const SuratPesananApotek = () => {
                           <td className="px-3 py-2 text-center border-r border-slate-200 print:border-slate-400">{item.jumlah}</td>
                           <td className="px-3 py-2 text-center border-r border-slate-200 print:border-slate-400">{item.satuan}</td>
                           <td className="px-3 py-2 text-right border-r border-slate-200 print:border-slate-400">{(Number(item.harga_satuan) || 0).toLocaleString('id-ID')}</td>
-                          <td className="px-3 py-2 text-right">{(Number(item.harga_satuan * item.jumlah) || 0).toLocaleString('id-ID')}</td>
+                          <td className="px-3 py-2 text-right"> {Number((item.harga_satuan * item.jumlah) || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}</td>
+                          
                         </tr>
                       ))}
                     </tbody>
@@ -312,7 +313,7 @@ const SuratPesananApotek = () => {
                       <tr>
                         <td colSpan="6" className="px-3 py-2 text-right border-t-2 border-slate-300 print:border-slate-400">TOTAL HARGA KESELURUHAN</td>
                         <td className="px-3 py-2 text-right border-t-2 border-slate-300 print:border-slate-400">
-                          {totalHargaKeseluruhan.toLocaleString('id-ID')}
+                          {Number(totalHargaKeseluruhan || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}
                         </td>
                       </tr>
                     </tfoot>

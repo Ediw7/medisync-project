@@ -221,7 +221,8 @@ const DetailPesananApotek = () => {
                                 <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <InfoItem icon={Hash} label="Nomor Pesanan" value={pesanan.nomor_pesanan} mono />
                                     <InfoItem icon={Calendar} label="Tanggal Pesan" value={formatDate(pesanan.tanggal_pesanan)} />
-                                    <InfoItem icon={DollarSign} label="Total Harga" value={`Rp ${pesanan.total_harga.toLocaleString('id-ID')}`} highlight />
+                                    <InfoItem icon={DollarSign} label="Total Harga" value={`Rp ${Number(pesanan.total_harga || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}`} highlight />
+                                   
                                 </div>
                             </div>
                             
@@ -260,8 +261,10 @@ const DetailPesananApotek = () => {
                                                 <tr key={item.id}>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{item.nama_obat}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 text-center">{item.jumlah} {item.satuan || 'Box'}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 text-right">Rp {Number(item.harga_satuan || 0).toLocaleString('id-ID')}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-800 font-medium text-right">Rp {Number(item.total_harga || 0).toLocaleString('id-ID')}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 text-right">Rp {Number(item.harga_satuan  || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}</td>
+                                                     
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-800 font-medium text-right">Rp {Number(item.total_harga  || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}</td>
+                                                    
                                                 </tr>
                                             ))}
                                         </tbody>

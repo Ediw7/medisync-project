@@ -24,10 +24,9 @@ import {
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
 
-// --- MODAL KONFIRMASI ---
+// ... (Komponen ConfirmModal, generateProNumber, generateSuratJalanNumber - TIDAK BERUBAH) ...
 const ConfirmModal = ({ show, onClose, onConfirm, isLoading, pesanan }) => {
   if (!show) return null;
-
   return (
     <div
       className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4"
@@ -71,8 +70,6 @@ const ConfirmModal = ({ show, onClose, onConfirm, isLoading, pesanan }) => {
     </div>
   );
 };
-
-// --- GENERATE NOMOR RESI & SURAT JALAN ---
 const generateProNumber = (prefix, orderId) => {
   const date = new Date();
   const year = date.getFullYear().toString().slice(-2);
@@ -82,9 +79,9 @@ const generateProNumber = (prefix, orderId) => {
   const paddedOrderId = String(orderId).padStart(3, '0');
   return `${prefix}-${year}${month}${day}-${paddedOrderId}-${timestamp}`;
 };
-
 const generateSuratJalanNumber = (orderId) => {
-  const nomorIzin = localStorage.getItem('nomorIzinPbf') || 'NO-IZIN';
+  // --- PERBAIKAN: Gunakan 'nomor_izin' dari localStorage ---
+  const nomorIzin = localStorage.getItem('nomorIzin') || 'NO-IZIN'; // Ambil nomor izin PBF
   const date = new Date();
   const year = date.getFullYear().toString().slice(-2);
   const month = date.getMonth() + 1;
@@ -92,6 +89,7 @@ const generateSuratJalanNumber = (orderId) => {
   const paddedOrderId = String(orderId).padStart(6, '0');
   return `SJ/${paddedOrderId}/${nomorIzin}/${monthRoman}/${year}`;
 };
+
 
 // --- KOMPONEN UTAMA ---
 const RincianPengirimanApotek = () => {
@@ -111,23 +109,34 @@ const RincianPengirimanApotek = () => {
   const [nomorResi] = useState(() => id ? generateProNumber('RESPBF', id) : 'INVALID-ID');
   const [nomorSuratJalan] = useState(() => id ? generateSuratJalanNumber(id) : 'INVALID-ID');
 
+  // --- PERBAIKAN 1: Ambil catatanKurir & catatanPenerima ---
   const {
     pesanan: pesananFromState,
     tanggalPengiriman: tanggalFromState,
     waktuPengiriman: waktuFromState,
-    catatan: catatanFromState,
+    catatanKurir: catatanKurirFromState,
+    catatanPenerima: catatanPenerimaFromState,
     opsiPengiriman: opsiFromState
   } = location.state || {};
 
   const [opsiPengiriman, setOpsiPengiriman] = useState(opsiFromState || 'standar');
-  const [catatan, setCatatan] = useState(catatanFromState || '');
+  const [catatanKurir, setCatatanKurir] = useState(catatanKurirFromState || '');
+  const [catatanPenerima, setCatatanPenerima] = useState(catatanPenerimaFromState || '');
   const [tanggalPengiriman, setTanggalPengiriman] = useState(tanggalFromState || '');
   const [waktuPengiriman, setWaktuPengiriman] = useState(waktuFromState || '09:00-12:00');
+  // --- AKHIR PERBAIKAN 1 ---
+  
   const [alamatTujuan, setAlamatTujuan] = useState('');
 
   const currentDate = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 
   useEffect(() => {
+    // Cek nomor izin PBF di localStorage
+    if (!localStorage.getItem('nomorIzin')) {
+       setError("Nomor Izin PBF tidak ditemukan di localStorage. Silakan logout dan login kembali.");
+       toast.error("Nomor Izin PBF tidak ditemukan.");
+    }
+    
     if (pesananFromState) {
       setPesanan(pesananFromState);
       setAlamatTujuan(pesananFromState.alamat_apotek || 'Alamat tidak tersedia');
@@ -138,6 +147,7 @@ const RincianPengirimanApotek = () => {
         toast.error("Nomor Izin PBF tidak ditemukan.");
       }
     } else {
+      // (Logika fetchData tidak berubah, sudah benar)
       const fetchData = async () => {
         setIsLoading(true);
         setError(null);
@@ -163,6 +173,10 @@ const RincianPengirimanApotek = () => {
             setError("Data pesanan tidak lengkap. ID Aset Blockchain untuk satu atau lebih item tidak ditemukan.");
             toast.error("ID Aset Blockchain tidak lengkap.");
           }
+          
+          if (!tanggalFromState) {
+            setTanggalPengiriman(new Date().toISOString().split('T')[0]); // Set default ke hari ini
+          }
 
         } catch (error) {
           const errorMsg = error.response?.data?.message || error.message || 'Gagal memuat data pesanan.';
@@ -177,7 +191,7 @@ const RincianPengirimanApotek = () => {
       };
       fetchData();
     }
-  }, [id, navigate, pesananFromState, nomorSuratJalan]);
+  }, [id, navigate, pesananFromState, nomorSuratJalan, tanggalFromState]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -227,6 +241,7 @@ const RincianPengirimanApotek = () => {
 
       const hashSuratJalan = `HASH_SJPBF_${nomorSuratJalan}_${Date.now()}`;
 
+      // --- PERBAIKAN 2: Kirim dua catatan ke payload ---
       const payload = {
         status: 'Dikirim',
         nomorResi,
@@ -234,10 +249,12 @@ const RincianPengirimanApotek = () => {
         tanggalPengiriman,
         alamatTujuan,
         waktuPengiriman,
-        catatan,
+        catatanKurir,
+        catatanPenerima,
         hashSuratJalan,
         opsiPengiriman
       };
+      // --- AKHIR PERBAIKAN 2 ---
 
       const response = await axios.put(`http://localhost:5000/api/pbf/pesanan-apotek/${id}/atur-pengiriman`, payload, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -245,6 +262,7 @@ const RincianPengirimanApotek = () => {
 
       if (response.data.success) {
         toast.success('Surat jalan berhasil dibuat dan data disimpan ke blockchain.', { id: toastId });
+        // --- PERBAIKAN 3: Kirim dua catatan ke state navigasi ---
         navigate(`/pbf/pengelolaan-pesanan/surat-jalan/${id}`, {
           state: {
             nomorResi,
@@ -253,12 +271,14 @@ const RincianPengirimanApotek = () => {
             tanggalPengiriman,
             alamatTujuan,
             waktuPengiriman,
-            catatan,
+            catatanKurir,
+            catatanPenerima,
             hashSuratJalan,
             opsiPengiriman,
             currentDate: new Date().toISOString()
           },
         });
+        // --- AKHIR PERBAIKAN 3 ---
       } else {
         throw new Error(response.data.message || 'Gagal mengatur pengiriman.');
       }
@@ -276,7 +296,7 @@ const RincianPengirimanApotek = () => {
     navigate('/');
   };
 
-  // --- LOADING STATE ---
+  // ... (Render Loading, Error, Kosong - TIDAK BERUBAH) ...
   if (isLoading) {
     return (
       <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
@@ -288,8 +308,6 @@ const RincianPengirimanApotek = () => {
       </div>
     );
   }
-
-  // --- ERROR STATE ---
   if (error && !pesanan) {
     return (
       <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
@@ -313,7 +331,6 @@ const RincianPengirimanApotek = () => {
       </div>
     );
   }
-
   if (!pesanan) {
     return (
       <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
@@ -475,17 +492,38 @@ const RincianPengirimanApotek = () => {
                       disabled={alamatTujuan === 'Alamat tidak tersedia'}
                     />
                   </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">Catatan (Opsional)</label>
-                    <textarea
-                      value={catatan}
-                      onChange={(e) => setCatatan(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition resize-none"
-                      placeholder="Masukkan catatan jika ada."
-                      rows={3}
-                    />
+                  
+                  {/* --- PERBAIKAN 4: Ganti 1 textarea menjadi 2 --- */}
+                  <div className="md:col-span-2 space-y-4">
+                    <div>
+                      <label htmlFor="catatan_kurir" className="block text-sm font-semibold text-slate-700 mb-2">
+                        Catatan untuk Kurir (Opsional)
+                      </label>
+                      <textarea
+                        id="catatan_kurir"
+                        value={catatanKurir}
+                        onChange={(e) => setCatatanKurir(e.target.value)}
+                        rows={3}
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition resize-none"
+                        placeholder="Instruksi khusus untuk kurir, misal: 'Barang mudah pecah'"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="catatan_penerima" className="block text-sm font-semibold text-slate-700 mb-2">
+                        Catatan untuk Penerima (Opsional)
+                      </label>
+                      <textarea
+                        id="catatan_penerima"
+                        value={catatanPenerima}
+                        onChange={(e) => setCatatanPenerima(e.target.value)}
+                        rows={3}
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition resize-none"
+                        placeholder="Catatan internal untuk Apotek, misal: 'Faktur terpisah'"
+                      />
+                    </div>
                   </div>
+                  {/* --- AKHIR PERBAIKAN 4 --- */}
+                  
                 </div>
               </div>
 

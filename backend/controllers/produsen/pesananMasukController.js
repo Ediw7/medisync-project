@@ -182,7 +182,7 @@ getAll: async (req, res) => {
           p.nama_pbf, p.alamat_pbf, p.kontak_telepon, p.kontak_email, p.nama_apoteker, p.nomor_sipa,
           produsen.nama_resmi AS nama_produsen, produsen.alamat AS alamat_produsen,
           sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman, 
-          sjp.waktu_pengiriman, sjp.opsi_pengiriman, sjp.status_blockchain
+          sjp.waktu_pengiriman, sjp.opsi_pengiriman, sjp.status_blockchain,sjp.catatan_kurir,sjp.catatan_penerima
         FROM pesanan p
         JOIN users pbf ON p.id_pbf = pbf.id
         JOIN users produsen ON p.id_produsen = produsen.id
@@ -444,7 +444,10 @@ getAll: async (req, res) => {
 
 updateStatusWithDetails: async (req, res) => {
     const { id } = req.params; // Ini adalah id_pesanan
-    const { status, nomorResi, nomorSuratJalan, tanggalPengiriman, alamatTujuan, waktuPengiriman, catatan, hashSuratJalan, opsiPengiriman } = req.body;
+    const { 
+        status, nomorResi, nomorSuratJalan, tanggalPengiriman, alamatTujuan, 
+        waktuPengiriman, catatanKurir, catatanPenerima, hashSuratJalan, opsiPengiriman 
+    } = req.body;
     const idProdusen = req.user.id;
 
     let gateway;
@@ -469,14 +472,23 @@ updateStatusWithDetails: async (req, res) => {
       }
 
       const sqlSuratJalan = `
-        INSERT INTO surat_jalan_produsen (id_pesanan, nomor_resi, nomor_surat_jalan, tanggal_pengiriman, alamat_tujuan, waktu_pengiriman, catatan, hash_surat_jalan, opsi_pengiriman)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO surat_jalan_produsen (
+          id_pesanan, nomor_resi, nomor_surat_jalan, tanggal_pengiriman, alamat_tujuan, 
+          waktu_pengiriman, catatan_kurir, catatan_penerima, hash_surat_jalan, opsi_pengiriman
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE 
-          nomor_resi = VALUES(nomor_resi), nomor_surat_jalan = VALUES(nomor_surat_jalan), tanggal_pengiriman = VALUES(tanggal_pengiriman),
-          alamat_tujuan = VALUES(alamat_tujuan), waktu_pengiriman = VALUES(waktu_pengiriman), catatan = VALUES(catatan),
-          hash_surat_jalan = VALUES(hash_surat_jalan), opsi_pengiriman = VALUES(opsi_pengiriman)`;
+          nomor_resi = VALUES(nomor_resi), nomor_surat_jalan = VALUES(nomor_surat_jalan), 
+          tanggal_pengiriman = VALUES(tanggal_pengiriman), alamat_tujuan = VALUES(alamat_tujuan), 
+          waktu_pengiriman = VALUES(waktu_pengiriman), catatan_kurir = VALUES(catatan_kurir), 
+          catatan_penerima = VALUES(catatan_penerima), hash_surat_jalan = VALUES(hash_surat_jalan), 
+          opsi_pengiriman = VALUES(opsi_pengiriman)`;
       
-      await dbConnection.query(sqlSuratJalan, [id, nomorResi, nomorSuratJalan, tanggalPengiriman, alamatTujuan, waktuPengiriman || null, catatan || null, hashSuratJalan || null, opsiPengiriman?.toLowerCase() || 'standar']);
+      await dbConnection.query(sqlSuratJalan, [
+          id, nomorResi, nomorSuratJalan, tanggalPengiriman, alamatTujuan, 
+          waktuPengiriman || null, catatanKurir || null, catatanPenerima || null, // <-- Parameter diubah
+          hashSuratJalan || null, opsiPengiriman?.toLowerCase() || 'standar'
+      ]);
       
       const [detailRows] = await dbConnection.query(
         `SELECT dp.id as detail_pesanan_id, pr.batch_id, dp.jumlah_pesanan
@@ -635,7 +647,10 @@ updateStatusWithDetails: async (req, res) => {
 
   
   prosesPengirimanMassal: async (req, res) => {
-    const { selectedIds, tanggalPengiriman, waktuPengiriman, catatan, opsiPengiriman } = req.body;
+    const { 
+      selectedIds, tanggalPengiriman, waktuPengiriman, 
+      catatanKurir, catatanPenerima, opsiPengiriman 
+    } = req.body;
     const idProdusen = req.user.id;
 
     if (!selectedIds || selectedIds.length === 0) {
@@ -682,9 +697,16 @@ updateStatusWithDetails: async (req, res) => {
 
           // Masukkan ke surat_jalan_produsen
           await dbConnection.query(
-            `INSERT INTO surat_jalan_produsen (id_pesanan, nomor_resi, nomor_surat_jalan, tanggal_pengiriman, alamat_tujuan, waktu_pengiriman, catatan, hash_surat_jalan, opsi_pengiriman)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [pesananId, nomorResi, nomorSuratJalan, tanggalPengiriman, pesanan[0].alamat_pbf, waktuPengiriman || null, catatan || null, hashSuratJalan, opsiPengiriman]
+            `INSERT INTO surat_jalan_produsen (
+              id_pesanan, nomor_resi, nomor_surat_jalan, tanggal_pengiriman, alamat_tujuan, 
+              waktu_pengiriman, catatan_kurir, catatan_penerima, hash_surat_jalan, opsi_pengiriman
+             )
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              pesananId, nomorResi, nomorSuratJalan, tanggalPengiriman, pesanan[0].alamat_pbf, 
+              waktuPengiriman || null, catatanKurir || null, catatanPenerima || null, // <-- Parameter diubah
+              hashSuratJalan, opsiPengiriman
+            ]
           );
 
           // Ambil detail pesanan untuk dikirim ke chaincode

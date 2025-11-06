@@ -33,6 +33,7 @@ const RiwayatDistribusiPbf = () => {
   const username = localStorage.getItem('username'); 
 
   
+  // --- GANTI SELURUH BLOK INI ---
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -51,17 +52,19 @@ const RiwayatDistribusiPbf = () => {
           })
         ]);
 
+        // 1. Siapkan statistik default
+        let backendStats = { totalStok: 0, distribusiBulanIni: 0, stokMenipis: 0 };
+
         if (!stokResponse.ok) {
            const stokError = await stokResponse.text();
            console.warn(`Gagal mengambil data statistik stok: ${stokResponse.status} - ${stokError}`);
-            setStats({ totalStok: 0, distribusiBulanIni: 0, stokMenipis: 0 });
         } else {
              const stokResult = await stokResponse.json();
              if (stokResult.success && stokResult.data.stats) {
-                 setStats(stokResult.data.stats); 
+                 // Ambil stats (totalStok, stokMenipis) dari backend
+                 backendStats = stokResult.data.stats; 
              } else {
                   console.warn('Data statistik stok tidak valid:', stokResult.message);
-                  setStats({ totalStok: 0, distribusiBulanIni: 0, stokMenipis: 0 }); 
              }
         }
 
@@ -73,7 +76,17 @@ const RiwayatDistribusiPbf = () => {
         if (!distribusiResult.success) {
           throw new Error(distribusiResult.message || 'Respons data distribusi tidak berhasil.');
         }
+        
+        // 2. Hitung 'distribusiBulanIni' dari data distribusi (INI PERBAIKANNYA)
+        const distribusiBulanIni = (distribusiResult.data || []).filter(item => {
+            if (!item.tanggal_pengiriman) return false;
+            const bulanIni = new Date().getMonth();
+            const tahunIni = new Date().getFullYear();
+            const tanggalData = new Date(item.tanggal_pengiriman);
+            return tanggalData.getMonth() === bulanIni && tanggalData.getFullYear() === tahunIni;
+        }).reduce((sum, item) => sum + Number(item.jumlah_total_obat || 0), 0); // <-- Pastikan pakai Number()
 
+        // 3. Map data untuk tabel (kode Anda sudah benar)
         const mappedData = (distribusiResult.data || []).map(item => ({
           id: item.id,
           nomor_pesanan: item.nomor_pesanan,
@@ -84,6 +97,13 @@ const RiwayatDistribusiPbf = () => {
           status_pengiriman: item.status === 'Selesai' ? 'Diterima' : (item.status === 'Dikirim' ? 'Dikirim' : item.status),
         }));
         setDistribusiData(mappedData);
+
+        // 4. Set statistik gabungan
+        setStats({
+            totalStok: backendStats.totalStok,
+            distribusiBulanIni: distribusiBulanIni, // <-- Gunakan nilai yang baru dihitung
+            stokMenipis: backendStats.stokMenipis
+        });
 
       } catch (error) {
         setError(error.message);
@@ -99,6 +119,7 @@ const RiwayatDistribusiPbf = () => {
     };
     fetchData();
   }, [navigate]);
+  // --- AKHIR BLOK PERBAIKAN ---
 
   const handleLogout = () => {
     localStorage.clear();
@@ -224,7 +245,7 @@ const RiwayatDistribusiPbf = () => {
                    <StatCard
                     icon={<Box />}
                     value={stats.totalStok}
-                    label="Total Stok PBF"
+                    label="Total Stok Gudang"
                     unit="Pcs"
                     color="emerald"
                   />
@@ -238,7 +259,7 @@ const RiwayatDistribusiPbf = () => {
                   <StatCard
                     icon={<AlertTriangle />}
                     value={stats.stokMenipis} 
-                    label="Item Stok Menipis"
+                    label="Total Stok Menipis"
                     unit="Jenis" 
                     color="orange"
                   />

@@ -49,6 +49,7 @@ const MonitoringStokPbf = () => {
   });
   const username = localStorage.getItem('username');
 
+  // --- PERBAIKAN DIMULAI DI SINI ---
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -57,21 +58,46 @@ const MonitoringStokPbf = () => {
       token = localStorage.getItem('token');
       if (!token) throw new Error('Silakan login terlebih dahulu');
 
-      const response = await fetch('http://localhost:5000/api/pbf/stok', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
+      // 1. Buat dua permintaan data sekaligus
+      const [stokResponse, distribusiResponse] = await Promise.all([
+        fetch('http://localhost:5000/api/pbf/stok', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        }),
+        // Pastikan endpoint ini ada di backend Anda!
+        fetch('http://localhost:5000/api/pbf/riwayat-distribusi', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        })
+      ]);
 
-      if (!response.ok) {
-           const errorText = await response.text();
-           throw new Error(`Gagal mengambil data stok: ${response.status} - ${errorText}`);
+      if (!stokResponse.ok) {
+           const errorText = await stokResponse.text();
+           throw new Error(`Gagal mengambil data stok: ${stokResponse.status} - ${errorText}`);
+      }
+      if (!distribusiResponse.ok) {
+           // Gagal mengambil riwayat tidak fatal, kita log saja
+           console.warn(`Gagal mengambil data distribusi: ${distribusiResponse.status}`);
       }
 
-      const result = await response.json();
-      if (!result.success || !result.data) throw new Error(result.message || 'Format data stok tidak valid.');
+      const stokResult = await stokResponse.json();
+      const distribusiResult = await distribusiResponse.json().catch(() => ({ success: false, data: [] }));
 
-      const data = result.data.stokList || [];
-      const backendStats = result.data.stats || { totalStok: 0, distribusiBulanIni: 0, stokMenipis: 0 }; // Use stats from backend
+      if (!stokResult.success || !stokResult.data) throw new Error(stokResult.message || 'Format data stok tidak valid.');
 
+      const data = stokResult.data.stokList || [];
+      
+      // Ambil statistik (totalStok, stokMenipis) dari backend
+      const backendStats = stokResult.data.stats || { totalStok: 0, distribusiBulanIni: 0, stokMenipis: 0 };
+
+      // 2. Hitung 'distribusiBulanIni' di frontend (menggunakan logika Anda)
+      const distribusiBulanIni = (distribusiResult.data || []).filter(item => {
+            if (!item.tanggal_pengiriman) return false;
+            const bulanIni = new Date().getMonth();
+            const tahunIni = new Date().getFullYear();
+            const tanggalData = new Date(item.tanggal_pengiriman);
+            return tanggalData.getMonth() === bulanIni && tanggalData.getFullYear() === tahunIni;
+      }).reduce((sum, item) => sum + Number(item.jumlah_total_obat || 0), 0); // Pastikan pakai Number()
+
+      // (Logika status_stok Anda sudah benar)
       const dataWithStockStatus = data.map(item => {
           let status_stok = 'Tersedia';
           if (item.stok === 0) {
@@ -83,7 +109,13 @@ const MonitoringStokPbf = () => {
       });
 
       setStokData(dataWithStockStatus);
-      setStats(backendStats); 
+      
+      // 3. Set statistik gabungan
+      setStats({
+          totalStok: backendStats.totalStok,
+          distribusiBulanIni: distribusiBulanIni, // <-- Gunakan hasil hitungan frontend
+          stokMenipis: backendStats.stokMenipis
+      }); 
 
     } catch (error) {
       setError(error.message);
@@ -97,6 +129,7 @@ const MonitoringStokPbf = () => {
       setIsLoading(false);
     }
   }, [navigate]);
+  // --- PERBAIKAN SELESAI ---
 
   useEffect(() => {
      fetchData();

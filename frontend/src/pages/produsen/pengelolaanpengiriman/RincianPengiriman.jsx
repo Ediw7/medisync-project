@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
@@ -9,7 +9,7 @@ import {
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
 
-// === MODAL KONFIRMASI ===
+// === MODAL KONFIRMASI (Tidak Berubah) ===
 const ConfirmModal = ({ show, onClose, onConfirm, isLoading, pesanan }) => {
   if (!show) return null;
   return (
@@ -38,7 +38,7 @@ const ConfirmModal = ({ show, onClose, onConfirm, isLoading, pesanan }) => {
   );
 };
 
-// === NOMOR RESI & SURAT JALAN ===
+// ... (Fungsi generateProNumber, toRoman, getTodayLocal tidak berubah) ...
 const generateProNumber = (prefix, orderId) => {
   const date = new Date();
   const year = date.getFullYear().toString().slice(-2);
@@ -66,7 +66,6 @@ const generateSuratJalanNumber = (orderId) => {
   return `SJ/${paddedOrderId}/${nomorIzin}/${toRoman(month)}/${year}`;
 };
 
-// === FUNGSI TANGGAL LOKAL (WIB) ===
 const getTodayLocal = () => {
   const now = new Date();
   const year = now.getFullYear();
@@ -74,6 +73,7 @@ const getTodayLocal = () => {
   const day = String(now.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
+
 
 // === KOMPONEN UTAMA ===
 const RincianPengiriman = () => {
@@ -92,25 +92,28 @@ const RincianPengiriman = () => {
   const [nomorResi] = useState(() => id ? generateProNumber('RES', id) : 'INVALID-ID');
   const [nomorSuratJalan] = useState(() => id ? generateSuratJalanNumber(id) : 'INVALID-ID');
 
+  // --- PERBAIKAN 1: Ambil catatanKurir & catatanPenerima dari state ---
   const {
     pesanan: pesananFromState,
     tanggalPengiriman: tanggalFromState,
     waktuPengiriman: waktuFromState,
-    catatan: catatanFromState,
+    catatanKurir: catatanKurirFromState,       // <-- Diubah
+    catatanPenerima: catatanPenerimaFromState, // <-- Diubah
     opsiPengiriman: opsiFromState
   } = location.state || {};
-
-  // GUNAKAN STRING LANGSUNG — TIDAK PAKAI new Date()
+  
   const [tanggalPengiriman, setTanggalPengiriman] = useState(tanggalFromState || '');
   const [waktuPengiriman, setWaktuPengiriman] = useState(waktuFromState || '09:00-12:00');
   const [opsiPengiriman, setOpsiPengiriman] = useState(opsiFromState || 'standar');
-  const [catatan, setCatatan] = useState(catatanFromState || '');
+  const [catatanKurir, setCatatanKurir] = useState(catatanKurirFromState || '');           // <-- Diubah
+  const [catatanPenerima, setCatatanPenerima] = useState(catatanPenerimaFromState || '');   // <-- Diubah
   const [alamatTujuan, setAlamatTujuan] = useState('');
+  // --- AKHIR PERBAIKAN 1 ---
 
-  const today = getTodayLocal(); // YYYY-MM-DD (WIB)
+  const today = getTodayLocal();
   const currentDate = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 
-  // === USE EFFECT ===
+  // === USE EFFECT (Tidak berubah signifikan) ===
   useEffect(() => {
     if (pesananFromState) {
       setPesanan(pesananFromState);
@@ -145,7 +148,6 @@ const RincianPengiriman = () => {
           setPesanan(data);
           setAlamatTujuan(data.alamat_pbf || 'Alamat tidak tersedia');
 
-          // HANYA SET DEFAULT JIKA TIDAK ADA DARI STATE
           if (!tanggalFromState) {
             setTanggalPengiriman(today);
           }
@@ -171,21 +173,18 @@ const RincianPengiriman = () => {
     setError(null);
     toast.dismiss();
 
-    // VALIDASI DENGAN STRING LANGSUNG
     if (!tanggalPengiriman || tanggalPengiriman < today) {
       const msg = 'Tanggal pengiriman harus valid dan tidak boleh sebelum hari ini.';
       setError(msg);
       toast.error(msg);
       return;
     }
-
     if (!alamatTujuan || alamatTujuan === 'Alamat tidak tersedia') {
       const msg = 'Alamat tujuan tidak tersedia.';
       setError(msg);
       toast.error(msg);
       return;
     }
-
     if (nomorSuratJalan === 'ERROR-NO-IZIN') {
       const msg = 'Nomor Izin Produsen tidak ditemukan.';
       setError(msg);
@@ -207,6 +206,7 @@ const RincianPengiriman = () => {
 
       const hashSuratJalan = `HASH_SJ_${nomorSuratJalan}_${Date.now()}`;
 
+      // --- PERBAIKAN 2: Kirim catatanKurir & catatanPenerima ---
       const response = await axios.put(`http://localhost:5000/api/produsen/pesanan-masuk/${id}/status`, {
         status: 'Dikirim',
         nomorResi,
@@ -214,19 +214,24 @@ const RincianPengiriman = () => {
         tanggalPengiriman,
         alamatTujuan,
         waktuPengiriman,
-        catatan,
+        catatanKurir,     // <-- Diubah
+        catatanPenerima,  // <-- Diubah
         hashSuratJalan,
         opsiPengiriman,
       }, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      // --- AKHIR PERBAIKAN 2 ---
 
       if (response.data.success) {
         toast.success('Berhasil!', { id: toastId });
+        // Kirim juga catatan-catatan itu ke halaman Surat Jalan
         navigate(`/produsen/pengelolaan-pengiriman/surat-jalan/${id}`, {
           state: {
             nomorResi, nomorSuratJalan, pesanan, tanggalPengiriman,
-            alamatTujuan, waktuPengiriman, catatan, hashSuratJalan,
+            alamatTujuan, waktuPengiriman, 
+            catatanKurir, catatanPenerima, // <-- Diubah
+            hashSuratJalan,
             opsiPengiriman, currentDate: new Date().toISOString()
           },
         });
@@ -247,7 +252,7 @@ const RincianPengiriman = () => {
     navigate('/');
   };
 
-  // === RENDER LOADING / ERROR / KOSONG ===
+  // ... (Render Loading / Error / Kosong tidak berubah) ...
   if (isLoading) {
     return (
       <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
@@ -411,16 +416,38 @@ const RincianPengiriman = () => {
                       disabled={alamatTujuan === 'Alamat tidak tersedia'}
                     />
                   </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">Catatan (Opsional)</label>
-                    <textarea
-                      value={catatan}
-                      onChange={e => setCatatan(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
-                      rows={3}
-                    />
+                  
+                  {/* --- PERBAIKAN 3: Ganti 1 textarea menjadi 2 --- */}
+                  <div className="md:col-span-2 space-y-4">
+                    <div>
+                      <label htmlFor="catatan_kurir" className="block text-sm font-semibold text-slate-700 mb-2">
+                        Catatan untuk Kurir (Opsional)
+                      </label>
+                      <textarea
+                        id="catatan_kurir"
+                        value={catatanKurir}
+                        onChange={(e) => setCatatanKurir(e.target.value)}
+                        rows={3}
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
+                        placeholder="Instruksi khusus untuk kurir, misal: 'Barang mudah pecah', 'Simpan di pendingin'"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="catatan_penerima" className="block text-sm font-semibold text-slate-700 mb-2">
+                        Catatan untuk Penerima (Opsional)
+                      </label>
+                      <textarea
+                        id="catatan_penerima"
+                        value={catatanPenerima}
+                        onChange={(e) => setCatatanPenerima(e.target.value)}
+                        rows={3}
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
+                        placeholder="Catatan internal untuk PBF, misal: 'Pengiriman parsial', 'Faktur terpisah'"
+                      />
+                    </div>
                   </div>
+                  {/* --- AKHIR PERBAIKAN 3 --- */}
+                  
                 </div>
               </div>
 

@@ -253,8 +253,15 @@ const DetailStokPbf = () => {
                       </InfoCard>
 
                       <InfoCard title="Informasi Harga & Manufaktur" icon={Archive}>
-                         <InfoItem label="Harga Beli (per Unit)" value={`Rp ${stok.harga_per_unit.toLocaleString('id-ID')}`} />
-                         <InfoItem label="Total Nilai Stok" value={`Rp ${(stok.harga_per_unit * stok.stok).toLocaleString('id-ID')}`} highlight/>
+                         <InfoItem 
+                            label="Harga Beli (per Unit)" 
+                            value={`Rp ${Number(stok.harga_per_unit || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}`} 
+                         />
+                         <InfoItem 
+                            label="Total Nilai Stok" 
+                            value={`Rp ${Number(stok.harga_per_unit * stok.stok || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}`} 
+                            highlight
+                         />
                          <InfoItem label="Manufaktur (Produsen)" value={stok.nama_produsen} isFull/>
                       </InfoCard>
 

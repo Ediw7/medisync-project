@@ -28,10 +28,14 @@ const AturPengiriman = () => {
   
   const [waktuPengiriman, setWaktuPengiriman] = useState(location.state?.waktuPengiriman || '09:00-12:00');
   const [opsiPengiriman, setOpsiPengiriman] = useState(location.state?.opsiPengiriman || 'kargo');
-  const [catatan, setCatatan] = useState(location.state?.catatan || '');
+  
+  // --- PERBAIKAN 1: Ganti 'catatan' menjadi dua state ---
+  const [catatanKurir, setCatatanKurir] = useState(location.state?.catatanKurir || '');
+  const [catatanPenerima, setCatatanPenerima] = useState(location.state?.catatanPenerima || '');
+  // --- AKHIR PERBAIKAN 1 ---
+
   const username = localStorage.getItem('username');
 
-  // === FUNGSI TANGGAL LOKAL (WIB) — AMAN DARI TIMEZONE ===
   const getLocalDateString = (date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -39,7 +43,6 @@ const AturPengiriman = () => {
     return `${year}-${month}-${day}`;
   };
 
-  // === GENERATE 5 HARI KERJA BERIKUTNYA (LOKAL WIB) ===
   const calculateShippingDates = (orderDate) => {
     const dates = [];
     const startDate = new Date(orderDate);
@@ -56,7 +59,7 @@ const AturPengiriman = () => {
       const dayOfWeek = currentDate.getDay();
 
       if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-        const formattedDate = getLocalDateString(currentDate); // LOKAL
+        const formattedDate = getLocalDateString(currentDate); 
         const dayName = currentDate.toLocaleDateString('id-ID', { weekday: 'short' });
         const displayDate = `${String(currentDate.getDate()).padStart(2, '0')}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${currentDate.getFullYear()}`;
 
@@ -69,7 +72,6 @@ const AturPengiriman = () => {
   const [shippingDates, setShippingDates] = useState([]);
   const [selectedDate, setSelectedDate] = useState(location.state?.tanggalPengiriman || '');
 
-  // === FETCH DATA ===
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -138,15 +140,18 @@ const AturPengiriman = () => {
       return;
     }
 
+    // --- PERBAIKAN 2: Kirim dua catatan ke state ---
     navigate(`/produsen/pengelolaan-pengiriman/rincian-pengiriman/${id}`, {
       state: {
         pesanan,
-        tanggalPengiriman: selectedDate, // STRING LOKAL: "2025-11-07"
+        tanggalPengiriman: selectedDate,
         waktuPengiriman,
-        catatan,
+        catatanKurir,     // <-- Diubah
+        catatanPenerima,  // <-- Ditambahkan
         opsiPengiriman
       },
     });
+    // --- AKHIR PERBAIKAN 2 ---
   };
 
   // === RENDER LOADING ===
@@ -230,7 +235,6 @@ const AturPengiriman = () => {
                   <h2 className="text-lg font-semibold text-emerald-900 flex items-center gap-2">
                     <Calendar size={20} /> Jadwal Pengiriman
                   </h2>
-          
                 </div>
 
                 <div className="p-6 space-y-6">
@@ -249,12 +253,11 @@ const AturPengiriman = () => {
                           }`}
                         >
                           <span className="font-semibold block text-sm">{day}</span>
-                          <span className="block text-x">{displayDate}</span>
+                          <span className="block text-s">{displayDate}</span> {/* Ubah ke text-xs agar lebih kecil */}
                         </button>
                       ))}
                     </div>
                   </div>
-
                   <div>
                     <label htmlFor="waktu-pengiriman" className="block text-sm font-semibold text-slate-700 mb-2">Waktu Pengiriman*</label>
                     <div className="relative w-full md:w-2/3">
@@ -282,6 +285,8 @@ const AturPengiriman = () => {
                     <MapPin size={20} /> Informasi Tujuan & Catatan
                   </h2>
                 </div>
+                
+                {/* --- PERBAIKAN 3: Ubah menjadi dua catatan --- */}
                 <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Alamat Tujuan (PBF)</label>
@@ -292,18 +297,39 @@ const AturPengiriman = () => {
                       <p>Distribusi ke: {pesanan?.tujuan_distribusi || '...'}</p>
                     </div>
                   </div>
-                  <div>
-                    <label htmlFor="catatan" className="block text-sm font-semibold text-slate-700 mb-2">Catatan Pengiriman (Opsional)</label>
-                    <textarea
-                      id="catatan"
-                      value={catatan}
-                      onChange={(e) => setCatatan(e.target.value)}
-                      rows={5}
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
-                      placeholder="Instruksi khusus untuk kurir..."
-                    />
+                  
+                  {/* Kolom Kanan: Dua Catatan */}
+                  <div className="space-y-4">
+                    <div>
+                      <label htmlFor="catatan_kurir" className="block text-sm font-semibold text-slate-700 mb-2">
+                        Catatan untuk Kurir (Opsional)
+                      </label>
+                      <textarea
+                        id="catatan_kurir"
+                        value={catatanKurir}
+                        onChange={(e) => setCatatanKurir(e.target.value)}
+                        rows={3}
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
+                        placeholder="Instruksi khusus untuk kurir"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="catatan_penerima" className="block text-sm font-semibold text-slate-700 mb-2">
+                        Catatan untuk Penerima (Opsional)
+                      </label>
+                      <textarea
+                        id="catatan_penerima"
+                        value={catatanPenerima}
+                        onChange={(e) => setCatatanPenerima(e.target.value)}
+                        rows={3}
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
+                        placeholder="Catatan internal untuk PBF"
+                      />
+                    </div>
                   </div>
                 </div>
+                {/* --- AKHIR PERBAIKAN 3 --- */}
+
               </div>
 
               {/* RINGKASAN */}
@@ -332,8 +358,9 @@ const AturPengiriman = () => {
                     </div>
                     <div className="text-left sm:text-right">
                       <p className="text-xs font-medium text-slate-500 mb-1">Total Pembayaran</p>
+                      {/* --- PERBAIKAN 4: Format harga ,00 --- */}
                       <p className="text-lg font-bold text-emerald-700 flex items-center gap-1">
-                        Rp. {pesanan?.total_harga?.toLocaleString('id-ID', { minimumFractionDigits: 0 }) || '...'}
+                        Rp {Number(pesanan?.total_harga || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}
                       </p>
                       <p className="text-xs text-slate-500 mt-0.5">Metode: Transfer Bank</p>
                     </div>

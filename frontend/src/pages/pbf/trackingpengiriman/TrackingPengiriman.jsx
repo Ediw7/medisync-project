@@ -139,7 +139,7 @@ const TrackingPengiriman = () => {
             return <Link to={`/pbf/tracking-pengiriman/lihatstatus/${order.id}`} className="text-emerald-600 hover:text-emerald-800 font-semibold">Lihat Status</Link>;
         case 'Selesai':
             return assetId ? (
-                <Link to={`/pbf/tracking-pengiriman/riwayat/${assetId}`} className="text-purple-600 hover:text-purple-800 font-semibold">Lihat Riwayat</Link>
+                <Link to={`/pbf/tracking-pengiriman/riwayat/${assetId}`} className="text-emerald-600 hover:text-purple-800 font-semibold">Lihat Riwayat</Link>
             ) : (
                 <span className="text-slate-400 text-xs italic">(Riwayat T/A)</span>
             );

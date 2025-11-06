@@ -368,6 +368,10 @@ const DetailProduksi = () => {
                   <InfoItem label="Dosis" value={produksi.dosis} />
                   <InfoItem label="Bentuk Sediaan" value={produksi.bentuk_sediaan} />
                   <InfoItem label="Jumlah Produksi" value={`${produksi.jumlah.toLocaleString('id-ID')} Pcs`} />
+                  <InfoItem 
+                    label="Harga Satuan" 
+                    value={`Rp ${Number(produksi.harga_per_unit || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}`} 
+                  />
                   <InfoItem label="Penanggung Jawab" value={produksi.penanggung_jawab} />
                   <InfoItem label="Prioritas" value={produksi.prioritas} />
                   <InfoItem label="Komposisi Obat" value={produksi.komposisi_obat} isFull />

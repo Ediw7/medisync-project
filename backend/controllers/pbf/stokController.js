@@ -3,10 +3,11 @@ const db = require('../../config/db');
 
 const stokController = {
   // --- FUNGSI 1: Mengambil semua data stok dan statistik ---
+  // --- FUNGSI 1: Mengambil semua data stok dan statistik ---
   getStokData: async (req, res) => {
     const idPbf = req.user.id;
     try {
-      // Query utama untuk mengambil daftar semua stok yang dimiliki PBF (dari pesanan yang 'Selesai')
+      // Query utama untuk mengambil daftar stok (Tidak berubah)
       const sqlStokList = `
         SELECT 
           dp.id AS detail_pesanan_id,
@@ -14,7 +15,8 @@ const stokController = {
           dp.nama_obat, 
           dp.jumlah_pesanan AS stok, 
           pr.tanggal_kadaluarsa,
-          produsen.nama_resmi AS nama_produsen
+          produsen.nama_resmi AS nama_produsen,
+          dp.id_aset_blockchain -- <--- Sebaiknya ambil ini juga
         FROM detail_pesanan dp
         JOIN pesanan p ON dp.id_pesanan = p.id
         JOIN produksi pr ON dp.id_produksi = pr.id
@@ -24,24 +26,35 @@ const stokController = {
       `;
       const [stokList] = await db.query(sqlStokList, [idPbf]);
 
-      // Menghitung statistik dari data yang didapat
+      // --- PERBAIKAN STATISTIK: Query baru untuk Distribusi ---
+      const sqlDistribusi = `
+        SELECT SUM(dpa.jumlah) AS totalDistribusi
+        FROM detail_pesanan_apotek dpa
+        JOIN pesanan_apotek pa ON dpa.id_pesanan_apotek = pa.id
+        JOIN surat_jalan_pbf sjp ON pa.id = sjp.id_pesanan_apotek
+        WHERE pa.id_pbf = ?
+          AND pa.status IN ('Dikirim', 'Selesai')
+          AND MONTH(sjp.tanggal_pengiriman) = MONTH(CURDATE())
+          AND YEAR(sjp.tanggal_pengiriman) = YEAR(CURDATE())
+      `;
+      const [distribusiRows] = await db.query(sqlDistribusi, [idPbf]);
+      const distribusiBulanIni = distribusiRows[0].totalDistribusi || 0;
+      // --- AKHIR PERBAIKAN STATISTIK ---
+
+      // Menghitung statistik (Tidak berubah)
       let totalStok = 0;
       let stokMenipis = 0;
       stokList.forEach(item => {
         totalStok += item.stok;
-        if (item.stok > 0 && item.stok < 2000) { // Batas stok menipis
+        if (item.stok > 0 && item.stok < 2000) {
           stokMenipis += item.stok;
         }
       });
 
-      // TODO: Logika untuk "Distribusi Bulan Ini" perlu mengambil data dari pesanan ke apotek
-      // Untuk saat ini, kita akan mengisinya dengan 0
-      const distribusiBulanIni = 0; 
-
       const responseData = {
         stats: {
           totalStok,
-          distribusiBulanIni,
+          distribusiBulanIni, // <-- Sekarang menggunakan data dari query
           stokMenipis,
         },
         stokList: stokList,
@@ -56,6 +69,7 @@ const stokController = {
   },
 
   // --- FUNGSI 2: Mengambil detail satu item stok ---
+  // --- FUNGSI 2: Mengambil detail satu item stok ---
   getStokDetailById: async (req, res) => {
     const { id } = req.params; // Ini adalah detail_pesanan_id
     const idPbf = req.user.id;
@@ -64,6 +78,7 @@ const stokController = {
       const sql = `
         SELECT 
           dp.id,
+          dp.id_aset_blockchain, -- <--- PERBAIKAN DI SINI
           dp.nama_obat,
           dp.jumlah_pesanan AS stok,
           dp.harga_per_unit,

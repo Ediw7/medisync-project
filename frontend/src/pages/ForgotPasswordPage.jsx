@@ -1,24 +1,18 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import {
-  ArrowLeft,
-  Mail,
-  ShieldCheck,
-  GitBranch,
-  PackageSearch,
-} from "lucide-react";
-import { Link, useParams } from "react-router-dom";
-import axios from "axios";
-import { AnimatedBackground } from "../components/AnimatedBackground"
+import { useState } from 'react';
+import { ArrowLeft, Mail, ShieldCheck, GitBranch, PackageSearch } from 'lucide-react';
+import { Link, useParams } from 'react-router-dom';
+import axios from 'axios';
+import { AnimatedBackground } from '../components/AnimatedBackground';
 
 export default function ForgotPasswordPage() {
   const { role } = useParams();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const lastRole = localStorage.getItem("lastRole") || "produsen";
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const lastRole = localStorage.getItem('lastRole') || 'produsen';
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -27,34 +21,31 @@ export default function ForgotPasswordPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
+    setError('');
+    setSuccess('');
 
     if (!email.trim()) {
-      setError("Email wajib diisi.");
+      setError('Email wajib diisi.');
       return;
     }
 
     if (!validateEmail(email)) {
-      setError("Silakan masukkan alamat email yang valid.");
+      setError('Silakan masukkan alamat email yang valid.');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      await axios.post("http://localhost:5000/api/auth/forgot-password", {
+      await axios.post('http://localhost:5000/api/auth/forgot-password', {
         email: email.trim(),
       });
 
-      setSuccess(
-        "Jika ada akun dengan email tersebut, tautan reset telah dikirim."
-      );
-      setEmail(""); // Kosongkan form jika berhasil
+      setSuccess('Jika ada akun dengan email tersebut, tautan reset telah dikirim.');
+      setEmail(''); // Kosongkan form jika berhasil
     } catch (err) {
       const errorMessage =
-        err.response?.data?.message ||
-        "Terjadi kesalahan saat mencoba mengirim tautan reset.";
+        err.response?.data?.message || 'Terjadi kesalahan saat mencoba mengirim tautan reset.';
       setError(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -82,9 +73,7 @@ export default function ForgotPasswordPage() {
                 </div>
                 <div>
                   <h3 className="font-semibold">Keamanan Terjamin</h3>
-                  <p className="text-sm text-[#F9FDFE]">
-                    Enkripsi dan kepatuhan tingkat lanjut.
-                  </p>
+                  <p className="text-sm text-[#F9FDFE]">Enkripsi dan kepatuhan tingkat lanjut.</p>
                 </div>
               </div>
 
@@ -106,9 +95,7 @@ export default function ForgotPasswordPage() {
                 </div>
                 <div>
                   <h3 className="font-semibold">Pencarian Cerdas</h3>
-                  <p className="text-sm text-[#F9FDFE]">
-                    Temukan apa pun secara instan.
-                  </p>
+                  <p className="text-sm text-[#F9FDFE]">Temukan apa pun secara instan.</p>
                 </div>
               </div>
             </div>
@@ -134,9 +121,7 @@ export default function ForgotPasswordPage() {
               <div className="w-16 h-16 bg-[#047857]/90 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Mail className="w-8 h-8 text-gray-100/90" />
               </div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                Atur Ulang Kata Sandi
-              </h1>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Atur Ulang Kata Sandi</h1>
               <p className="text-gray-600">
                 Masukkan email akun Anda dan kami akan mengirimkan tautan reset.
               </p>
@@ -160,10 +145,7 @@ export default function ForgotPasswordPage() {
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                   Alamat Email
                 </label>
                 <div className="relative">
@@ -186,14 +168,14 @@ export default function ForgotPasswordPage() {
                 disabled={isSubmitting}
                 className="w-full bg-emerald-600 text-white py-3 rounded-lg hover:bg-emerald-700 font-semibold transition-colors duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? "Mengirim..." : "Kirim Tautan Reset"}
+                {isSubmitting ? 'Mengirim...' : 'Kirim Tautan Reset'}
               </button>
             </form>
 
             {/* Tautan Login */}
             <div className="text-center mt-6">
               <p className="text-gray-600">
-                Ingat kata sandi Anda?{" "}
+                Ingat kata sandi Anda?{' '}
                 <Link
                   to={`/login/${lastRole}`}
                   className="text-emerald-600 hover:text-emerald-700 hover:underline font-medium transition-colors duration-200"

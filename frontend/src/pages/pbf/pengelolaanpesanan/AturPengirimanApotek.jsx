@@ -2,7 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import SidebarPbf from '../../../components/SidebarPbf';
 import NavbarPbf from '../../../components/NavbarPbf';
-import { Loader2, Calendar, Clock, MapPin, FileText, DollarSign, ArrowLeft, ExternalLink, AlertCircle } from 'lucide-react';
+import {
+  Loader2,
+  Calendar,
+  Clock,
+  MapPin,
+  FileText,
+  DollarSign,
+  ArrowLeft,
+  ExternalLink,
+  AlertCircle,
+} from 'lucide-react';
 import axios from 'axios';
 
 const AturPengirimanApotek = () => {
@@ -14,7 +24,7 @@ const AturPengirimanApotek = () => {
   const [pesanan, setPesanan] = useState(null);
   const [waktuPengiriman, setWaktuPengiriman] = useState('09:00-12:00');
   const [opsiPengiriman, setOpsiPengiriman] = useState(location.state?.opsiPengiriman || 'standar'); // Diperbaiki dari 'kargo'
-  
+
   // --- PERBAIKAN 1: Pisahkan state catatan ---
   const [catatanKurir, setCatatanKurir] = useState('');
   const [catatanPenerima, setCatatanPenerima] = useState('');
@@ -24,7 +34,7 @@ const AturPengirimanApotek = () => {
     const dates = [];
     const startDate = new Date(orderDate);
     if (isNaN(startDate.getTime())) {
-      console.error("Invalid orderDate:", orderDate);
+      console.error('Invalid orderDate:', orderDate);
       const today = new Date();
       for (let i = 1; i <= 5; i++) {
         const date = new Date();
@@ -83,7 +93,11 @@ const AturPengirimanApotek = () => {
       } catch (err) {
         const errorMsg = err.response?.data?.message || err.message || 'Gagal memuat data pesanan';
         setError(errorMsg);
-        if (err.response?.status === 401 || err.response?.status === 403 || errorMsg.includes('login')) {
+        if (
+          err.response?.status === 401 ||
+          err.response?.status === 403 ||
+          errorMsg.includes('login')
+        ) {
           setTimeout(() => navigate('/login/pbf'), 1500);
         }
       } finally {
@@ -116,7 +130,7 @@ const AturPengirimanApotek = () => {
         waktuPengiriman,
         catatanKurir,
         catatanPenerima,
-        opsiPengiriman
+        opsiPengiriman,
       },
     });
     // --- AKHIR PERBAIKAN 2 ---
@@ -157,12 +171,19 @@ const AturPengirimanApotek = () => {
   return (
     <div className="flex min-h-screen bg-slate-50">
       <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
-        <NavbarPbf onLogout={() => { localStorage.clear(); navigate('/'); }} username={localStorage.getItem('username')} />
+      <div
+        className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}
+      >
+        <NavbarPbf
+          onLogout={() => {
+            localStorage.clear();
+            navigate('/');
+          }}
+          username={localStorage.getItem('username')}
+        />
 
         <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
           <div className="max-w-4xl mx-auto">
-
             {/* HEADER DENGAN ANIMASI BLOB */}
             <div className="mb-10 relative">
               <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
@@ -187,41 +208,49 @@ const AturPengirimanApotek = () => {
                   </div>
                 </div>
                 <p className="text-slate-600 text-lg flex items-center gap-2">
-                  Pilih jadwal pengiriman untuk pesanan <span className="font-semibold">#{String(pesanan?.id).padStart(6, '0')}</span>
+                  Pilih jadwal pengiriman untuk pesanan{' '}
+                  <span className="font-semibold">#{String(pesanan?.id).padStart(6, '0')}</span>
                 </p>
               </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-
               {/* JADWAL PENGIRIMAN */}
               <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
                 <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 px-6 py-4 border-b border-slate-200">
                   <h2 className="text-lg font-semibold text-emerald-900 flex items-center gap-2">
                     <Calendar size={20} /> Jadwal Pengiriman
                   </h2>
-
                 </div>
 
                 <div className="p-6 space-y-6">
-                   <div>
-                  <label className="block text-base font-semibold text-gray-800 mb-3">Tanggal Pengiriman</label>
-                  <div className="flex space-x-2">
-                    {shippingDates.map((date, index) => (
-                      <button
-                        key={index}
-                        type="button"
-                        onClick={() => setSelectedDate(date.date)}
-                        className={`px-4 py-2 rounded-lg border ${selectedDate === date.date ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'}`}
-                      >
-                        {date.day.slice(0, 3)}<br />{date.date.split('-').reverse().join('-')}
-                      </button>
-                    ))}
+                  <div>
+                    <label className="block text-base font-semibold text-gray-800 mb-3">
+                      Tanggal Pengiriman
+                    </label>
+                    <div className="flex space-x-2">
+                      {shippingDates.map((date, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => setSelectedDate(date.date)}
+                          className={`px-4 py-2 rounded-lg border ${selectedDate === date.date ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'}`}
+                        >
+                          {date.day.slice(0, 3)}
+                          <br />
+                          {date.date.split('-').reverse().join('-')}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
 
                   <div>
-                    <label htmlFor="waktu-pengiriman" className="block text-sm font-semibold text-slate-700 mb-2">Waktu Pengiriman*</label>
+                    <label
+                      htmlFor="waktu-pengiriman"
+                      className="block text-sm font-semibold text-slate-700 mb-2"
+                    >
+                      Waktu Pengiriman*
+                    </label>
                     <select
                       id="waktu-pengiriman"
                       value={waktuPengiriman}
@@ -244,23 +273,30 @@ const AturPengirimanApotek = () => {
                     <MapPin size={20} /> Informasi Tujuan & Catatan
                   </h2>
                 </div>
-                
+
                 {/* --- PERBAIKAN 3: Pisahkan Textarea --- */}
                 <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">Alamat Tujuan</label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Alamat Tujuan
+                    </label>
                     <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-1 text-sm text-slate-700 h-full">
-                      <p className="font-semibold text-slate-800">{pesanan?.nama_apotek || 'Memuat...'}</p>
+                      <p className="font-semibold text-slate-800">
+                        {pesanan?.nama_apotek || 'Memuat...'}
+                      </p>
                       <p>{pesanan?.alamat_apotek || '...'}</p>
                       <p>Kontak: {pesanan?.telepon || '...'}</p>
                       <p>SIPA: {pesanan?.nomor_sipa || '...'}</p>
                     </div>
                   </div>
-                  
+
                   {/* Kolom Kanan: Dua Catatan */}
                   <div className="space-y-4">
                     <div>
-                      <label htmlFor="catatan_kurir" className="block text-sm font-semibold text-slate-700 mb-2">
+                      <label
+                        htmlFor="catatan_kurir"
+                        className="block text-sm font-semibold text-slate-700 mb-2"
+                      >
                         Catatan untuk Kurir (Opsional)
                       </label>
                       <textarea
@@ -273,7 +309,10 @@ const AturPengirimanApotek = () => {
                       />
                     </div>
                     <div>
-                      <label htmlFor="catatan_penerima" className="block text-sm font-semibold text-slate-700 mb-2">
+                      <label
+                        htmlFor="catatan_penerima"
+                        className="block text-sm font-semibold text-slate-700 mb-2"
+                      >
                         Catatan untuk Penerima (Opsional)
                       </label>
                       <textarea
@@ -301,7 +340,9 @@ const AturPengirimanApotek = () => {
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                       <p className="text-xs font-medium text-slate-500 mb-1">ID Pesanan</p>
-                      <p className="text-lg font-bold text-slate-800">#{String(pesanan?.id).padStart(6, '0')}</p>
+                      <p className="text-lg font-bold text-slate-800">
+                        #{String(pesanan?.id).padStart(6, '0')}
+                      </p>
                     </div>
                     <div>
                       <p className="text-xs font-medium text-slate-500 mb-1">Surat Pesanan</p>
@@ -315,8 +356,10 @@ const AturPengirimanApotek = () => {
                     <div className="text-left sm:text-right">
                       <p className="text-xs font-medium text-slate-500 mb-1">Total Harga</p>
                       <p className="text-lg font-bold text-emerald-700 flex items-center gap-1">
-                        
-                        Rp {Number(pesanan?.total_harga || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}
+                        Rp{' '}
+                        {Number(pesanan?.total_harga || 0).toLocaleString('id-ID', {
+                          minimumFractionDigits: 2,
+                        })}
                       </p>
                       <p className="text-xs text-slate-500 mt-0.5">Pembayaran via Apotek</p>
                     </div>
@@ -356,10 +399,18 @@ const AturPengirimanApotek = () => {
       {/* ANIMASI BLOB CSS */}
       <style jsx>{`
         @keyframes blob {
-          0% { transform: translate(0px, 0px) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-          100% { transform: translate(0px, 0px) scale(1); }
+          0% {
+            transform: translate(0px, 0px) scale(1);
+          }
+          33% {
+            transform: translate(30px, -50px) scale(1.1);
+          }
+          66% {
+            transform: translate(-20px, 20px) scale(0.9);
+          }
+          100% {
+            transform: translate(0px, 0px) scale(1);
+          }
         }
         .animate-blob {
           animation: blob 7s infinite;

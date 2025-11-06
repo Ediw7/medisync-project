@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NavbarApotek from '../../../components/NavbarApotek';
-import { ChevronDown, TrendingUp, AlertTriangle, BarChart3, PieChart, Package, Loader2, CheckCircle2 } from 'lucide-react';
+import {
+  ChevronDown,
+  TrendingUp,
+  AlertTriangle,
+  BarChart3,
+  PieChart,
+  Package,
+  Loader2,
+  CheckCircle2,
+} from 'lucide-react';
 import { Bar, Doughnut } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -16,37 +25,29 @@ import {
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement
-);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
 // --- PERBAIKAN 1: Definisikan state kosong di luar ---
 const emptyChartData = { labels: [], datasets: [] };
 
 // --- OPSI CHART (Tidak Berubah) ---
-const barOptions = { 
-    responsive: true, 
-    maintainAspectRatio: true,
-    plugins: { 
-      legend: { position: 'bottom', labels: { padding: 15, font: { size: 12 }} } 
-    },
-    scales: {
-      y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
-      x: { grid: { display: false } }
-    }
+const barOptions = {
+  responsive: true,
+  maintainAspectRatio: true,
+  plugins: {
+    legend: { position: 'bottom', labels: { padding: 15, font: { size: 12 } } },
+  },
+  scales: {
+    y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+    x: { grid: { display: false } },
+  },
 };
-const doughnutOptions = { 
-    responsive: true,
-    maintainAspectRatio: true,
-    plugins: { 
-      legend: { position: 'bottom', labels: { padding: 12, font: { size: 11 }} } 
-    } 
+const doughnutOptions = {
+  responsive: true,
+  maintainAspectRatio: true,
+  plugins: {
+    legend: { position: 'bottom', labels: { padding: 12, font: { size: 11 } } },
+  },
 };
 // --- AKHIR OPSI CHART ---
 
@@ -71,13 +72,13 @@ const LaporanAnalitikApotek = () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
-          toast.error("Sesi tidak valid.");
+          toast.error('Sesi tidak valid.');
           navigate('/login/apotek');
           return;
         }
-        
+
         const response = await axios.get('http://localhost:5000/api/apotek/laporan/analytics', {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         if (response.data.success && response.data.data) {
@@ -87,27 +88,31 @@ const LaporanAnalitikApotek = () => {
           if (data.totalPenjualanChart) {
             setTotalPenjualanData({
               labels: data.totalPenjualanChart.labels,
-              datasets: [{
-                label: 'Total Penjualan (Rp)',
-                data: data.totalPenjualanChart.data,
-                backgroundColor: '#10B981',
-                borderColor: '#059669',
-                borderWidth: 1,
-                borderRadius: 8,
-              }],
+              datasets: [
+                {
+                  label: 'Total Penjualan (Rp)',
+                  data: data.totalPenjualanChart.data,
+                  backgroundColor: '#10B981',
+                  borderColor: '#059669',
+                  borderWidth: 1,
+                  borderRadius: 8,
+                },
+              ],
             });
           }
-          
+
           // Set Obat Terlaris (ke Konsumen)
           if (data.obatTerlarisChart) {
             setObatTerlarisData({
               labels: data.obatTerlarisChart.labels,
-              datasets: [{
-                data: data.obatTerlarisChart.data,
-                backgroundColor: ['#10B981', '#34D399', '#6EE7B7', '#A7F3D0', '#D1FAE5'],
-                borderColor: '#FFFFFF',
-                borderWidth: 3,
-              }],
+              datasets: [
+                {
+                  data: data.obatTerlarisChart.data,
+                  backgroundColor: ['#10B981', '#34D399', '#6EE7B7', '#A7F3D0', '#D1FAE5'],
+                  borderColor: '#FFFFFF',
+                  borderWidth: 3,
+                },
+              ],
             });
           }
 
@@ -115,24 +120,24 @@ const LaporanAnalitikApotek = () => {
           if (data.totalPembelianChart) {
             setTotalPembelianData({
               labels: data.totalPembelianChart.labels,
-              datasets: [{
-                label: 'Total Pembelian (Rp)',
-                data: data.totalPembelianChart.data,
-                backgroundColor: '#3B82F6', // Warna biru
-                borderColor: '#2563EB',
-                borderWidth: 1,
-                borderRadius: 8,
-              }],
+              datasets: [
+                {
+                  label: 'Total Pembelian (Rp)',
+                  data: data.totalPembelianChart.data,
+                  backgroundColor: '#3B82F6', // Warna biru
+                  borderColor: '#2563EB',
+                  borderWidth: 1,
+                  borderRadius: 8,
+                },
+              ],
             });
           }
 
           // Set Hampir Kadaluwarsa
           setHampirKadaluwarsaData(data.hampirKadaluwarsaData || []);
-          
         } else {
           throw new Error(response.data.message || 'Gagal memuat data analitik.');
         }
-
       } catch (err) {
         const errorMsg = err.response?.data?.message || err.message;
         setError(errorMsg);
@@ -144,7 +149,7 @@ const LaporanAnalitikApotek = () => {
     };
     fetchAnalytics();
   }, [navigate]);
-  
+
   const handleLogout = () => {
     localStorage.clear();
     navigate('/');
@@ -152,7 +157,12 @@ const LaporanAnalitikApotek = () => {
 
   const formatDate = (dateString) => {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
+    return new Date(dateString).toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
+    });
   };
 
   if (isLoading) {
@@ -172,7 +182,7 @@ const LaporanAnalitikApotek = () => {
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
       <div className="flex-1 flex flex-col">
         <NavbarApotek onLogout={handleLogout} username={username} />
-        
+
         <main className="flex-1 overflow-auto pt-[72px]">
           <div className="max-w-7xl mx-auto px-6 py-8">
             {/* Header */}
@@ -180,17 +190,16 @@ const LaporanAnalitikApotek = () => {
               <h1 className="text-3xl font-bold text-slate-900 mb-2">Laporan dan Analitik</h1>
               <p className="text-slate-600">Pantau performa dan statistik apotek Anda</p>
             </div>
-            
+
             {error && (
-                <div className="p-4 mb-6 bg-red-50 text-red-700 rounded-lg border border-red-200 flex items-center gap-2 text-sm">
-                    <AlertTriangle size={18} /> {error}
-                </div>
+              <div className="p-4 mb-6 bg-red-50 text-red-700 rounded-lg border border-red-200 flex items-center gap-2 text-sm">
+                <AlertTriangle size={18} /> {error}
+              </div>
             )}
-            
+
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               {/* Kolom Kiri */}
               <div className="space-y-6">
-                
                 {/* Total Penjualan (Konsumen) */}
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                   <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
@@ -204,9 +213,11 @@ const LaporanAnalitikApotek = () => {
                   <div className="p-6">
                     {/* --- PERBAIKAN 3: Cek 'data.length' --- */}
                     {totalPenjualanData.datasets[0]?.data?.length > 0 ? (
-                        <Bar data={totalPenjualanData} options={barOptions} />
+                      <Bar data={totalPenjualanData} options={barOptions} />
                     ) : (
-                        <p className="text-center text-slate-500 py-10">Tidak ada data penjualan 6 bulan terakhir.</p>
+                      <p className="text-center text-slate-500 py-10">
+                        Tidak ada data penjualan 6 bulan terakhir.
+                      </p>
                     )}
                   </div>
                 </div>
@@ -224,9 +235,11 @@ const LaporanAnalitikApotek = () => {
                   <div className="p-6">
                     <div className="max-w-sm mx-auto">
                       {obatTerlarisData.datasets[0]?.data?.length > 0 ? (
-                          <Doughnut data={obatTerlarisData} options={doughnutOptions} />
+                        <Doughnut data={obatTerlarisData} options={doughnutOptions} />
                       ) : (
-                          <p className="text-center text-slate-500 py-10">Belum ada obat yang terjual.</p>
+                        <p className="text-center text-slate-500 py-10">
+                          Belum ada obat yang terjual.
+                        </p>
                       )}
                     </div>
                   </div>
@@ -235,7 +248,6 @@ const LaporanAnalitikApotek = () => {
 
               {/* Kolom Kanan */}
               <div className="space-y-6">
-                
                 {/* Total Pembelian (dari PBF) */}
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                   <div className="px-6 py-4 border-b border-slate-200">
@@ -248,18 +260,19 @@ const LaporanAnalitikApotek = () => {
                   </div>
                   <div className="p-6">
                     {totalPembelianData.datasets[0]?.data?.length > 0 ? (
-                        <Bar data={totalPembelianData} options={barOptions} />
+                      <Bar data={totalPembelianData} options={barOptions} />
                     ) : (
-                        <p className="text-center text-slate-500 py-10">Tidak ada data pembelian 6 bulan terakhir.</p>
+                      <p className="text-center text-slate-500 py-10">
+                        Tidak ada data pembelian 6 bulan terakhir.
+                      </p>
                     )}
                   </div>
                 </div>
 
                 {/* (Kartu Prediksi & Stok Dummy Dihapus) */}
-                
               </div>
             </div>
-            
+
             {/* Obat Hampir Kadaluwarsa */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">
               <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
@@ -267,21 +280,31 @@ const LaporanAnalitikApotek = () => {
                   <div className="p-2 bg-red-100 rounded-lg">
                     <AlertTriangle className="text-red-600" size={20} />
                   </div>
-                  <h2 className="font-bold text-slate-900">Obat yang Hampir Kadaluwarsa (90 Hari)</h2>
+                  <h2 className="font-bold text-slate-900">
+                    Obat yang Hampir Kadaluwarsa (90 Hari)
+                  </h2>
                 </div>
                 <button className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-sm font-semibold px-5 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200">
                   Lihat Semua
                 </button>
               </div>
-              
+
               <div className="overflow-x-auto">
                 <table className="min-w-full">
                   <thead>
                     <tr className="border-b-2 border-slate-200 bg-slate-50">
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Nama Obat</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Stok</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Tanggal Kadaluwarsa</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
+                        Nama Obat
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
+                        Stok
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
+                        Tanggal Kadaluwarsa
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
+                        Status
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -299,7 +322,9 @@ const LaporanAnalitikApotek = () => {
                               {(item.stok || 0).toLocaleString('id-ID')} box
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 font-medium">{formatDate(item.tanggal)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 font-medium">
+                            {formatDate(item.tanggal)}
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="px-3 py-1 text-xs font-semibold rounded-full bg-red-50 text-red-700 border border-red-200">
                               {item.status}
@@ -310,8 +335,11 @@ const LaporanAnalitikApotek = () => {
                     ) : (
                       <tr>
                         <td colSpan="4" className="text-center py-10 text-slate-500">
-                           <CheckCircle2 size={32} className="mx-auto mb-2 opacity-50 text-emerald-600"/>
-                           Tidak ada obat yang mendekati kadaluwarsa.
+                          <CheckCircle2
+                            size={32}
+                            className="mx-auto mb-2 opacity-50 text-emerald-600"
+                          />
+                          Tidak ada obat yang mendekati kadaluwarsa.
                         </td>
                       </tr>
                     )}

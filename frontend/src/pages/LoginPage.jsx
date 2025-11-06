@@ -1,58 +1,66 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { useParams, useNavigate, Link } from "react-router-dom"
-import axios from "axios"
-import { Eye, EyeOff, User, Lock, ArrowLeft, ShieldCheck, GitBranch, PackageSearch } from "lucide-react"
-import { AnimatedBackground } from "../components/AnimatedBackground"
+import { useState } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
+import {
+  Eye,
+  EyeOff,
+  User,
+  Lock,
+  ArrowLeft,
+  ShieldCheck,
+  GitBranch,
+  PackageSearch,
+} from 'lucide-react';
+import { AnimatedBackground } from '../components/AnimatedBackground';
 
 const LoginPage = () => {
-  const [form, setForm] = useState({ username: "", password: "" })
-  const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const { role } = useParams()
-  const navigate = useNavigate()
+  const [form, setForm] = useState({ username: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { role } = useParams();
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value })
-  }
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError("")
-    setIsSubmitting(true)
+    e.preventDefault();
+    setError('');
+    setIsSubmitting(true);
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/login", form)
-      localStorage.setItem("token", res.data.token)
-      localStorage.setItem("username", res.data.username)
-      localStorage.setItem("namaResmi", res.data.namaResmi)
-     localStorage.setItem('nomorIzinPbf', res.data.nomor_izin);
+      const res = await axios.post('http://localhost:5000/api/auth/login', form);
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('username', res.data.username);
+      localStorage.setItem('namaResmi', res.data.namaResmi);
+      localStorage.setItem('nomorIzinPbf', res.data.nomor_izin);
 
       if (res.data.id) {
-        localStorage.setItem("produsenId", res.data.id) 
+        localStorage.setItem('produsenId', res.data.id);
       } else {
         console.error("Login response does not contain 'id'. 'produsenId' was not set.");
       }
 
-      localStorage.setItem("nomorIzin", res.data.nomor_izin);
-  
+      localStorage.setItem('nomorIzin', res.data.nomor_izin);
 
-      const userRole = res.data.role
+      const userRole = res.data.role;
       if (userRole !== role) {
-        setError(`Login gagal. Akun ini bukan untuk peran ${role}.`)
-        return
+        setError(`Login gagal. Akun ini bukan untuk peran ${role}.`);
+        return;
       }
 
-      if (userRole === "produsen") navigate("/produsen/dashboard")
-      else if (userRole === "pbf") navigate("/pbf/dashboard")
-      else if (userRole === "apotek") navigate("/apotek/dashboard")
+      if (userRole === 'produsen') navigate('/produsen/dashboard');
+      else if (userRole === 'pbf') navigate('/pbf/dashboard');
+      else if (userRole === 'apotek') navigate('/apotek/dashboard');
     } catch (error) {
-      setError(error.response?.data?.message || "Terjadi kesalahan saat login")
+      setError(error.response?.data?.message || 'Terjadi kesalahan saat login');
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const displayRole = role.toUpperCase();
 
@@ -75,7 +83,9 @@ const LoginPage = () => {
               </div>
               <div>
                 <h3 className="font-semibold">Keamanan Terjamin</h3>
-                <p className="text-sm text-[#F9FDFE]">Setiap transaksi dicatat di ledger yang tidak dapat diubah.</p>
+                <p className="text-sm text-[#F9FDFE]">
+                  Setiap transaksi dicatat di ledger yang tidak dapat diubah.
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-4">
@@ -84,7 +94,9 @@ const LoginPage = () => {
               </div>
               <div>
                 <h3 className="font-semibold">Transparansi Penuh</h3>
-                <p className="text-sm text-[#F9FDFE]">Lacak setiap langkah perjalanan produk dari hulu ke hilir.</p>
+                <p className="text-sm text-[#F9FDFE]">
+                  Lacak setiap langkah perjalanan produk dari hulu ke hilir.
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-4">
@@ -93,7 +105,9 @@ const LoginPage = () => {
               </div>
               <div>
                 <h3 className="font-semibold">Verifikasi Instan</h3>
-                <p className="text-sm text-[#F9FDFE]">Pastikan keaslian obat dengan pemindaian QR code yang cepat.</p>
+                <p className="text-sm text-[#F9FDFE]">
+                  Pastikan keaslian obat dengan pemindaian QR code yang cepat.
+                </p>
               </div>
             </div>
           </div>
@@ -127,7 +141,10 @@ const LoginPage = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
               <div className="relative">
-                <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <User
+                  size={18}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                />
                 <input
                   name="username"
                   type="text"
@@ -143,10 +160,13 @@ const LoginPage = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
               <div className="relative">
-                <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Lock
+                  size={18}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                />
                 <input
                   name="password"
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword ? 'text' : 'password'}
                   value={form.password}
                   onChange={handleChange}
                   placeholder="Masukkan password"
@@ -162,7 +182,10 @@ const LoginPage = () => {
                 </button>
               </div>
               <div className="text-right mt-2">
-                <Link to="/forgot-password" className="text-sm text-emerald-600 hover:text-emerald-700 hover:underline">
+                <Link
+                  to="/forgot-password"
+                  className="text-sm text-emerald-600 hover:text-emerald-700 hover:underline"
+                >
                   Lupa Password?
                 </Link>
               </div>
@@ -173,7 +196,7 @@ const LoginPage = () => {
               disabled={isSubmitting}
               className="w-full bg-emerald-600/90 backdrop-blur-xl text-white py-3 rounded-xl hover:bg-emerald-700/90 font-semibold transition-all duration-200 mt-6 disabled:bg-gray-400/70 border border-emerald-500/30 shadow-lg hover:shadow-xl"
             >
-              {isSubmitting ? "Memproses..." : "Masuk"}
+              {isSubmitting ? 'Memproses...' : 'Masuk'}
             </button>
           </form>
 
@@ -191,7 +214,7 @@ const LoginPage = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default LoginPage
+export default LoginPage;

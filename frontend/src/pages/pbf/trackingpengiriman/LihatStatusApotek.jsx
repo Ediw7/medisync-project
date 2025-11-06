@@ -40,7 +40,9 @@ const LihatStatusApotek = () => {
         );
 
         if (!response.data.success || !response.data.data) {
-          throw new Error(response.data.message || 'Data pengiriman tidak lengkap atau tidak tersedia');
+          throw new Error(
+            response.data.message || 'Data pengiriman tidak lengkap atau tidak tersedia'
+          );
         }
 
         const data = response.data.data;
@@ -72,7 +74,11 @@ const LihatStatusApotek = () => {
         });
       } catch (err) {
         setError(err.message);
-        if (err.message.includes('401') || err.message.includes('403') || err.message.includes('login')) {
+        if (
+          err.message.includes('401') ||
+          err.message.includes('403') ||
+          err.message.includes('login')
+        ) {
           navigate('/login/pbf');
         }
       } finally {
@@ -121,8 +127,8 @@ const LihatStatusApotek = () => {
           isCurrent
             ? 'bg-emerald-100 border-emerald-500 animate-pulse'
             : isCompleted
-            ? 'bg-emerald-500 border-emerald-600 text-white'
-            : 'bg-slate-100 border-slate-300 text-slate-400'
+              ? 'bg-emerald-500 border-emerald-600 text-white'
+              : 'bg-slate-100 border-slate-300 text-slate-400'
         }`}
       >
         <Icon size={26} />
@@ -158,8 +164,16 @@ const LihatStatusApotek = () => {
     return (
       <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
         <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-        <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
-          <NavbarPbf onLogout={() => { localStorage.clear(); navigate('/'); }} username={localStorage.getItem('username')} />
+        <div
+          className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}
+        >
+          <NavbarPbf
+            onLogout={() => {
+              localStorage.clear();
+              navigate('/');
+            }}
+            username={localStorage.getItem('username')}
+          />
           <main className="flex-1 flex items-center justify-center p-6 pt-[72px]">
             <div className="bg-white p-8 rounded-2xl shadow-lg border border-red-200 text-center max-w-md">
               <AlertTriangle className="mx-auto h-12 w-12 text-red-500 mb-4" />
@@ -188,7 +202,8 @@ const LihatStatusApotek = () => {
     );
   }
 
-  if (!shippingData) return <div className="p-6 text-center text-slate-500">Data pengiriman tidak ditemukan.</div>;
+  if (!shippingData)
+    return <div className="p-6 text-center text-slate-500">Data pengiriman tidak ditemukan.</div>;
 
   // === STATUS LOGIC ===
   const getCurrentStatus = () => {
@@ -218,8 +233,16 @@ const LihatStatusApotek = () => {
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
       <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
-        <NavbarPbf onLogout={() => { localStorage.clear(); navigate('/'); }} username={localStorage.getItem('username')} />
+      <div
+        className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}
+      >
+        <NavbarPbf
+          onLogout={() => {
+            localStorage.clear();
+            navigate('/');
+          }}
+          username={localStorage.getItem('username')}
+        />
 
         <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
           <div className="max-w-5xl mx-auto">
@@ -244,13 +267,17 @@ const LihatStatusApotek = () => {
                     currentStatus === 'Selesai'
                       ? 'text-emerald-700 border-emerald-200'
                       : currentStatus === 'Dikirim'
-                      ? 'text-blue-700 border-blue-200'
-                      : 'text-amber-700 border-amber-200'
+                        ? 'text-blue-700 border-blue-200'
+                        : 'text-amber-700 border-amber-200'
                   }`}
                 >
-                  {currentStatus === 'Selesai' ? <CheckCircle2 size={16} /> :
-                   currentStatus === 'Dikirim' ? <Truck size={16} /> :
-                   <Clock size={16} />}
+                  {currentStatus === 'Selesai' ? (
+                    <CheckCircle2 size={16} />
+                  ) : currentStatus === 'Dikirim' ? (
+                    <Truck size={16} />
+                  ) : (
+                    <Clock size={16} />
+                  )}
                   Status: {currentStatus}
                 </div>
               </div>
@@ -262,12 +289,13 @@ const LihatStatusApotek = () => {
                   Detail Pengiriman
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
                   {/* Nomor Resi */}
                   <div className="space-y-1">
                     <span className="text-sm font-medium text-slate-500">Nomor Resi</span>
                     <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                      <span className="font-bold text-slate-900 font-mono text-base flex-1">{shippingData.noResi}</span>
+                      <span className="font-bold text-slate-900 font-mono text-base flex-1">
+                        {shippingData.noResi}
+                      </span>
                       <button
                         onClick={() => copyToClipboard(shippingData.noResi, 'resi')}
                         className="text-slate-400 hover:text-emerald-600 transition-colors p-1"
@@ -283,7 +311,9 @@ const LihatStatusApotek = () => {
                   <div className="space-y-1">
                     <span className="text-sm font-medium text-slate-500">No Surat Jalan</span>
                     <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                      <span className="font-bold text-slate-900 font-mono text-base">{shippingData.noSuratJalan}</span>
+                      <span className="font-bold text-slate-900 font-mono text-base">
+                        {shippingData.noSuratJalan}
+                      </span>
                     </div>
                   </div>
 
@@ -291,7 +321,9 @@ const LihatStatusApotek = () => {
                   <div className="space-y-1">
                     <span className="text-sm font-medium text-slate-500">ID Pesanan</span>
                     <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                      <span className="font-bold text-slate-900 text-base">#{shippingData.idPesanan}</span>
+                      <span className="font-bold text-slate-900 text-base">
+                        #{shippingData.idPesanan}
+                      </span>
                     </div>
                   </div>
 
@@ -299,7 +331,9 @@ const LihatStatusApotek = () => {
                   <div className="space-y-1">
                     <span className="text-sm font-medium text-slate-500">Opsi Pengiriman</span>
                     <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                      <span className="font-bold text-slate-900 capitalize text-base">{shippingData.opsiPengiriman}</span>
+                      <span className="font-bold text-slate-900 capitalize text-base">
+                        {shippingData.opsiPengiriman}
+                      </span>
                     </div>
                   </div>
 
@@ -307,7 +341,9 @@ const LihatStatusApotek = () => {
                   <div className="space-y-1">
                     <span className="text-sm font-medium text-slate-500">Pengirim (PBF)</span>
                     <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                      <span className="font-semibold text-slate-900 text-base">{shippingData.pengirim}</span>
+                      <span className="font-semibold text-slate-900 text-base">
+                        {shippingData.pengirim}
+                      </span>
                     </div>
                   </div>
 
@@ -315,7 +351,9 @@ const LihatStatusApotek = () => {
                   <div className="space-y-1">
                     <span className="text-sm font-medium text-slate-500">Penerima (Apotek)</span>
                     <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                      <span className="font-semibold text-slate-900 text-base">{shippingData.penerima}</span>
+                      <span className="font-semibold text-slate-900 text-base">
+                        {shippingData.penerima}
+                      </span>
                     </div>
                   </div>
 
@@ -353,7 +391,9 @@ const LihatStatusApotek = () => {
 
               {/* Timeline Status */}
               <div className="p-8 py-12">
-                <h3 className="text-lg font-bold text-slate-900 mb-8 text-center">Status Pengiriman</h3>
+                <h3 className="text-lg font-bold text-slate-900 mb-8 text-center">
+                  Status Pengiriman
+                </h3>
                 <div className="flex items-center justify-center gap-0">
                   <StatusStep
                     icon={Package}
@@ -363,7 +403,9 @@ const LihatStatusApotek = () => {
                     isCurrent={currentStatus === 'Dipersiapkan'}
                   />
                   <div className="relative flex items-center h-14 w-24">
-                    <div className={`w-full h-1.5 rounded-full ${isDikirimCompleted ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                    <div
+                      className={`w-full h-1.5 rounded-full ${isDikirimCompleted ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                    />
                   </div>
                   <StatusStep
                     icon={Truck}
@@ -373,7 +415,9 @@ const LihatStatusApotek = () => {
                     isCurrent={currentStatus === 'Dikirim'}
                   />
                   <div className="relative flex items-center h-14 w-24">
-                    <div className={`w-full h-1.5 rounded-full ${isSelesaiCompleted ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                    <div
+                      className={`w-full h-1.5 rounded-full ${isSelesaiCompleted ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                    />
                   </div>
                   <StatusStep
                     icon={CheckCircle2}
@@ -390,7 +434,8 @@ const LihatStatusApotek = () => {
                 <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-xl p-4 text-sm flex items-start gap-3">
                   <Info size={18} className="flex-shrink-0 mt-0.5" />
                   <span>
-                    Status pengiriman akan diperbarui secara otomatis setelah Apotek mengonfirmasi penerimaan. Estimasi sampai adalah perkiraan.
+                    Status pengiriman akan diperbarui secara otomatis setelah Apotek mengonfirmasi
+                    penerimaan. Estimasi sampai adalah perkiraan.
                   </span>
                 </div>
               </div>

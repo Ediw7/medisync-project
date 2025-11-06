@@ -25,7 +25,8 @@ const DetailPesanan = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (!response.data.success) throw new Error(response.data.message || 'Gagal mengambil data pesanan');
+        if (!response.data.success)
+          throw new Error(response.data.message || 'Gagal mengambil data pesanan');
         setPesananData(response.data.data);
       } catch (error) {
         console.error('Error fetching pesanan:', error);
@@ -55,7 +56,7 @@ const DetailPesanan = () => {
   if (isLoading) {
     return (
       <div className="flex min-h-screen bg-gray-100 items-center justify-center">
-          <p>Memuat data pesanan...</p>
+        <p>Memuat data pesanan...</p>
       </div>
     );
   }
@@ -74,12 +75,17 @@ const DetailPesanan = () => {
 
   const { pesanan: info, detail_pesanan: detail } = pesananData;
 
-  const totalHargaKeseluruhan = detail.reduce((acc, item) => acc + (Number(item.total_harga) || 0), 0);
+  const totalHargaKeseluruhan = detail.reduce(
+    (acc, item) => acc + (Number(item.total_harga) || 0),
+    0
+  );
 
   return (
     <div className="flex min-h-screen bg-gray-100">
       <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+      <div
+        className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}
+      >
         <NavbarPbf onLogout={handleLogout} />
         <main className="flex-1 pt-16 p-6">
           <div className="max-w-4xl mx-auto">
@@ -101,9 +107,7 @@ const DetailPesanan = () => {
             <div className="bg-white p-8 md:p-12 rounded-lg shadow-lg border border-gray-200">
               <header className="text-center mb-8 border-b pb-4">
                 <h1 className="text-2xl font-bold text-gray-800">SURAT PESANAN</h1>
-                <p className="text-gray-500">
-                  Nomor PO: {info.nomor_po}
-                </p>
+                <p className="text-gray-500">Nomor PO: {info.nomor_po}</p>
               </header>
 
               <section className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
@@ -119,13 +123,16 @@ const DetailPesanan = () => {
                   <h2 className="font-semibold text-gray-600 mb-2">Kepada Yth:</h2>
                   <p className="font-bold">{info.nama_produsen || 'Produsen'}</p>
                   <p className="text-sm text-gray-600">{info.alamat_produsen || '-'}</p>
-                  <p className="text-sm text-gray-600">Tanggal Pesan: {formatDate(info.tanggal_pesanan)}</p>
+                  <p className="text-sm text-gray-600">
+                    Tanggal Pesan: {formatDate(info.tanggal_pesanan)}
+                  </p>
                 </div>
               </section>
 
               <section className="mb-8">
                 <p className="mb-4">
-                  Dengan hormat,<br />
+                  Dengan hormat,
+                  <br />
                   Mohon untuk disediakan produk farmasi sebagai berikut:
                 </p>
                 <div className="overflow-x-auto">
@@ -133,10 +140,16 @@ const DetailPesanan = () => {
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="p-3 text-sm font-semibold text-gray-700 border">No.</th>
-                        <th className="p-3 text-sm font-semibold text-gray-700 border">Nama Obat</th>
-                        <th className="p-3 text-sm font-semibold text-gray-700 border">Bentuk Sediaan</th>
+                        <th className="p-3 text-sm font-semibold text-gray-700 border">
+                          Nama Obat
+                        </th>
+                        <th className="p-3 text-sm font-semibold text-gray-700 border">
+                          Bentuk Sediaan
+                        </th>
                         <th className="p-3 text-sm font-semibold text-gray-700 border">Jumlah</th>
-                        <th className="p-3 text-sm font-semibold text-gray-700 border">Harga Satuan</th>
+                        <th className="p-3 text-sm font-semibold text-gray-700 border">
+                          Harga Satuan
+                        </th>
                         <th className="p-3 text-sm font-semibold text-gray-700 border">Total</th>
                       </tr>
                     </thead>
@@ -148,8 +161,12 @@ const DetailPesanan = () => {
                             <td className="p-3 border">{item.nama_obat}</td>
                             <td className="p-3 border">{item.bentuk_sediaan || '-'}</td>
                             <td className="p-3 border">{item.jumlah_pesanan}</td>
-                            <td className="p-3 border text-right">Rp {Number(item.harga_per_unit || 0).toLocaleString('id-ID')}</td>
-                            <td className="p-3 border text-right">Rp {Number(item.total_harga || 0).toLocaleString('id-ID')}</td>
+                            <td className="p-3 border text-right">
+                              Rp {Number(item.harga_per_unit || 0).toLocaleString('id-ID')}
+                            </td>
+                            <td className="p-3 border text-right">
+                              Rp {Number(item.total_harga || 0).toLocaleString('id-ID')}
+                            </td>
                           </tr>
                         ))
                       ) : (
@@ -162,9 +179,11 @@ const DetailPesanan = () => {
                     </tbody>
                     <tfoot>
                       <tr className="bg-gray-50 font-semibold">
-                        <td colSpan="5" className="p-3 text-right border">Total Harga Keseluruhan:</td>
+                        <td colSpan="5" className="p-3 text-right border">
+                          Total Harga Keseluruhan:
+                        </td>
                         <td className="p-3 text-right border">
-                           Rp {totalHargaKeseluruhan.toLocaleString('id-ID')}
+                          Rp {totalHargaKeseluruhan.toLocaleString('id-ID')}
                         </td>
                       </tr>
                     </tfoot>
@@ -172,8 +191,8 @@ const DetailPesanan = () => {
                 </div>
                 <p className="mt-4">
                   Produk tersebut akan kami gunakan untuk keperluan distribusi ke{' '}
-                  <span className="font-semibold">{info.tujuan_distribusi || '-'}</span> sesuai dengan
-                  peraturan yang berlaku.
+                  <span className="font-semibold">{info.tujuan_distribusi || '-'}</span> sesuai
+                  dengan peraturan yang berlaku.
                 </p>
               </section>
 
@@ -193,7 +212,6 @@ const DetailPesanan = () => {
                   <p className="font-bold underline">{info.nama_apoteker}</p>
                   <p className="text-sm text-gray-600">SIPA: {info.nomor_sipa}</p>
                 </div>
-                
               </footer>
             </div>
           </div>

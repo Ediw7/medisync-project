@@ -74,16 +74,34 @@ const DetailStok = () => {
 
   const getStatusConfig = (status) => {
     const configs = {
-      'Terjadwal': { icon: Clock, color: 'bg-teal-100 text-teal-800 border-teal-200', label: 'Terjadwal' },
-      'Dalam Produksi': { icon: AlertCircle, color: 'bg-blue-100 text-blue-800 border-blue-200', label: 'Dalam Produksi' },
-      'Selesai': { icon: CheckCircle2, color: 'bg-green-100 text-green-800 border-green-200', label: 'Selesai' },
-      'Tercatat di Blockchain': { 
-        icon: Shield, 
-        color: 'bg-emerald-100 text-emerald-800 border-emerald-200', 
-        label: 'Tercatat di Blockchain' 
-      }
+      Terjadwal: {
+        icon: Clock,
+        color: 'bg-teal-100 text-teal-800 border-teal-200',
+        label: 'Terjadwal',
+      },
+      'Dalam Produksi': {
+        icon: AlertCircle,
+        color: 'bg-blue-100 text-blue-800 border-blue-200',
+        label: 'Dalam Produksi',
+      },
+      Selesai: {
+        icon: CheckCircle2,
+        color: 'bg-green-100 text-green-800 border-green-200',
+        label: 'Selesai',
+      },
+      'Tercatat di Blockchain': {
+        icon: Shield,
+        color: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+        label: 'Tercatat di Blockchain',
+      },
     };
-    return configs[status] || { icon: AlertCircle, color: 'bg-gray-100 text-gray-800 border-gray-200', label: status || 'Tidak Diketahui' };
+    return (
+      configs[status] || {
+        icon: AlertCircle,
+        color: 'bg-gray-100 text-gray-800 border-gray-200',
+        label: status || 'Tidak Diketahui',
+      }
+    );
   };
 
   const handleCopyHash = async (hash) => {
@@ -158,7 +176,9 @@ const DetailStok = () => {
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+      <div
+        className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}
+      >
         <NavbarProdusen
           onLogout={() => {
             localStorage.clear();
@@ -168,7 +188,6 @@ const DetailStok = () => {
         />
         <main className="flex-1 overflow-auto pt-[72px] px-6 pl-14 py-8">
           <div className="max-w-6xl mx-auto">
-     
             <div className="mb-8">
               <button
                 onClick={() => navigate('/produsen/monitoring-stok')}
@@ -183,10 +202,15 @@ const DetailStok = () => {
                     <div>
                       <h1 className="text-3xl font-bold text-gray-900 mb-1">Detail Stok Obat</h1>
                       <p className="text-gray-600">
-                        Batch ID: <span className="font-mono font-semibold text-emerald-700">{produksi.batch_id}</span>
+                        Batch ID:{' '}
+                        <span className="font-mono font-semibold text-emerald-700">
+                          {produksi.batch_id}
+                        </span>
                       </p>
                     </div>
-                    <div className={`px-4 py-2 rounded-full border ${statusConfig.color} flex items-center space-x-2`}>
+                    <div
+                      className={`px-4 py-2 rounded-full border ${statusConfig.color} flex items-center space-x-2`}
+                    >
                       <StatusIcon size={16} />
                       <span className="font-medium text-sm">{statusConfig.label}</span>
                     </div>
@@ -200,24 +224,31 @@ const DetailStok = () => {
                   </div>
                 )}
 
-            
                 <div className="p-8">
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-       
                     <div className="space-y-6">
                       <InfoCard title="Informasi Obat" icon={Package}>
                         <InfoItem label="Nama Obat" value={produksi.nama_obat} />
                         <InfoItem label="Nomor Izin Edar" value={produksi.nomor_izin_edar} />
                         <InfoItem label="Dosis" value={produksi.dosis} />
                         <InfoItem label="Bentuk Sediaan" value={produksi.bentuk_sediaan} />
-                        <InfoItem label="Jumlah Tersedia" value={`${produksi.jumlah.toLocaleString()} pcs`} />
+                        <InfoItem
+                          label="Jumlah Tersedia"
+                          value={`${produksi.jumlah.toLocaleString()} pcs`}
+                        />
                       </InfoCard>
 
                       <InfoCard title="Detail Produksi" icon={FileText}>
                         <InfoItem label="Penanggung Jawab" value={produksi.penanggung_jawab} />
                         <InfoItem label="Prioritas" value={produksi.prioritas} />
-                        <InfoItem label="Tanggal Produksi" value={formatDateLocal(produksi.tanggal_produksi)} />
-                        <InfoItem label="Tanggal Kadaluarsa" value={formatDateLocal(produksi.tanggal_kadaluarsa)} />
+                        <InfoItem
+                          label="Tanggal Produksi"
+                          value={formatDateLocal(produksi.tanggal_produksi)}
+                        />
+                        <InfoItem
+                          label="Tanggal Kadaluarsa"
+                          value={formatDateLocal(produksi.tanggal_kadaluarsa)}
+                        />
                         <InfoItem label="Komposisi Obat" value={produksi.komposisi_obat} isFull />
                       </InfoCard>
                     </div>
@@ -225,7 +256,10 @@ const DetailStok = () => {
                     <div className="space-y-6">
                       <InfoCard title="Dokumen & Validasi" icon={Download}>
                         <DocumentItem label="Dokumen BPOM" path={produksi.dokumen_bpom_path} />
-                        <DocumentItem label="Sertifikat Analisis" path={produksi.sertifikat_analisis_path} />
+                        <DocumentItem
+                          label="Sertifikat Analisis"
+                          path={produksi.sertifikat_analisis_path}
+                        />
                         <HashItem
                           label="Hash Sertifikat Analisis"
                           hash={produksi.hash_sertifikat_analisis}
@@ -234,30 +268,38 @@ const DetailStok = () => {
                         />
                       </InfoCard>
 
-                      
-
                       {qrCode && (
-                      <InfoCard title="QR Code Verifikasi" icon={QrCode} bgColor="bg-blue-50" borderColor="border-blue-200">
-                        <div className="col-span-full text-center">
-                          <div className="bg-white p-4 rounded-xl border border-gray-200 mb-4 shadow-sm inline-block">
-                            <img src={qrCode} alt="QR Code" className="w-full max-w-[200px] mx-auto rounded-lg block" />
+                        <InfoCard
+                          title="QR Code Verifikasi"
+                          icon={QrCode}
+                          bgColor="bg-blue-50"
+                          borderColor="border-blue-200"
+                        >
+                          <div className="col-span-full text-center">
+                            <div className="bg-white p-4 rounded-xl border border-gray-200 mb-4 shadow-sm inline-block">
+                              <img
+                                src={qrCode}
+                                alt="QR Code"
+                                className="w-full max-w-[200px] mx-auto rounded-lg block"
+                              />
+                            </div>
+                            <p className="text-sm text-gray-600 mb-4 max-w-md mx-auto">
+                              Pindai kode QR untuk verifikasi detail produk.
+                            </p>
+                            <button
+                              onClick={() => {
+                                const link = document.createElement('a');
+                                link.href = qrCode;
+                                link.download = `${produksi.batch_id}_qr.png`;
+                                link.click();
+                              }}
+                              className="text-xs text-blue-600 hover:text-blue-800 font-medium inline-block"
+                            >
+                              Download QR Code
+                            </button>
                           </div>
-                          <p className="text-sm text-gray-600 mb-4 max-w-md mx-auto">Pindai kode QR untuk verifikasi detail produk.</p>
-                          <button
-                            onClick={() => {
-                              const link = document.createElement('a');
-                              link.href = qrCode;
-                              link.download = `${produksi.batch_id}_qr.png`;
-                              link.click();
-                            }}
-                            className="text-xs text-blue-600 hover:text-blue-800 font-medium inline-block"
-                          >
-                            Download QR Code
-                          </button>
-                        </div>
-                      </InfoCard>
-                    )}
-
+                        </InfoCard>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -270,16 +312,21 @@ const DetailStok = () => {
   );
 };
 
-
-const InfoCard = ({ title, icon: Icon, children, bgColor = 'bg-white', borderColor = 'border-gray-200' }) => (
-  <div className={`rounded-xl ${bgColor} border ${borderColor} overflow-hidden shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-200`}>
+const InfoCard = ({
+  title,
+  icon: Icon,
+  children,
+  bgColor = 'bg-white',
+  borderColor = 'border-gray-200',
+}) => (
+  <div
+    className={`rounded-xl ${bgColor} border ${borderColor} overflow-hidden shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-200`}
+  >
     <div className="px-6 py-4 border-b border-gray-200 bg-white/50 flex items-center gap-3">
       {Icon && <Icon className="h-5 w-5 text-gray-500" />}
       <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
     </div>
-    <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
-      {children}
-    </div>
+    <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">{children}</div>
   </div>
 );
 

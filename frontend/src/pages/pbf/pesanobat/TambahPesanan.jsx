@@ -2,21 +2,21 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import SidebarPbf from '../../../components/SidebarPbf';
 import NavbarPbf from '../../../components/NavbarPbf';
-import { 
-  Plus, 
-  Trash2, 
-  Loader2, 
-  CheckCircle, 
-  XCircle, 
-  AlertCircle, 
-  ChevronDown  
+import {
+  Plus,
+  Trash2,
+  Loader2,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  ChevronDown,
 } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
-import { FaClipboardList } from "react-icons/fa";
+import { FaClipboardList } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 const formatDateForAPI = (date) => {
   if (!date) return null;
@@ -26,7 +26,7 @@ const formatDateForAPI = (date) => {
     const day = date.getDate().toString().padStart(2, '0');
     return `${year}-${month}-${day}`;
   } catch (error) {
-    console.error("Error formatting date:", date, error);
+    console.error('Error formatting date:', date, error);
     return null;
   }
 };
@@ -47,7 +47,7 @@ const TambahPesanan = () => {
     kontak_telepon: '',
     kontak_email: '',
     tanggal_pesanan: new Date(),
-    tujuan_distribusi: '', 
+    tujuan_distribusi: '',
     catatan_khusus: '',
     total_harga: 0,
   });
@@ -60,7 +60,7 @@ const TambahPesanan = () => {
     harga_per_unit: '',
     total_harga: '',
   });
-  const [detailObat, setDetailObat] = useState([]); 
+  const [detailObat, setDetailObat] = useState([]);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -124,13 +124,13 @@ const TambahPesanan = () => {
 
   useEffect(() => {
     const cloneDataString = sessionStorage.getItem('cloneOrderData');
-    
+
     if (cloneDataString) {
       try {
         const cloneData = JSON.parse(cloneDataString);
-        
-        const clonedItems = cloneData.detail_pesanan.map(item => ({
-          id_produksi: item.batch_id || item.id_produksi, 
+
+        const clonedItems = cloneData.detail_pesanan.map((item) => ({
+          id_produksi: item.batch_id || item.id_produksi,
           nama_obat: item.nama_obat,
           bentuk_sediaan: item.bentuk_sediaan,
           dosis: item.dosis,
@@ -138,36 +138,35 @@ const TambahPesanan = () => {
           harga_per_unit: item.harga_per_unit,
           total_harga: item.total_harga,
         }));
-        setDetailObat(clonedItems); 
+        setDetailObat(clonedItems);
 
-        setInfoPemesanan(prevData => ({ 
-            ...prevData,
-            nama_pbf: cloneData.pesanan.nama_pbf,
-            alamat_pbf: cloneData.pesanan.alamat_pbf,
-            nomor_siup: cloneData.pesanan.nomor_siup,
-            nomor_sia_sika: cloneData.pesanan.nomor_sia_sika,
-            nama_apoteker: cloneData.pesanan.nama_apoteker,
-            nomor_sipa: cloneData.pesanan.nomor_sipa,
-            kontak_telepon: cloneData.pesanan.kontak_telepon,
-            kontak_email: cloneData.pesanan.kontak_email,
-            tujuan_distribusi: cloneData.pesanan.tujuan_distribusi,
-            catatan_khusus: cloneData.pesanan.catatan_khusus,
+        setInfoPemesanan((prevData) => ({
+          ...prevData,
+          nama_pbf: cloneData.pesanan.nama_pbf,
+          alamat_pbf: cloneData.pesanan.alamat_pbf,
+          nomor_siup: cloneData.pesanan.nomor_siup,
+          nomor_sia_sika: cloneData.pesanan.nomor_sia_sika,
+          nama_apoteker: cloneData.pesanan.nama_apoteker,
+          nomor_sipa: cloneData.pesanan.nomor_sipa,
+          kontak_telepon: cloneData.pesanan.kontak_telepon,
+          kontak_email: cloneData.pesanan.kontak_email,
+          tujuan_distribusi: cloneData.pesanan.tujuan_distribusi,
+          catatan_khusus: cloneData.pesanan.catatan_khusus,
         }));
 
         toast.success('Data pesanan lama telah dimuat. Silakan perbaiki dan kirim ulang.');
         sessionStorage.removeItem('cloneOrderData');
-
       } catch (error) {
-        console.error("Gagal memuat data kloning:", error);
-        toast.error("Gagal memuat data pesanan lama.");
-        sessionStorage.removeItem('cloneOrderData'); 
+        console.error('Gagal memuat data kloning:', error);
+        toast.error('Gagal memuat data pesanan lama.');
+        sessionStorage.removeItem('cloneOrderData');
       }
     }
-  }, []); 
+  }, []);
 
   useEffect(() => {
     const cloneDataString = sessionStorage.getItem('cloneOrderData');
-    if (cloneDataString) return; 
+    if (cloneDataString) return;
 
     const fetchProfile = async () => {
       try {
@@ -187,7 +186,7 @@ const TambahPesanan = () => {
             alamat_pbf: result.data.alamat,
             kontak_email: result.data.email,
             nomor_siup: result.data.nomor_izin,
-            tujuan_distribusi: result.data.alamat, 
+            tujuan_distribusi: result.data.alamat,
           }));
         } else {
           throw new Error(result.message || 'Gagal memuat profil PBF.');
@@ -215,11 +214,8 @@ const TambahPesanan = () => {
         });
         const result = await response.json();
         if (result.success) {
-          
-          
-          
           setStokObat(result.data);
-          console.log('Stok loaded from:', result.source); 
+          console.log('Stok loaded from:', result.source);
           console.log(`Stok ditemukan untuk Produsen ${idProdusen}:`, result.data.length);
         } else {
           throw new Error(result.message || 'Gagal memuat stok obat.');
@@ -256,12 +252,12 @@ const TambahPesanan = () => {
 
   const handleItemSelect = (e) => {
     const selectedId = e.target.value;
-    const selected = stokObat.find((o) => o.id.toString() === selectedId); 
+    const selected = stokObat.find((o) => o.id.toString() === selectedId);
     if (selected) {
       const harga = Number(selected.harga_per_unit) || 0;
-      const jumlah = ""; 
+      const jumlah = '';
       setItemObat({
-        id_produksi: String(selected.id), 
+        id_produksi: String(selected.id),
         nama_obat: selected.nama_obat,
         bentuk_sediaan: selected.bentuk_sediaan || '',
         dosis: selected.dosis || '',
@@ -270,7 +266,15 @@ const TambahPesanan = () => {
         total_harga: jumlah * harga,
       });
     } else {
-      setItemObat({ id_produksi: '', nama_obat: '', bentuk_sediaan: '', dosis: '', jumlah_pesanan: '1', harga_per_unit: 0, total_harga: 0 });
+      setItemObat({
+        id_produksi: '',
+        nama_obat: '',
+        bentuk_sediaan: '',
+        dosis: '',
+        jumlah_pesanan: '1',
+        harga_per_unit: 0,
+        total_harga: 0,
+      });
     }
   };
 
@@ -281,40 +285,48 @@ const TambahPesanan = () => {
     }
     const selectedObat = stokObat.find((o) => o.id.toString() === itemObat.id_produksi.toString());
     if (Number(itemObat.jumlah_pesanan) > selectedObat.jumlah) {
-      setError(`Jumlah pesanan (${itemObat.jumlah_pesanan}) melebihi stok tersedia (${selectedObat.jumlah}).`);
+      setError(
+        `Jumlah pesanan (${itemObat.jumlah_pesanan}) melebihi stok tersedia (${selectedObat.jumlah}).`
+      );
       return;
     }
     if (Number(itemObat.harga_per_unit) === 0) {
       console.warn('Harga satuan 0 dari produksi, lanjutkan dengan hati-hati.');
     }
-    
-    const existingItemIndex = detailObat.findIndex(item => item.id_produksi === itemObat.id_produksi);
-    
+
+    const existingItemIndex = detailObat.findIndex(
+      (item) => item.id_produksi === itemObat.id_produksi
+    );
+
     if (existingItemIndex > -1) {
       const updatedDetailObat = [...detailObat];
-      const newJumlah = updatedDetailObat[existingItemIndex].jumlah_pesanan + Number(itemObat.jumlah_pesanan);
-      
+      const newJumlah =
+        updatedDetailObat[existingItemIndex].jumlah_pesanan + Number(itemObat.jumlah_pesanan);
+
       if (newJumlah > selectedObat.jumlah) {
-         setError(`Jumlah total (${newJumlah}) melebihi stok tersedia (${selectedObat.jumlah}).`);
-         return;
+        setError(`Jumlah total (${newJumlah}) melebihi stok tersedia (${selectedObat.jumlah}).`);
+        return;
       }
-      
+
       updatedDetailObat[existingItemIndex].jumlah_pesanan = newJumlah;
-      updatedDetailObat[existingItemIndex].total_harga = newJumlah * updatedDetailObat[existingItemIndex].harga_per_unit;
+      updatedDetailObat[existingItemIndex].total_harga =
+        newJumlah * updatedDetailObat[existingItemIndex].harga_per_unit;
       setDetailObat(updatedDetailObat);
-      
     } else {
-      setDetailObat([...detailObat, {
-        id_produksi: String(itemObat.id_produksi), 
-        nama_obat: itemObat.nama_obat,
-        bentuk_sediaan: itemObat.bentuk_sediaan,
-        dosis: itemObat.dosis,
-        jumlah_pesanan: Number(itemObat.jumlah_pesanan),
-        harga_per_unit: Number(itemObat.harga_per_unit),
-        total_harga: Number(itemObat.total_harga),
-      }]);
+      setDetailObat([
+        ...detailObat,
+        {
+          id_produksi: String(itemObat.id_produksi),
+          nama_obat: itemObat.nama_obat,
+          bentuk_sediaan: itemObat.bentuk_sediaan,
+          dosis: itemObat.dosis,
+          jumlah_pesanan: Number(itemObat.jumlah_pesanan),
+          harga_per_unit: Number(itemObat.harga_per_unit),
+          total_harga: Number(itemObat.total_harga),
+        },
+      ]);
     }
-    
+
     setItemObat({
       id_produksi: '',
       nama_obat: '',
@@ -326,7 +338,6 @@ const TambahPesanan = () => {
     });
     setError('');
   };
-
 
   const handleRemoveItem = (index) => {
     setDetailObat(detailObat.filter((_, i) => i !== index));
@@ -356,7 +367,7 @@ const TambahPesanan = () => {
       !infoPemesanan.kontak_telepon ||
       !infoPemesanan.kontak_email ||
       !infoPemesanan.tanggal_pesanan ||
-      !infoPemesanan.tujuan_distribusi 
+      !infoPemesanan.tujuan_distribusi
     ) {
       setError('Semua informasi pemesanan (termasuk tujuan distribusi) wajib diisi.');
       setIsSubmitting(false);
@@ -392,7 +403,7 @@ const TambahPesanan = () => {
         kontak_telepon: infoPemesanan.kontak_telepon,
         kontak_email: infoPemesanan.kontak_email,
         tanggal_pesanan: formatDateForAPI(infoPemesanan.tanggal_pesanan),
-        tujuan_distribusi: infoPemesanan.tujuan_distribusi, 
+        tujuan_distribusi: infoPemesanan.tujuan_distribusi,
         catatan_khusus: infoPemesanan.catatan_khusus || null,
         items: detailObat,
         tanda_tangan_data_url: tandaTanganDataUrl,
@@ -403,7 +414,7 @@ const TambahPesanan = () => {
       const response = await fetch('http://localhost:5000/api/pbf/pesanan', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
@@ -429,13 +440,13 @@ const TambahPesanan = () => {
 
       <div
         className={`flex-1 flex flex-col transition-all duration-300 ${
-          isCollapsed ? "ml-16" : "ml-64"
+          isCollapsed ? 'ml-16' : 'ml-64'
         }`}
       >
         <NavbarPbf
           onLogout={() => {
             localStorage.clear();
-            navigate("/");
+            navigate('/');
           }}
         />
 
@@ -479,7 +490,9 @@ const TambahPesanan = () => {
                 <div className="p-6 space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Nama PBF</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Nama PBF
+                      </label>
                       <input
                         name="nama_pbf"
                         value={infoPemesanan.nama_pbf}
@@ -490,7 +503,9 @@ const TambahPesanan = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Alamat PBF </label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Alamat PBF{' '}
+                      </label>
                       <input
                         name="alamat_pbf"
                         value={infoPemesanan.alamat_pbf}
@@ -501,7 +516,9 @@ const TambahPesanan = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Nomor SIUP/Izin PBF</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Nomor SIUP/Izin PBF
+                      </label>
                       <input
                         name="nomor_siup"
                         value={infoPemesanan.nomor_siup}
@@ -512,7 +529,9 @@ const TambahPesanan = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Nomor SIA/SIKA</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Nomor SIA/SIKA
+                      </label>
                       <input
                         name="nomor_sia_sika"
                         value={infoPemesanan.nomor_sia_sika}
@@ -523,7 +542,9 @@ const TambahPesanan = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Nama Apoteker</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Nama Apoteker
+                      </label>
                       <input
                         name="nama_apoteker"
                         value={infoPemesanan.nama_apoteker}
@@ -534,7 +555,9 @@ const TambahPesanan = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Nomor SIPA</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Nomor SIPA
+                      </label>
                       <input
                         name="nomor_sipa"
                         value={infoPemesanan.nomor_sipa}
@@ -545,7 +568,9 @@ const TambahPesanan = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Kontak Telepon</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Kontak Telepon
+                      </label>
                       <input
                         name="kontak_telepon"
                         value={infoPemesanan.kontak_telepon}
@@ -556,7 +581,9 @@ const TambahPesanan = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Kontak Email</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Kontak Email
+                      </label>
                       <input
                         name="kontak_email"
                         value={infoPemesanan.kontak_email}
@@ -567,27 +594,35 @@ const TambahPesanan = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Tanggal Pesanan</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Tanggal Pesanan
+                      </label>
                       <DatePicker
                         selected={infoPemesanan.tanggal_pesanan}
-                        onChange={(date) => setInfoPemesanan({ ...infoPemesanan, tanggal_pesanan: date })}
-                        dateFormat="dd/MM/yyyy" 
+                        onChange={(date) =>
+                          setInfoPemesanan({ ...infoPemesanan, tanggal_pesanan: date })
+                        }
+                        dateFormat="dd/MM/yyyy"
                         className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
                         required
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Tujuan Distribusi (Otomatis dari Alamat PBF)</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Tujuan Distribusi (Otomatis dari Alamat PBF)
+                      </label>
                       <input
                         name="tujuan_distribusi"
                         value={infoPemesanan.tujuan_distribusi}
                         placeholder="Otomatis terisi dari alamat PBF"
                         className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-slate-100 cursor-not-allowed"
-                        readOnly 
+                        readOnly
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Catatan Khusus (Opsional)</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Catatan Khusus (Opsional)
+                      </label>
                       <textarea
                         name="catatan_khusus"
                         value={infoPemesanan.catatan_khusus}
@@ -613,10 +648,14 @@ const TambahPesanan = () => {
                         <thead>
                           <tr className="bg-slate-50">
                             <th className="p-3 text-sm font-semibold text-slate-700">Nama Obat</th>
-                            <th className="p-3 text-sm font-semibold text-slate-700">Bentuk Sediaan</th>
+                            <th className="p-3 text-sm font-semibold text-slate-700">
+                              Bentuk Sediaan
+                            </th>
                             <th className="p-3 text-sm font-semibold text-slate-700">Dosis</th>
                             <th className="p-3 text-sm font-semibold text-slate-700">Jumlah</th>
-                            <th className="p-3 text-sm font-semibold text-slate-700">Harga Satuan</th>
+                            <th className="p-3 text-sm font-semibold text-slate-700">
+                              Harga Satuan
+                            </th>
                             <th className="p-3 text-sm font-semibold text-slate-700">Total</th>
                             <th className="p-3 text-sm font-semibold text-slate-700">Aksi</th>
                           </tr>
@@ -628,8 +667,12 @@ const TambahPesanan = () => {
                               <td className="p-3 text-slate-800">{item.bentuk_sediaan}</td>
                               <td className="p-3 text-slate-800">{item.dosis || '-'}</td>
                               <td className="p-3 text-slate-800">{item.jumlah_pesanan}</td>
-                              <td className="p-3 text-slate-800">Rp {Number(item.harga_per_unit).toLocaleString('id-ID')}</td>
-                              <td className="p-3 text-slate-800 font-semibold">Rp {Number(item.total_harga).toLocaleString('id-ID')}</td>
+                              <td className="p-3 text-slate-800">
+                                Rp {Number(item.harga_per_unit).toLocaleString('id-ID')}
+                              </td>
+                              <td className="p-3 text-slate-800 font-semibold">
+                                Rp {Number(item.total_harga).toLocaleString('id-ID')}
+                              </td>
                               <td className="p-3">
                                 <button
                                   type="button"
@@ -644,8 +687,12 @@ const TambahPesanan = () => {
                         </tbody>
                         <tfoot>
                           <tr className="bg-slate-50 font-semibold">
-                            <td colSpan="5" className="p-3 text-right">Total Harga:</td>
-                            <td className="p-3">Rp {infoPemesanan.total_harga.toLocaleString('id-ID')}</td>
+                            <td colSpan="5" className="p-3 text-right">
+                              Total Harga:
+                            </td>
+                            <td className="p-3">
+                              Rp {infoPemesanan.total_harga.toLocaleString('id-ID')}
+                            </td>
                             <td className="p-3"></td>
                           </tr>
                         </tfoot>
@@ -654,8 +701,10 @@ const TambahPesanan = () => {
                   )}
 
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end pt-4 border-t">
-                   <div className="md:col-span-3">
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Pilih Obat</label>
+                    <div className="md:col-span-3">
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Pilih Obat
+                      </label>
                       <div className="relative">
                         <select
                           onChange={handleItemSelect}
@@ -679,7 +728,9 @@ const TambahPesanan = () => {
                       </div>
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Jumlah</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Jumlah
+                      </label>
                       <input
                         name="jumlah_pesanan"
                         type="number"
@@ -691,7 +742,9 @@ const TambahPesanan = () => {
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Harga Satuan</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Harga Satuan
+                      </label>
                       <input
                         name="harga_per_unit"
                         type="number"
@@ -699,7 +752,7 @@ const TambahPesanan = () => {
                         onChange={handleItemChange}
                         placeholder="Harga satuan"
                         className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-slate-100 cursor-not-allowed"
-                        readOnly 
+                        readOnly
                       />
                     </div>
                     <div className="md:col-span-2">
@@ -707,7 +760,11 @@ const TambahPesanan = () => {
                         type="button"
                         onClick={handleAddItem}
                         className="w-full px-6 py-2.5 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 transition flex items-center justify-center gap-2 disabled:bg-slate-400 disabled:cursor-not-allowed"
-                        disabled={!itemObat.id_produksi || !itemObat.jumlah_pesanan || Number(itemObat.jumlah_pesanan) <= 0}
+                        disabled={
+                          !itemObat.id_produksi ||
+                          !itemObat.jumlah_pesanan ||
+                          Number(itemObat.jumlah_pesanan) <= 0
+                        }
                       >
                         <Plus size={18} /> Tambah
                       </button>
@@ -719,7 +776,9 @@ const TambahPesanan = () => {
               <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
                 <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 px-6 py-4 border-b border-slate-200">
                   <h2 className="text-lg font-semibold text-emerald-900">Tanda Tangan Apoteker</h2>
-                  <p className="text-sm text-emerald-700 mt-1">Tanda tangan untuk konfirmasi pesanan</p>
+                  <p className="text-sm text-emerald-700 mt-1">
+                    Tanda tangan untuk konfirmasi pesanan
+                  </p>
                 </div>
                 <div className="p-6 space-y-4">
                   <div className="w-full h-48 bg-slate-50 border border-slate-300 rounded-lg overflow-hidden">

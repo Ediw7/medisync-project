@@ -16,12 +16,12 @@ import {
 import logo from '../assets/logoPutih.png';
 
 const menuItems = [
-  { path: "/apotek/dashboard", icon: <FaHome />, label: "Dashboard" },
-  { path: "/apotek/stok-obat", icon: <FaBoxOpen />, label: "Stok Obat" },
-  { path: "/apotek/pesan-obat", icon: <FaShoppingCart />, label: "Pesan Obat" },
-  { path: "/apotek/riwayat-pembelian", icon: <FaHistory />, label: "Riwayat" },
-  { path: "/apotek/penjualan", icon: <FaCashRegister />, label: "Penjualan" },
-  { path: "/apotek/laporan-analitik", icon: <FaChartBar />, label: "Laporan" },
+  { path: '/apotek/dashboard', icon: <FaHome />, label: 'Dashboard' },
+  { path: '/apotek/stok-obat', icon: <FaBoxOpen />, label: 'Stok Obat' },
+  { path: '/apotek/pesan-obat', icon: <FaShoppingCart />, label: 'Pesan Obat' },
+  { path: '/apotek/riwayat-pembelian', icon: <FaHistory />, label: 'Riwayat' },
+  { path: '/apotek/penjualan', icon: <FaCashRegister />, label: 'Penjualan' },
+  { path: '/apotek/laporan-analitik', icon: <FaChartBar />, label: 'Laporan' },
 ];
 
 const NavbarApotek = ({ onLogout }) => {
@@ -39,7 +39,6 @@ const NavbarApotek = ({ onLogout }) => {
     <nav className="fixed top-0 left-0 w-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg z-50">
       <div className="max-w-7xl mx-auto px-4 lg:px-6 py-3">
         <div className="flex justify-between items-center">
-          
           {/* Left Section - Logo & Menu */}
           <div className="flex items-center space-x-8">
             <div className="flex items-center space-x-3">
@@ -51,7 +50,11 @@ const NavbarApotek = ({ onLogout }) => {
                 className="lg:hidden p-2 rounded-lg hover:bg-white/10 transition-colors"
                 aria-label="Toggle navigation"
               >
-                {isMobileMenuOpen ? <FaTimes className="text-xl" /> : <FaBars className="text-xl" />}
+                {isMobileMenuOpen ? (
+                  <FaTimes className="text-xl" />
+                ) : (
+                  <FaBars className="text-xl" />
+                )}
               </button>
               <img src={logo} alt="MediSync Logo" className="h-10 w-auto" />
             </div>
@@ -65,8 +68,8 @@ const NavbarApotek = ({ onLogout }) => {
                   className={({ isActive }) =>
                     `flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       isActive
-                        ? "bg-white/20 text-white"
-                        : "text-white/80 hover:text-white hover:bg-white/10"
+                        ? 'bg-white/20 text-white'
+                        : 'text-white/80 hover:text-white hover:bg-white/10'
                     }`
                   }
                 >
@@ -79,7 +82,6 @@ const NavbarApotek = ({ onLogout }) => {
 
           {/* Right Section - Logout & Profile */}
           <div className="flex items-center space-x-3">
-            
             {/* Logout Button */}
             <button
               onClick={onLogout}
@@ -112,7 +114,6 @@ const NavbarApotek = ({ onLogout }) => {
                 <>
                   <div className="fixed inset-0 z-40" onClick={closeAllMenus} />
                   <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl z-50 overflow-hidden">
-                    
                     {/* Header */}
                     <div className="p-4 bg-gradient-to-br from-emerald-50 to-teal-50 border-b">
                       <p className="font-semibold text-gray-800">{username || 'Apotek'}</p>
@@ -150,8 +151,8 @@ const NavbarApotek = ({ onLogout }) => {
                 className={({ isActive }) =>
                   `flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                     isActive
-                      ? "bg-white/20 text-white"
-                      : "text-white/80 hover:text-white hover:bg-white/10"
+                      ? 'bg-white/20 text-white'
+                      : 'text-white/80 hover:text-white hover:bg-white/10'
                   }`
                 }
               >

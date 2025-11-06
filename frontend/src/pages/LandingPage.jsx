@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   ArrowRight,
   CheckCircle,
@@ -7,48 +7,42 @@ import {
   QrCode,
   HeartHandshake,
   ArrowBigUpDash,
-  Heart,
   Zap,
   Blocks,
   Lock,
   Shield,
   Database,
   FileCheck,
-  ChevronRight,
-  Building2,
   Camera,
   Link as LinkIcon,
-} from "lucide-react";
-import { AnimatedBackground } from "../components/BackgroundLanding";
+} from 'lucide-react';
+import { AnimatedBackground } from '../components/BackgroundLanding';
 // Assuming these components are in the correct path
-import Navbar from "../components/Navbar";
-import Threads from "../components/Threads";
-import QrScanner from "../components/QrScanner";
-import RiwayatObatModal from "../components/RiwayatObatModal";
-import HeroImage from "../assets/hero.png";
-import LogoPutih from "../assets/logoPutih.png";
+import Navbar from '../components/Navbar';
+import Threads from '../components/Threads';
+import QrScanner from '../components/QrScanner';
+import RiwayatObatModal from '../components/RiwayatObatModal';
+import LogoPutih from '../assets/logoPutih.png';
 
 const LandingPage = () => {
   const [showScanner, setShowScanner] = useState(false);
   const [showResultModal, setShowResultModal] = useState(false);
   const [scanResult, setScanResult] = useState(null);
-  const [scanError, setScanError] = useState("");
+  const [scanError, setScanError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleScanResult = async (batchId) => {
     setShowScanner(false);
     setIsLoading(true);
     setShowResultModal(true);
-    setScanError("");
+    setScanError('');
     setScanResult(null);
 
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/public/riwayat/${batchId}`
-      );
+      const response = await fetch(`http://localhost:5000/api/public/riwayat/${batchId}`);
       const result = await response.json();
       if (!response.ok || !result.success) {
-        throw new Error(result.message || "Gagal mengambil data.");
+        throw new Error(result.message || 'Gagal mengambil data.');
       }
       setScanResult(result.data);
     } catch (err) {
@@ -59,103 +53,101 @@ const LandingPage = () => {
   };
 
   const partners = [
-    { name: "Kimia Farma", type: "Perusahaan Farmasi Nasional" },
-    { name: "Kalbe Farma", type: "Manufaktur & Distribusi" },
-    { name: "Dexa Medica", type: "Produsen Farmasi" },
-    { name: "Apotek K-24", type: "Jaringan Apotek Nasional" },
-    { name: "Guardian", type: "Retail Farmasi" },
-    { name: "Medicology", type: "Distribusi Digital" },
+    { name: 'Kimia Farma', type: 'Perusahaan Farmasi Nasional' },
+    { name: 'Kalbe Farma', type: 'Manufaktur & Distribusi' },
+    { name: 'Dexa Medica', type: 'Produsen Farmasi' },
+    { name: 'Apotek K-24', type: 'Jaringan Apotek Nasional' },
+    { name: 'Guardian', type: 'Retail Farmasi' },
+    { name: 'Medicology', type: 'Distribusi Digital' },
   ];
 
   const features = [
     {
       icon: <Database />,
-      title: "Immutable Records",
+      title: 'Immutable Records',
       description:
-        "Setiap transaksi dicatat secara permanen di blockchain, memastikan jejak lengkap dan keaslian produk yang tidak dapat diubah.",
+        'Setiap transaksi dicatat secara permanen di blockchain, memastikan jejak lengkap dan keaslian produk yang tidak dapat diubah.',
     },
     {
       icon: <Shield />,
-      title: "Smart Contracts",
+      title: 'Smart Contracts',
       description:
-        "Kepatuhan dan verifikasi otomatis melalui kontrak pintar berbasis blockchain untuk transparansi maksimal.",
+        'Kepatuhan dan verifikasi otomatis melalui kontrak pintar berbasis blockchain untuk transparansi maksimal.',
     },
     {
       icon: <FileCheck />,
-      title: "Digital Certificates",
+      title: 'Digital Certificates',
       description:
-        "Sertifikat terverifikasi blockchain untuk setiap produk memastikan keaslian dan mencegah pemalsuan.",
+        'Sertifikat terverifikasi blockchain untuk setiap produk memastikan keaslian dan mencegah pemalsuan.',
     },
     {
       icon: <Lock />,
-      title: "Secure Tracking",
+      title: 'Secure Tracking',
       description:
-        "Pelacakan aman dengan enkripsi tingkat enterprise dan protokol keamanan blockchain.",
+        'Pelacakan aman dengan enkripsi tingkat enterprise dan protokol keamanan blockchain.',
     },
     {
       icon: <Blocks />,
-      title: "Decentralized Network",
+      title: 'Decentralized Network',
       description:
-        "Jaringan terdesentralisasi yang menghilangkan single point of failure dan meningkatkan keandalan.",
+        'Jaringan terdesentralisasi yang menghilangkan single point of failure dan meningkatkan keandalan.',
     },
     {
       icon: <Zap />,
-      title: "Real-time Updates",
+      title: 'Real-time Updates',
       description:
-        "Pembaruan status real-time untuk monitoring kondisi dan lokasi produk sepanjang rantai pasok.",
+        'Pembaruan status real-time untuk monitoring kondisi dan lokasi produk sepanjang rantai pasok.',
     },
   ];
 
   const blockchainFeatures = [
-    "Smart contract verification",
-    "Real-time blockchain tracking",
-    "Decentralized record keeping",
-    "Automated compliance",
-    "Product authentication",
-    "Temperature monitoring",
-    "Secure data sharing",
-    "Digital certificates",
+    'Smart contract verification',
+    'Real-time blockchain tracking',
+    'Decentralized record keeping',
+    'Automated compliance',
+    'Product authentication',
+    'Temperature monitoring',
+    'Secure data sharing',
+    'Digital certificates',
   ];
 
   const steps = [
     {
-      number: "01",
-      title: "Produksi",
-      description:
-        "Produk didaftarkan dengan ID unik di blockchain saat diproduksi",
-      color: "from-[#22C55E] to-[#16A34A]",
+      number: '01',
+      title: 'Produksi',
+      description: 'Produk didaftarkan dengan ID unik di blockchain saat diproduksi',
+      color: 'from-[#22C55E] to-[#16A34A]',
     },
     {
-      number: "02",
-      title: "Distribusi",
-      description:
-        "Setiap perpindahan dicatat secara real-time dengan verifikasi digital",
-      color: "from-[#16A34A] to-[#047857]",
+      number: '02',
+      title: 'Distribusi',
+      description: 'Setiap perpindahan dicatat secara real-time dengan verifikasi digital',
+      color: 'from-[#16A34A] to-[#047857]',
     },
     {
-      number: "03",
-      title: "Verifikasi",
-      description: "Konsumen dapat memverifikasi keaslian dengan scan QR code",
-      color: "from-[#047857] to-green-800",
+      number: '03',
+      title: 'Verifikasi',
+      description: 'Konsumen dapat memverifikasi keaslian dengan scan QR code',
+      color: 'from-[#047857] to-green-800',
     },
   ];
 
   const resourcesLinks = [
-    { href: "#", text: "Dokumentasi" },
-    { href: "#", text: "API Reference" },
-    { href: "#", text: "Tutorial" },
+    { href: '#', text: 'Dokumentasi' },
+    { href: '#', text: 'API Reference' },
+    { href: '#', text: 'Tutorial' },
   ];
 
   const platformLinks = [
-    { href: "#", text: "Fitur" },
-    { href: "#", text: "Harga" },
-    { href: "#", text: "Keamanan" },
+    { href: '#', text: 'Fitur' },
+    { href: '#', text: 'Harga' },
+    { href: '#', text: 'Keamanan' },
   ];
 
   const communityLinks = [
-    { href: "#", text: "Events" },
-    { href: "#", text: "Blog" },
-    { href: "#", text: "Forum" },
+    { href: '#', text: 'Events' },
+    { href: '#', text: 'Blog' },
+    { href: '#', text: 'Forum' },
   ];
 
   return (
@@ -164,12 +156,8 @@ const LandingPage = () => {
       {/* <AnimatedBackground /> */}
       <Navbar />
 
-     
       <div>
-        <div
-          style={{ width: "100%", height: "700px", position: "relative" }}
-          className=""
-        >
+        <div style={{ width: '100%', height: '700px', position: 'relative' }} className="">
           {/* Komponen Threads sebagai Latar Belakang Animasi */}
           <div className="absolute inset-0 z-0">
             <Threads
@@ -190,17 +178,14 @@ const LandingPage = () => {
                   <div className="max-w-3xl">
                     <h1 className="text-4xl lg:text-6xl font-bold text-foreground leading-tight text-balance">
                       Rantai Pasok Farmasi
-                      <span className="text-[#047857]/90 block">
-                        Transparan
-                      </span>
+                      <span className="text-[#047857]/90 block">Transparan</span>
                     </h1>
                   </div>
 
                   {/* Deskripsi */}
                   <p className="text-lg lg:text-xl text-[#121212]/70  leading-relaxed max-w-2xl">
-                    Amankan keaslian produk dari produsen hingga pasien dengan
-                    sistem pelacakan berbasis teknologi blockchain yang tidak
-                    dapat diubah.
+                    Amankan keaslian produk dari produsen hingga pasien dengan sistem pelacakan
+                    berbasis teknologi blockchain yang tidak dapat diubah.
                   </p>
 
                   {/* Tombol Aksi */}
@@ -231,14 +216,12 @@ const LandingPage = () => {
                   {/* Statistik */}
                   <div className="grid grid-cols-3 gap-6 max-w-md">
                     {[
-                      { number: "99.9%", label: "Akurasi Tracking" },
-                      { number: "24/7", label: "Monitoring" },
-                      { number: "100+", label: "Mitra Terpercaya" },
+                      { number: '99.9%', label: 'Akurasi Tracking' },
+                      { number: '24/7', label: 'Monitoring' },
+                      { number: '100+', label: 'Mitra Terpercaya' },
                     ].map((stat) => (
                       <div key={stat.label} className="text-center">
-                        <div className="text-2xl font-bold text-primary">
-                          {stat.number}
-                        </div>
+                        <div className="text-2xl font-bold text-primary">{stat.number}</div>
                         <div className="text-sm text-muted-foreground font-medium">
                           {stat.label}
                         </div>
@@ -253,10 +236,7 @@ const LandingPage = () => {
 
         {/* --- FEATURES SECTION --- */}
 
-        <section
-          id="fitur"
-          className="py-20 bg-gradient-to-b relative overflow-hidden"
-        >
+        <section id="fitur" className="py-20 bg-gradient-to-b relative overflow-hidden">
           {/* Liquid Glass Background */}
           <div className="absolute inset-0">
             <div className="absolute top-10 left-1/4 w-64 h-64 bg-[#22C55E]/10 rounded-full blur-3xl animate-[float_6s_ease-in-out_infinite]"></div>
@@ -269,8 +249,8 @@ const LandingPage = () => {
                 Fitur Unggulan Platform
               </h2>
               <p className="text-xl text-[#121212] max-w-3xl mx-auto">
-                Teknologi blockchain terdepan untuk memastikan integritas dan
-                transparansi rantai pasok farmasi
+                Teknologi blockchain terdepan untuk memastikan integritas dan transparansi rantai
+                pasok farmasi
               </p>
             </div>
 
@@ -312,8 +292,7 @@ const LandingPage = () => {
                 Teknologi Blockchain Terdepan
               </h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                Transparansi penuh dari manufaktur hingga konsumen akhir dengan
-                keamanan blockchain
+                Transparansi penuh dari manufaktur hingga konsumen akhir dengan keamanan blockchain
               </p>
             </div>
 
@@ -366,13 +345,8 @@ const LandingPage = () => {
                         key={index}
                         className="flex items-center gap-3 bg-white/60 backdrop-blur-sm p-4 rounded-2xl border border-white/40 hover:border-[#A7F3D0]/50 hover:shadow-lg hover:bg-white/80 transition-all duration-500 hover:scale-105"
                       >
-                        <CheckCircle
-                          className="text-[#16A34A] flex-shrink-0"
-                          size={20}
-                        />
-                        <span className="text-gray-700 font-medium text-sm">
-                          {feature}
-                        </span>
+                        <CheckCircle className="text-[#16A34A] flex-shrink-0" size={20} />
+                        <span className="text-gray-700 font-medium text-sm">{feature}</span>
                       </div>
                     ))}
                   </div>
@@ -381,7 +355,7 @@ const LandingPage = () => {
 
               {/* --- SVG FILTER (WAJIB ADA) --- */}
               {/* Filter ini tidak akan terlihat, tapi akan digunakan oleh CSS */}
-              <svg style={{ display: "none" }}>
+              <svg style={{ display: 'none' }}>
                 <filter id="container-glass">
                   <feTurbulence
                     type="fractalNoise"
@@ -390,11 +364,7 @@ const LandingPage = () => {
                     seed="92"
                     result="noise"
                   />
-                  <feGaussianBlur
-                    in="noise"
-                    stdDeviation="0.02"
-                    result="blur"
-                  />
+                  <feGaussianBlur in="noise" stdDeviation="0.02" result="blur" />
                   <feDisplacementMap
                     in="SourceGraphic"
                     in2="blur"
@@ -431,9 +401,8 @@ const LandingPage = () => {
               </h2>
 
               <p className="text-xl text-white mb-10 max-w-3xl mx-auto leading-relaxed">
-                Hubungkan bisnis Anda ke platform blockchain yang aman dan
-                terpercaya. Tingkatkan transparansi, kurangi risiko, dan bangun
-                kepercayaan konsumen.
+                Hubungkan bisnis Anda ke platform blockchain yang aman dan terpercaya. Tingkatkan
+                transparansi, kurangi risiko, dan bangun kepercayaan konsumen.
               </p>
 
               <div className="flex flex-col sm:flex-row justify-center gap-4">
@@ -469,31 +438,18 @@ const LandingPage = () => {
           <div className="flex flex-col md:flex-row items-center justify-between gap-8">
             {/* Logo */}
             <div className="flex items-center gap-3">
-              <img
-                src={LogoPutih}
-                alt="MediSync Logo"
-                className="h-16 w-auto"
-              />
+              <img src={LogoPutih} alt="MediSync Logo" className="h-16 w-auto" />
             </div>
 
             {/* Navigation Links */}
             <nav className="flex items-center gap-8">
-              <a
-                href="#"
-                className="text-white hover:text-white transition-colors duration-200"
-              >
+              <a href="#" className="text-white hover:text-white transition-colors duration-200">
                 About
               </a>
-              <a
-                href="#"
-                className="text-white hover:text-white transition-colors duration-200"
-              >
+              <a href="#" className="text-white hover:text-white transition-colors duration-200">
                 Services
               </a>
-              <a
-                href="#"
-                className="text-white hover:text-white transition-colors duration-200"
-              >
+              <a href="#" className="text-white hover:text-white transition-colors duration-200">
                 Contact
               </a>
             </nav>
@@ -543,10 +499,7 @@ const LandingPage = () => {
 
       {/* --- MODALS (No style changes needed for these) --- */}
       {showScanner && (
-        <QrScanner
-          onScanResult={handleScanResult}
-          onClose={() => setShowScanner(false)}
-        />
+        <QrScanner onScanResult={handleScanResult} onClose={() => setShowScanner(false)} />
       )}
       {showResultModal && (
         <RiwayatObatModal

@@ -18,7 +18,7 @@ import {
   ExternalLink,
   Download,
   DollarSign, // Ditambahkan untuk harga
-  Archive // Ditambahkan untuk manufaktur
+  Archive, // Ditambahkan untuk manufaktur
 } from 'lucide-react';
 import { toast } from 'react-hot-toast'; // Menggunakan toast
 
@@ -52,10 +52,10 @@ const DetailStokPbf = () => {
         if (result.success) {
           const data = result.data;
           setStok(data);
-          
+
           // Generate QR Code
           // URL QR Code diubah agar sesuai dengan ID Aset (bukan batch_id produsen)
-          const qrUrl = `http://localhost:5173/blockchain-detail/${data.id_aset_blockchain}`; 
+          const qrUrl = `http://localhost:5173/blockchain-detail/${data.id_aset_blockchain}`;
           qrcode.toDataURL(qrUrl, (err, url) => {
             if (err) {
               console.error('Gagal membuat QR code:', err);
@@ -63,7 +63,6 @@ const DetailStokPbf = () => {
             }
             setQrCode(url);
           });
-          
         } else {
           throw new Error(result.message);
         }
@@ -76,18 +75,23 @@ const DetailStokPbf = () => {
     };
     fetchStokDetail();
   }, [id, navigate]);
-  
+
   // (Helper dari contoh)
   const getStatusConfig = (status) => {
-     // PBF hanya punya 1 status di halaman ini: "Tersedia" (hasil verifikasi)
-    if (status) { // Asumsi jika data ada, berarti sudah tercatat
-       return { 
-        icon: Shield, 
-        color: 'bg-emerald-100 text-emerald-800 border-emerald-200', 
-        label: 'Tercatat di Blockchain' 
+    // PBF hanya punya 1 status di halaman ini: "Tersedia" (hasil verifikasi)
+    if (status) {
+      // Asumsi jika data ada, berarti sudah tercatat
+      return {
+        icon: Shield,
+        color: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+        label: 'Tercatat di Blockchain',
       };
     }
-    return { icon: AlertCircle, color: 'bg-gray-100 text-gray-800 border-gray-200', label: 'Tidak Diketahui' };
+    return {
+      icon: AlertCircle,
+      color: 'bg-gray-100 text-gray-800 border-gray-200',
+      label: 'Tidak Diketahui',
+    };
   };
 
   // (Helper dari contoh)
@@ -107,12 +111,17 @@ const DetailStokPbf = () => {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return '-';
       // Gunakan UTC agar konsisten dengan data produsen
-      return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); 
+      return date.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
+      });
     } catch (e) {
       return '-';
     }
   };
-  
+
   const handleLogout = () => {
     localStorage.clear();
     navigate('/');
@@ -123,7 +132,9 @@ const DetailStokPbf = () => {
     return (
       <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
         <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-        <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+        <div
+          className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}
+        >
           <NavbarPbf onLogout={handleLogout} username={username} />
           <main className="flex-1 overflow-auto pt-[72px] px-12 py-8 flex items-center justify-center">
             <div className="flex flex-col items-center space-y-4">
@@ -141,7 +152,9 @@ const DetailStokPbf = () => {
     return (
       <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
         <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-        <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+        <div
+          className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}
+        >
           <NavbarPbf onLogout={handleLogout} username={username} />
           <main className="flex-1 overflow-auto pt-[72px] px-12 py-8 flex items-center justify-center p-6">
             <div className="bg-white p-8 rounded-2xl shadow-lg border border-red-200 text-center max-w-md">
@@ -166,8 +179,10 @@ const DetailStokPbf = () => {
   if (!stok) {
     return (
       <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
-         <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-        <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+        <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+        <div
+          className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}
+        >
           <NavbarPbf onLogout={handleLogout} username={username} />
           <main className="flex-1 overflow-auto pt-[72px] px-12 py-8 flex items-center justify-center p-6">
             <div className="bg-white p-8 rounded-2xl shadow-lg border border-slate-200 text-center max-w-md">
@@ -196,12 +211,13 @@ const DetailStokPbf = () => {
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
       <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+      <div
+        className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}
+      >
         <NavbarPbf onLogout={handleLogout} username={username} />
-        
+
         <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
           <div className="max-w-6xl mx-auto">
-     
             <div className="mb-8">
               <button
                 onClick={() => navigate('/pbf/monitoring-stok')}
@@ -210,7 +226,7 @@ const DetailStokPbf = () => {
                 <ArrowLeft size={16} className="mr-1" />
                 Kembali ke Monitoring Stok
               </button>
-              
+
               {/* KARTU UTAMA */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                 {/* HEADER KARTU */}
@@ -219,10 +235,15 @@ const DetailStokPbf = () => {
                     <div>
                       <h1 className="text-3xl font-bold text-gray-900 mb-1">Detail Stok PBF</h1>
                       <p className="text-gray-600">
-                        ID Aset: <span className="font-mono font-semibold text-emerald-700">{stok.id_aset_blockchain}</span>
+                        ID Aset:{' '}
+                        <span className="font-mono font-semibold text-emerald-700">
+                          {stok.id_aset_blockchain}
+                        </span>
                       </p>
                     </div>
-                    <div className={`px-4 py-2 rounded-full border ${statusConfig.color} flex items-center space-x-2`}>
+                    <div
+                      className={`px-4 py-2 rounded-full border ${statusConfig.color} flex items-center space-x-2`}
+                    >
                       <StatusIcon size={16} />
                       <span className="font-medium text-sm">{statusConfig.label}</span>
                     </div>
@@ -240,7 +261,6 @@ const DetailStokPbf = () => {
                 {/* KONTEN GRID */}
                 <div className="p-8">
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-       
                     {/* Kolom Kiri */}
                     <div className="space-y-6">
                       <InfoCard title="Informasi Obat" icon={Package}>
@@ -249,25 +269,35 @@ const DetailStokPbf = () => {
                         <InfoItem label="Nomor Izin Edar" value={stok.nomor_izin_edar} />
                         <InfoItem label="Dosis" value={stok.dosis} />
                         <InfoItem label="Bentuk Sediaan" value={stok.bentuk_sediaan} />
-                        <InfoItem label="Stok Saat Ini" value={`${stok.stok.toLocaleString('id-ID')} box`} highlight />
+                        <InfoItem
+                          label="Stok Saat Ini"
+                          value={`${stok.stok.toLocaleString('id-ID')} box`}
+                          highlight
+                        />
                       </InfoCard>
 
                       <InfoCard title="Informasi Harga & Manufaktur" icon={Archive}>
-                         <InfoItem 
-                            label="Harga Beli (per Unit)" 
-                            value={`Rp ${Number(stok.harga_per_unit || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}`} 
-                         />
-                         <InfoItem 
-                            label="Total Nilai Stok" 
-                            value={`Rp ${Number(stok.harga_per_unit * stok.stok || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}`} 
-                            highlight
-                         />
-                         <InfoItem label="Manufaktur (Produsen)" value={stok.nama_produsen} isFull/>
+                        <InfoItem
+                          label="Harga Beli (per Unit)"
+                          value={`Rp ${Number(stok.harga_per_unit || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}`}
+                        />
+                        <InfoItem
+                          label="Total Nilai Stok"
+                          value={`Rp ${Number(stok.harga_per_unit * stok.stok || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}`}
+                          highlight
+                        />
+                        <InfoItem label="Manufaktur (Produsen)" value={stok.nama_produsen} isFull />
                       </InfoCard>
 
                       <InfoCard title="Detail Produksi & Kadaluarsa" icon={Calendar}>
-                        <InfoItem label="Tanggal Produksi" value={formatDateLocal(stok.tanggal_produksi)} />
-                        <InfoItem label="Tanggal Kadaluarsa" value={formatDateLocal(stok.tanggal_kadaluarsa)} />
+                        <InfoItem
+                          label="Tanggal Produksi"
+                          value={formatDateLocal(stok.tanggal_produksi)}
+                        />
+                        <InfoItem
+                          label="Tanggal Kadaluarsa"
+                          value={formatDateLocal(stok.tanggal_kadaluarsa)}
+                        />
                         <InfoItem label="Komposisi Obat" value={stok.komposisi_obat} isFull />
                       </InfoCard>
                     </div>
@@ -275,8 +305,14 @@ const DetailStokPbf = () => {
                     {/* Kolom Kanan */}
                     <div className="space-y-6">
                       <InfoCard title="Dokumen & Validasi" icon={FileText}>
-                        <DocumentItem label="Dokumen BPOM (dari Produsen)" path={stok.dokumen_bpom_path} />
-                        <DocumentItem label="Sertifikat Analisis (dari Produsen)" path={stok.sertifikat_analisis_path} />
+                        <DocumentItem
+                          label="Dokumen BPOM (dari Produsen)"
+                          path={stok.dokumen_bpom_path}
+                        />
+                        <DocumentItem
+                          label="Sertifikat Analisis (dari Produsen)"
+                          path={stok.sertifikat_analisis_path}
+                        />
                         <HashItem
                           label="Hash Sertifikat Analisis"
                           hash={stok.hash_sertifikat_analisis}
@@ -286,12 +322,23 @@ const DetailStokPbf = () => {
                       </InfoCard>
 
                       {qrCode && (
-                        <InfoCard title="QR Code Verifikasi" icon={QrCode} bgColor="bg-slate-50" borderColor="border-slate-200">
+                        <InfoCard
+                          title="QR Code Verifikasi"
+                          icon={QrCode}
+                          bgColor="bg-slate-50"
+                          borderColor="border-slate-200"
+                        >
                           <div className="col-span-full text-center">
                             <div className="bg-white p-4 rounded-xl border border-gray-200 mb-4 shadow-sm inline-block">
-                              <img src={qrCode} alt="QR Code" className="w-full max-w-[200px] mx-auto rounded-lg block" />
+                              <img
+                                src={qrCode}
+                                alt="QR Code"
+                                className="w-full max-w-[200px] mx-auto rounded-lg block"
+                              />
                             </div>
-                            <p className="text-sm text-gray-600 mb-4 max-w-md mx-auto">Pindai kode QR untuk verifikasi detail aset blockchain.</p>
+                            <p className="text-sm text-gray-600 mb-4 max-w-md mx-auto">
+                              Pindai kode QR untuk verifikasi detail aset blockchain.
+                            </p>
                             <button
                               onClick={() => {
                                 const link = document.createElement('a');
@@ -315,12 +362,19 @@ const DetailStokPbf = () => {
           </div>
         </main>
       </div>
-       {/* STYLE BLOB (Dari Contoh) */}
-       <style jsx>{`
+      {/* STYLE BLOB (Dari Contoh) */}
+      <style jsx>{`
         @keyframes blob {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
+          0%,
+          100% {
+            transform: translate(0, 0) scale(1);
+          }
+          33% {
+            transform: translate(30px, -50px) scale(1.1);
+          }
+          66% {
+            transform: translate(-20px, 20px) scale(0.9);
+          }
         }
         .animate-blob {
           animation: blob 7s infinite;
@@ -333,25 +387,34 @@ const DetailStokPbf = () => {
   );
 };
 
-
 // --- Komponen Helper (Dari Contoh) ---
 
-const InfoCard = ({ title, icon: Icon, children, bgColor = 'bg-white', borderColor = 'border-gray-200' }) => (
-  <div className={`rounded-2xl ${bgColor} border ${borderColor} overflow-hidden shadow-sm hover:shadow-md transition-all duration-200`}>
+const InfoCard = ({
+  title,
+  icon: Icon,
+  children,
+  bgColor = 'bg-white',
+  borderColor = 'border-gray-200',
+}) => (
+  <div
+    className={`rounded-2xl ${bgColor} border ${borderColor} overflow-hidden shadow-sm hover:shadow-md transition-all duration-200`}
+  >
     <div className="px-6 py-4 border-b border-gray-200 bg-white/50 flex items-center gap-3">
       {Icon && <Icon className="h-5 w-5 text-emerald-600" />}
       <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
     </div>
-    <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
-      {children}
-    </div>
+    <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">{children}</div>
   </div>
 );
 
 const InfoItem = ({ label, value, isFull = false, highlight = false }) => (
   <div className={`col-span-1 ${isFull ? 'col-span-full' : ''}`}>
     <p className="text-sm font-medium text-gray-500 mb-1">{label}</p>
-    <p className={`text-gray-900 break-words ${highlight ? 'font-bold text-emerald-700 text-lg' : 'font-semibold'}`}>{value || '-'}</p>
+    <p
+      className={`text-gray-900 break-words ${highlight ? 'font-bold text-emerald-700 text-lg' : 'font-semibold'}`}
+    >
+      {value || '-'}
+    </p>
   </div>
 );
 

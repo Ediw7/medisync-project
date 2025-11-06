@@ -2,17 +2,17 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
-import { 
-    Loader2, 
-    Calendar, 
-    Clock, 
-    MapPin, 
-    FileText, 
-    ArrowLeft, 
-    ExternalLink, 
-    AlertTriangle, 
-    Truck,
-    ChevronDown
+import {
+  Loader2,
+  Calendar,
+  Clock,
+  MapPin,
+  FileText,
+  ArrowLeft,
+  ExternalLink,
+  AlertTriangle,
+  Truck,
+  ChevronDown,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
@@ -25,10 +25,12 @@ const AturPengiriman = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pesanan, setPesanan] = useState(null);
-  
-  const [waktuPengiriman, setWaktuPengiriman] = useState(location.state?.waktuPengiriman || '09:00-12:00');
+
+  const [waktuPengiriman, setWaktuPengiriman] = useState(
+    location.state?.waktuPengiriman || '09:00-12:00'
+  );
   const [opsiPengiriman, setOpsiPengiriman] = useState(location.state?.opsiPengiriman || 'kargo');
-  
+
   // --- PERBAIKAN 1: Ganti 'catatan' menjadi dua state ---
   const [catatanKurir, setCatatanKurir] = useState(location.state?.catatanKurir || '');
   const [catatanPenerima, setCatatanPenerima] = useState(location.state?.catatanPenerima || '');
@@ -46,12 +48,12 @@ const AturPengiriman = () => {
   const calculateShippingDates = (orderDate) => {
     const dates = [];
     const startDate = new Date(orderDate);
-    
+
     if (isNaN(startDate.getTime())) {
-      console.error("Invalid orderDate, fallback to today");
+      console.error('Invalid orderDate, fallback to today');
       startDate.setTime(new Date().getTime());
     }
-    
+
     let currentDate = new Date(startDate);
 
     while (dates.length < 5) {
@@ -59,7 +61,7 @@ const AturPengiriman = () => {
       const dayOfWeek = currentDate.getDay();
 
       if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-        const formattedDate = getLocalDateString(currentDate); 
+        const formattedDate = getLocalDateString(currentDate);
         const dayName = currentDate.toLocaleDateString('id-ID', { weekday: 'short' });
         const displayDate = `${String(currentDate.getDate()).padStart(2, '0')}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${currentDate.getFullYear()}`;
 
@@ -85,7 +87,7 @@ const AturPengiriman = () => {
       }
 
       const response = await axios.get(`http://localhost:5000/api/produsen/pesanan-masuk/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.data.success && response.data.data?.pesanan) {
@@ -99,7 +101,6 @@ const AturPengiriman = () => {
       } else {
         throw new Error(response.data.message || 'Data pesanan tidak valid.');
       }
-
     } catch (err) {
       const errorMsg = err.response?.data?.message || err.message || 'Gagal memuat data.';
       setError(errorMsg);
@@ -146,9 +147,9 @@ const AturPengiriman = () => {
         pesanan,
         tanggalPengiriman: selectedDate,
         waktuPengiriman,
-        catatanKurir,     // <-- Diubah
-        catatanPenerima,  // <-- Ditambahkan
-        opsiPengiriman
+        catatanKurir, // <-- Diubah
+        catatanPenerima, // <-- Ditambahkan
+        opsiPengiriman,
       },
     });
     // --- AKHIR PERBAIKAN 2 ---
@@ -172,7 +173,9 @@ const AturPengiriman = () => {
     return (
       <div className="flex min-h-screen bg-slate-50">
         <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-        <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+        <div
+          className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}
+        >
           <NavbarProdusen onLogout={handleLogout} username={username} />
           <main className="flex-1 flex items-center justify-center p-6 pt-[72px]">
             <div className="bg-white p-8 rounded-xl shadow-lg border border-red-200 text-center max-w-md">
@@ -197,12 +200,13 @@ const AturPengiriman = () => {
   return (
     <div className="flex min-h-screen bg-slate-50">
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? "ml-16" : "ml-64"}`}>
+      <div
+        className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}
+      >
         <NavbarProdusen onLogout={handleLogout} username={username} />
 
         <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
           <div className="max-w-4xl mx-auto">
-
             {/* HEADER */}
             <div className="mb-8">
               <button
@@ -211,7 +215,7 @@ const AturPengiriman = () => {
               >
                 <ArrowLeft size={16} className="mr-1" /> Kembali
               </button>
-              
+
               <div className="flex items-center gap-3 mb-3">
                 <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg">
                   <Truck className="text-white" size={24} />
@@ -221,14 +225,14 @@ const AturPengiriman = () => {
                     Atur Pengiriman
                   </h1>
                   <p className="text-slate-600 text-lg flex items-center gap-2">
-                    Pilih jadwal pengiriman untuk pesanan <span className="font-semibold">#{String(pesanan?.id).padStart(6, '0')}</span>
+                    Pilih jadwal pengiriman untuk pesanan{' '}
+                    <span className="font-semibold">#{String(pesanan?.id).padStart(6, '0')}</span>
                   </p>
                 </div>
               </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-
               {/* JADWAL PENGIRIMAN */}
               <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
                 <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 px-6 py-4 border-b border-slate-200">
@@ -239,7 +243,9 @@ const AturPengiriman = () => {
 
                 <div className="p-6 space-y-6">
                   <div>
-                    <label className="block text-base font-semibold text-gray-800 mb-3">Tanggal Pengiriman</label>
+                    <label className="block text-base font-semibold text-gray-800 mb-3">
+                      Tanggal Pengiriman
+                    </label>
                     <div className="flex space-x-2">
                       {shippingDates.map(({ day, date, displayDate }, index) => (
                         <button
@@ -253,13 +259,19 @@ const AturPengiriman = () => {
                           }`}
                         >
                           <span className="font-semibold block text-sm">{day}</span>
-                          <span className="block text-s">{displayDate}</span> {/* Ubah ke text-xs agar lebih kecil */}
+                          <span className="block text-s">{displayDate}</span>{' '}
+                          {/* Ubah ke text-xs agar lebih kecil */}
                         </button>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <label htmlFor="waktu-pengiriman" className="block text-sm font-semibold text-slate-700 mb-2">Waktu Pengiriman*</label>
+                    <label
+                      htmlFor="waktu-pengiriman"
+                      className="block text-sm font-semibold text-slate-700 mb-2"
+                    >
+                      Waktu Pengiriman*
+                    </label>
                     <div className="relative w-full md:w-2/3">
                       <select
                         id="waktu-pengiriman"
@@ -272,7 +284,10 @@ const AturPengiriman = () => {
                         <option value="13:00-16:00">Siang (13:00 - 16:00)</option>
                         <option value="16:00-19:00">Sore (16:00 - 19:00)</option>
                       </select>
-                      <ChevronDown size={20} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      <ChevronDown
+                        size={20}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                      />
                     </div>
                   </div>
                 </div>
@@ -285,23 +300,30 @@ const AturPengiriman = () => {
                     <MapPin size={20} /> Informasi Tujuan & Catatan
                   </h2>
                 </div>
-                
+
                 {/* --- PERBAIKAN 3: Ubah menjadi dua catatan --- */}
                 <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">Alamat Tujuan (PBF)</label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Alamat Tujuan (PBF)
+                    </label>
                     <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-1 text-sm text-slate-700 h-full">
-                      <p className="font-semibold text-slate-800">{pesanan?.nama_pbf || 'Memuat...'}</p>
+                      <p className="font-semibold text-slate-800">
+                        {pesanan?.nama_pbf || 'Memuat...'}
+                      </p>
                       <p>{pesanan?.alamat_pbf || '...'}</p>
                       <p>Kontak: {pesanan?.kontak_telepon || '...'}</p>
                       <p>Distribusi ke: {pesanan?.tujuan_distribusi || '...'}</p>
                     </div>
                   </div>
-                  
+
                   {/* Kolom Kanan: Dua Catatan */}
                   <div className="space-y-4">
                     <div>
-                      <label htmlFor="catatan_kurir" className="block text-sm font-semibold text-slate-700 mb-2">
+                      <label
+                        htmlFor="catatan_kurir"
+                        className="block text-sm font-semibold text-slate-700 mb-2"
+                      >
                         Catatan untuk Kurir (Opsional)
                       </label>
                       <textarea
@@ -314,7 +336,10 @@ const AturPengiriman = () => {
                       />
                     </div>
                     <div>
-                      <label htmlFor="catatan_penerima" className="block text-sm font-semibold text-slate-700 mb-2">
+                      <label
+                        htmlFor="catatan_penerima"
+                        className="block text-sm font-semibold text-slate-700 mb-2"
+                      >
                         Catatan untuk Penerima (Opsional)
                       </label>
                       <textarea
@@ -329,7 +354,6 @@ const AturPengiriman = () => {
                   </div>
                 </div>
                 {/* --- AKHIR PERBAIKAN 3 --- */}
-
               </div>
 
               {/* RINGKASAN */}
@@ -343,7 +367,9 @@ const AturPengiriman = () => {
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                       <p className="text-xs font-medium text-slate-500 mb-1">ID Pesanan</p>
-                      <p className="text-lg font-bold text-slate-800">#{String(pesanan?.id).padStart(6, '0')}</p>
+                      <p className="text-lg font-bold text-slate-800">
+                        #{String(pesanan?.id).padStart(6, '0')}
+                      </p>
                     </div>
                     <div>
                       <p className="text-xs font-medium text-slate-500 mb-1">Surat Pesanan</p>
@@ -360,7 +386,10 @@ const AturPengiriman = () => {
                       <p className="text-xs font-medium text-slate-500 mb-1">Total Pembayaran</p>
                       {/* --- PERBAIKAN 4: Format harga ,00 --- */}
                       <p className="text-lg font-bold text-emerald-700 flex items-center gap-1">
-                        Rp {Number(pesanan?.total_harga || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}
+                        Rp{' '}
+                        {Number(pesanan?.total_harga || 0).toLocaleString('id-ID', {
+                          minimumFractionDigits: 2,
+                        })}
                       </p>
                       <p className="text-xs text-slate-500 mt-0.5">Metode: Transfer Bank</p>
                     </div>

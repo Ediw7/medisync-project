@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom'; // Import Link (walaupun tidak terpakai, tapi ada di file Anda)
 import NavbarApotek from '../../../components/NavbarApotek';
-import { AlertCircle, Loader2, ArrowLeft, XCircle, Check, Package ,Edit, Info } from 'lucide-react'; // Import Edit dan Info
+import { AlertCircle, Loader2, ArrowLeft, XCircle, Check, Package, Edit, Info } from 'lucide-react'; // Import Edit dan Info
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
@@ -46,11 +46,15 @@ const BatalPesananApotek = () => {
       // --- PERBAIKAN ENDPOINT DI SINI ---
       // URL LAMA: `http://localhost:5000/api/apotek/pesanan/${id}/batalkan`
       // URL BARU:
-      const response = await axios.put(`http://localhost:5000/api/apotek/batalkan/${id}`, {
-        alasan: selectedReason, // Kirim alasan yang dipilih
-      }, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
+      const response = await axios.put(
+        `http://localhost:5000/api/apotek/batalkan/${id}`,
+        {
+          alasan: selectedReason, // Kirim alasan yang dipilih
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       // --- AKHIR PERBAIKAN ---
 
       if (!response.data.success) {
@@ -59,7 +63,6 @@ const BatalPesananApotek = () => {
 
       toast.success('Pengajuan pembatalan berhasil dikirim.', { id: toastId });
       navigate('/apotek/pesan-obat'); // Arahkan kembali ke daftar pesanan
-
     } catch (err) {
       const errorMsg = err.response?.data?.message || err.message;
       setError(errorMsg);
@@ -71,7 +74,7 @@ const BatalPesananApotek = () => {
       setIsSubmitting(false);
     }
   };
-  
+
   const handleLogout = () => {
     localStorage.clear();
     navigate('/');
@@ -81,10 +84,9 @@ const BatalPesananApotek = () => {
     <div className="flex min-h-screen bg-slate-50">
       <div className="flex-1 flex flex-col">
         <NavbarApotek onLogout={handleLogout} username={username} />
-        
+
         <main className="flex-1 overflow-auto pt-[72px] px-4 sm:px-12 py-8">
           <div className="max-w-3xl mx-auto">
-            
             {/* Header Halaman */}
             <div className="mb-10 relative">
               <div className="absolute -top-20 -left-20 w-72 h-72 bg-red-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
@@ -105,7 +107,12 @@ const BatalPesananApotek = () => {
                     <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-red-900 to-orange-900 bg-clip-text text-transparent">
                       Batalkan Pesanan
                     </h1>
-                    <p className="text-slate-600 text-lg mt-1">Pesanan ID: <span className="font-medium text-slate-700 font-mono">#{String(id).padStart(6, '0')}</span></p>
+                    <p className="text-slate-600 text-lg mt-1">
+                      Pesanan ID:{' '}
+                      <span className="font-medium text-slate-700 font-mono">
+                        #{String(id).padStart(6, '0')}
+                      </span>
+                    </p>
                   </div>
                 </div>
               </div>
@@ -120,12 +127,14 @@ const BatalPesananApotek = () => {
 
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 sm:p-8">
               <form onSubmit={handleSubmit}>
-                <h3 className="text-lg font-semibold text-slate-800 mb-4">Pilih Alasan Pembatalan</h3>
+                <h3 className="text-lg font-semibold text-slate-800 mb-4">
+                  Pilih Alasan Pembatalan
+                </h3>
                 <div className="space-y-3">
                   {reasonsList.map((reason) => (
-                    <label 
-                      key={reason.id} 
-                      htmlFor={reason.id} 
+                    <label
+                      key={reason.id}
+                      htmlFor={reason.id}
                       className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
                         selectedReason === reason.label
                           ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-300'
@@ -142,7 +151,9 @@ const BatalPesananApotek = () => {
                         className="h-4 w-4 text-emerald-600 border-slate-300 focus:ring-emerald-500"
                       />
                       {/* Menambahkan ikon di sini */}
-                      <span className={`text-slate-500 ${selectedReason === reason.label ? 'text-emerald-600' : ''}`}>
+                      <span
+                        className={`text-slate-500 ${selectedReason === reason.label ? 'text-emerald-600' : ''}`}
+                      >
                         {React.cloneElement(reason.icon, { size: 20 })}
                       </span>
                       <span className="text-sm font-medium text-slate-700">{reason.label}</span>
@@ -164,7 +175,11 @@ const BatalPesananApotek = () => {
                     className="w-full sm:w-auto py-2.5 px-6 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition flex items-center justify-center gap-2 disabled:bg-red-300"
                     disabled={isSubmitting || !selectedReason}
                   >
-                    {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <XCircle size={18} />}
+                    {isSubmitting ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <XCircle size={18} />
+                    )}
                     {isSubmitting ? 'Memproses...' : 'Ajukan Pembatalan'}
                   </button>
                 </div>
@@ -173,12 +188,19 @@ const BatalPesananApotek = () => {
           </div>
         </main>
       </div>
-      
+
       <style jsx global>{`
-         @keyframes blob {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
+        @keyframes blob {
+          0%,
+          100% {
+            transform: translate(0, 0) scale(1);
+          }
+          33% {
+            transform: translate(30px, -50px) scale(1.1);
+          }
+          66% {
+            transform: translate(-20px, 20px) scale(0.9);
+          }
         }
         .animate-blob {
           animation: blob 7s infinite;

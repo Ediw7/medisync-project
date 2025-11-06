@@ -17,7 +17,7 @@ import {
   Loader2,
   CheckCircle,
   XCircle,
-  Copy // Ditambahkan untuk HashItem
+  Copy, // Ditambahkan untuk HashItem
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import qrcode from 'qrcode';
@@ -51,7 +51,7 @@ const DetailProduksi = () => {
       const localDate = new Date(localYear, localMonth, localDay);
       return localDate;
     } catch (error) {
-      console.error("Error parsing date in Detail:", dateString, error);
+      console.error('Error parsing date in Detail:', dateString, error);
       return null;
     }
   };
@@ -73,9 +73,9 @@ const DetailProduksi = () => {
         });
         if (!response.ok) throw new Error('Gagal mengambil data');
         const result = await response.json();
-        
+
         if (!result.success || !result.data) {
-           throw new Error(result.message || 'Data produksi tidak ditemukan.');
+          throw new Error(result.message || 'Data produksi tidak ditemukan.');
         }
 
         const data = {
@@ -84,22 +84,25 @@ const DetailProduksi = () => {
           penanggung_jawab: result.data.penanggung_jawab || '',
         };
         setProduksi(data);
-        
+
         if (data.status === 'Tercatat di Blockchain' && data.qr_code_url) {
           setQrCode(data.qr_code_url);
         } else if (data.status === 'Tercatat di Blockchain' && !data.qr_code_url) {
-           const qrUrl = await qrcode.toDataURL(
-               `http://localhost:5173/verifikasi/${data.batch_id}`
-           );
-           setQrCode(qrUrl);
+          const qrUrl = await qrcode.toDataURL(`http://localhost:5173/verifikasi/${data.batch_id}`);
+          setQrCode(qrUrl);
         }
       } catch (err) {
         setError(err.message);
         toast.error(err.message);
-        if ((err.message.includes('401') || err.message.includes('403') || err.message.includes('login')) && token) {
-            navigate('/login/produsen');
+        if (
+          (err.message.includes('401') ||
+            err.message.includes('403') ||
+            err.message.includes('login')) &&
+          token
+        ) {
+          navigate('/login/produsen');
         } else if (!token) {
-             navigate('/login/produsen');
+          navigate('/login/produsen');
         }
       } finally {
         setIsLoading(false);
@@ -123,31 +126,30 @@ const DetailProduksi = () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Token autentikasi tidak ditemukan. Silakan login kembali.');
-      
+
       const response = await fetch(`http://localhost:5000/api/produksi/${id}/record`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
-      
+
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || 'Gagal mencatat ke blockchain');
 
       toast.success(result.message || 'Data berhasil dicatat!', { id: toastId });
-      
+
       setProduksi({ ...produksi, status: 'Tercatat di Blockchain' });
 
       if (result.qrCodeDataUrl) {
         setQrCode(result.qrCodeDataUrl);
       } else {
-         const qrUrl = await qrcode.toDataURL(
-             `http://localhost:5173/verifikasi/${produksi.batch_id}`
-         );
-         setQrCode(qrUrl);
+        const qrUrl = await qrcode.toDataURL(
+          `http://localhost:5173/verifikasi/${produksi.batch_id}`
+        );
+        setQrCode(qrUrl);
       }
-      
     } catch (err) {
       setError(err.message);
       toast.error(err.message || 'Gagal mencatat ke blockchain.', { id: toastId });
@@ -168,34 +170,34 @@ const DetailProduksi = () => {
 
   const getStatusConfig = (status) => {
     const configs = {
-      'Terjadwal': {
+      Terjadwal: {
         icon: Clock,
         bgColor: 'bg-blue-50',
         textColor: 'text-blue-700',
         borderColor: 'border-blue-200',
-        label: 'Terjadwal'
+        label: 'Terjadwal',
       },
       'Dalam Produksi': {
         icon: AlertCircle,
         bgColor: 'bg-yellow-50',
         textColor: 'text-yellow-700',
         borderColor: 'border-yellow-200',
-        label: 'Dalam Produksi'
+        label: 'Dalam Produksi',
       },
-      'Selesai': {
+      Selesai: {
         icon: CheckCircle2,
         bgColor: 'bg-green-50',
         textColor: 'text-green-700',
         borderColor: 'border-green-200',
-        label: 'Selesai'
+        label: 'Selesai',
       },
       'Tercatat di Blockchain': {
         icon: Shield,
         bgColor: 'bg-emerald-50',
         textColor: 'text-emerald-700',
         borderColor: 'border-emerald-200',
-        label: 'Tercatat'
-      }
+        label: 'Tercatat',
+      },
     };
     return configs[status] || configs['Terjadwal'];
   };
@@ -217,7 +219,8 @@ const DetailProduksi = () => {
           </div>
           <p className="text-slate-700 mb-6 leading-relaxed">
             Anda yakin ingin mencatat Batch ID: <strong>{produksi?.batch_id}</strong> ke blockchain?
-            <br/><br/>
+            <br />
+            <br />
             Tindakan ini tidak dapat dibatalkan.
           </p>
           <div className="flex justify-end gap-3">
@@ -233,53 +236,65 @@ const DetailProduksi = () => {
               disabled={isRecording}
               className={`px-6 py-2.5 font-medium rounded-lg transition flex items-center gap-2 ${
                 isRecording
-                  ? "bg-slate-400 cursor-not-allowed text-white"
-                  : "bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800"
+                  ? 'bg-slate-400 cursor-not-allowed text-white'
+                  : 'bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800'
               }`}
             >
-              {isRecording ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18} />}
+              {isRecording ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <CheckCircle size={18} />
+              )}
               {isRecording ? 'Memproses...' : 'Ya, Konfirmasi'}
             </button>
           </div>
         </div>
       </div>
-    )
-  }
+    );
+  };
 
   if (isLoading) {
     return (
-       <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
-          <div className="relative">
-            <Loader2 className="animate-spin h-12 w-12 text-emerald-600" />
-            <div className="absolute inset-0 h-12 w-12 rounded-full border-4 border-emerald-200 animate-ping opacity-20"></div>
-          </div>
-          <p className="mt-4 text-slate-700 font-medium">Memuat data produksi...</p>
+      <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
+        <div className="relative">
+          <Loader2 className="animate-spin h-12 w-12 text-emerald-600" />
+          <div className="absolute inset-0 h-12 w-12 rounded-full border-4 border-emerald-200 animate-ping opacity-20"></div>
+        </div>
+        <p className="mt-4 text-slate-700 font-medium">Memuat data produksi...</p>
       </div>
     );
   }
 
   if (error && !produksi) {
-     return (
+    return (
       <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
         <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-        <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
-          <NavbarProdusen onLogout={() => { localStorage.clear(); navigate('/'); }} username={username} />
-           <main className="flex-1 overflow-auto pt-[72px] px-12 py-8 flex items-center justify-center p-6">
+        <div
+          className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}
+        >
+          <NavbarProdusen
+            onLogout={() => {
+              localStorage.clear();
+              navigate('/');
+            }}
+            username={username}
+          />
+          <main className="flex-1 overflow-auto pt-[72px] px-12 py-8 flex items-center justify-center p-6">
             <div className="bg-white p-8 rounded-xl shadow-lg border border-red-200 text-center">
               <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
               <h2 className="text-xl font-bold text-red-800 mb-2">Gagal Memuat Data</h2>
               <p className="text-red-600 mb-6">{error}</p>
               <button
-                 onClick={() => navigate('/produsen/manajemen-produksi')}
-                 className="flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition mx-auto"
-               >
-                 <ArrowLeft size={18} />
-                 Kembali ke Manajemen
-               </button>
+                onClick={() => navigate('/produsen/manajemen-produksi')}
+                className="flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition mx-auto"
+              >
+                <ArrowLeft size={18} />
+                Kembali ke Manajemen
+              </button>
             </div>
-           </main>
-         </div>
-       </div>
+          </main>
+        </div>
+      </div>
     );
   }
 
@@ -287,20 +302,30 @@ const DetailProduksi = () => {
     return (
       <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
         <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-        <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
-          <NavbarProdusen onLogout={() => { localStorage.clear(); navigate('/'); }} username={username} />
+        <div
+          className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}
+        >
+          <NavbarProdusen
+            onLogout={() => {
+              localStorage.clear();
+              navigate('/');
+            }}
+            username={username}
+          />
           <main className="flex-1 overflow-auto pt-[72px] px-12 py-8 flex items-center justify-center p-6">
             <div className="bg-white p-8 rounded-xl shadow-lg border border-slate-200 text-center">
               <Package size={64} className="mx-auto text-slate-300 mb-4" />
               <h2 className="text-xl font-bold text-slate-800 mb-2">Data Tidak Ditemukan</h2>
-              <p className="text-slate-500 mb-6">Data produksi untuk ID ini tidak dapat ditemukan.</p>
-               <button
-                 onClick={() => navigate('/produsen/manajemen-produksi')}
-                 className="flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition mx-auto"
-               >
-                 <ArrowLeft size={18} />
-                 Kembali ke Manajemen
-               </button>
+              <p className="text-slate-500 mb-6">
+                Data produksi untuk ID ini tidak dapat ditemukan.
+              </p>
+              <button
+                onClick={() => navigate('/produsen/manajemen-produksi')}
+                className="flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition mx-auto"
+              >
+                <ArrowLeft size={18} />
+                Kembali ke Manajemen
+              </button>
             </div>
           </main>
         </div>
@@ -316,13 +341,20 @@ const DetailProduksi = () => {
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
       {renderConfirmModal()}
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-      
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
-        <NavbarProdusen onLogout={() => { localStorage.clear(); navigate('/'); }} username={username} />
-        
+
+      <div
+        className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}
+      >
+        <NavbarProdusen
+          onLogout={() => {
+            localStorage.clear();
+            navigate('/');
+          }}
+          username={username}
+        />
+
         <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
           <div className="max-w-6xl mx-auto">
-     
             <div className="mb-8">
               <button
                 onClick={() => navigate('/produsen/manajemen-produksi')}
@@ -331,22 +363,27 @@ const DetailProduksi = () => {
                 <ArrowLeft size={16} className="mr-1" />
                 Kembali ke Manajemen Produksi
               </button>
-              
+
               <div className="flex items-center gap-4">
                 <div className="flex-shrink-0 flex items-center justify-center w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg">
                   <Package className="text-white" size={24} />
                 </div>
-                
+
                 <div>
                   <div className="flex items-center gap-3">
                     <h1 className="text-4xl font-bold text-slate-900">{produksi.nama_obat}</h1>
-                    <span className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold border ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}>
-                      <StatusIcon size={16} /> 
+                    <span
+                      className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold border ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}
+                    >
+                      <StatusIcon size={16} />
                       {statusConfig.label}
                     </span>
                   </div>
                   <p className="text-slate-600 text-lg mt-1">
-                    Batch ID: <span className="font-semibold font-mono text-slate-800">{produksi.batch_id}</span>
+                    Batch ID:{' '}
+                    <span className="font-semibold font-mono text-slate-800">
+                      {produksi.batch_id}
+                    </span>
                   </p>
                 </div>
               </div>
@@ -367,10 +404,13 @@ const DetailProduksi = () => {
                   <InfoItem label="Nomor Izin Edar" value={produksi.nomor_izin_edar} />
                   <InfoItem label="Dosis" value={produksi.dosis} />
                   <InfoItem label="Bentuk Sediaan" value={produksi.bentuk_sediaan} />
-                  <InfoItem label="Jumlah Produksi" value={`${produksi.jumlah.toLocaleString('id-ID')} Pcs`} />
-                  <InfoItem 
-                    label="Harga Satuan" 
-                    value={`Rp ${Number(produksi.harga_per_unit || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}`} 
+                  <InfoItem
+                    label="Jumlah Produksi"
+                    value={`${produksi.jumlah.toLocaleString('id-ID')} Pcs`}
+                  />
+                  <InfoItem
+                    label="Harga Satuan"
+                    value={`Rp ${Number(produksi.harga_per_unit || 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}`}
                   />
                   <InfoItem label="Penanggung Jawab" value={produksi.penanggung_jawab} />
                   <InfoItem label="Prioritas" value={produksi.prioritas} />
@@ -378,31 +418,32 @@ const DetailProduksi = () => {
                 </InfoCard>
 
                 <InfoCard title="Informasi Waktu" icon={Calendar}>
-                  <InfoItem 
-                    label="Tanggal Produksi" 
-                    value={parseDateAsLocal(produksi.tanggal_produksi)?.toLocaleDateString('id-ID', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                    }) || '-'} 
+                  <InfoItem
+                    label="Tanggal Produksi"
+                    value={
+                      parseDateAsLocal(produksi.tanggal_produksi)?.toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      }) || '-'
+                    }
                   />
-                  <InfoItem 
-                    label="Tanggal Kadaluarsa" 
-                    value={parseDateAsLocal(produksi.tanggal_kadaluarsa)?.toLocaleDateString('id-ID', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                    }) || '-'} 
+                  <InfoItem
+                    label="Tanggal Kadaluarsa"
+                    value={
+                      parseDateAsLocal(produksi.tanggal_kadaluarsa)?.toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      }) || '-'
+                    }
                   />
                 </InfoCard>
 
                 <InfoCard title="Dokumen & Sertifikasi" icon={FileText}>
-                  <DocumentItem 
-                    label="Dokumen BPOM" 
-                    path={produksi.dokumen_bpom_path}
-                  />
-                  <DocumentItem 
-                    label="Sertifikat Analisis" 
+                  <DocumentItem label="Dokumen BPOM" path={produksi.dokumen_bpom_path} />
+                  <DocumentItem
+                    label="Sertifikat Analisis"
                     path={produksi.sertifikat_analisis_path}
                   />
                   <HashItem
@@ -423,12 +464,15 @@ const DetailProduksi = () => {
                           <Shield size={24} className="text-white" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-slate-900 text-lg">Catat ke Blockchain</h3>
+                          <h3 className="font-semibold text-slate-900 text-lg">
+                            Catat ke Blockchain
+                          </h3>
                           <p className="text-sm text-slate-600">Amankan data produksi</p>
                         </div>
                       </div>
                       <p className="text-sm text-slate-600 mb-5 leading-relaxed">
-                        Proses ini akan mencatat data produksi secara permanen ke blockchain dan menghasilkan QR Code untuk verifikasi.
+                        Proses ini akan mencatat data produksi secara permanen ke blockchain dan
+                        menghasilkan QR Code untuk verifikasi.
                       </p>
                       <button
                         onClick={handleRecordToBlockchain}
@@ -459,8 +503,12 @@ const DetailProduksi = () => {
                           <Shield size={24} className="text-white" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-slate-900 text-lg">Tercatat di Blockchain</h3>
-                          <p className="text-sm text-emerald-700 font-medium">Data telah diamankan</p>
+                          <h3 className="font-semibold text-slate-900 text-lg">
+                            Tercatat di Blockchain
+                          </h3>
+                          <p className="text-sm text-emerald-700 font-medium">
+                            Data telah diamankan
+                          </p>
                         </div>
                       </div>
                       <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-emerald-300">
@@ -471,12 +519,17 @@ const DetailProduksi = () => {
                     </div>
 
                     {qrCode && (
-                      <InfoCard title="QR Code Verifikasi" icon={QrCode} bgColor="bg-slate-50" borderColor="border-slate-200">
+                      <InfoCard
+                        title="QR Code Verifikasi"
+                        icon={QrCode}
+                        bgColor="bg-slate-50"
+                        borderColor="border-slate-200"
+                      >
                         <div className="col-span-full text-center">
                           <div className="bg-white p-4 rounded-xl border border-gray-200 mb-4 shadow-sm inline-block">
-                            <img 
-                              src={qrCode} 
-                              alt="QR Code" 
+                            <img
+                              src={qrCode}
+                              alt="QR Code"
                               className="w-full max-w-[200px] mx-auto rounded-lg block"
                             />
                           </div>
@@ -512,27 +565,34 @@ const DetailProduksi = () => {
           </div>
         </main>
       </div>
-       <style jsx>{`
+      <style jsx>{`
         .react-datepicker-wrapper {
           width: 100%;
         }
         .react-datepicker__input-container input {
           width: 100%;
-          padding: 0.625rem 1rem; 
-          border: 1px solid #cbd5e1; 
-          border-radius: 0.5rem; 
+          padding: 0.625rem 1rem;
+          border: 1px solid #cbd5e1;
+          border-radius: 0.5rem;
           transition: all 0.2s;
         }
         .react-datepicker__input-container input:focus {
           outline: none;
           border-color: transparent;
-          box-shadow: 0 0 0 2px #34d399; 
+          box-shadow: 0 0 0 2px #34d399;
         }
-        
+
         @keyframes blob {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
+          0%,
+          100% {
+            transform: translate(0, 0) scale(1);
+          }
+          33% {
+            transform: translate(30px, -50px) scale(1.1);
+          }
+          66% {
+            transform: translate(-20px, 20px) scale(0.9);
+          }
         }
         .animate-blob {
           animation: blob 7s infinite;
@@ -545,15 +605,21 @@ const DetailProduksi = () => {
   );
 };
 
-const InfoCard = ({ title, icon: Icon, children, bgColor = 'bg-white', borderColor = 'border-gray-200' }) => (
-  <div className={`rounded-xl ${bgColor} border ${borderColor} overflow-hidden shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-200`}>
+const InfoCard = ({
+  title,
+  icon: Icon,
+  children,
+  bgColor = 'bg-white',
+  borderColor = 'border-gray-200',
+}) => (
+  <div
+    className={`rounded-xl ${bgColor} border ${borderColor} overflow-hidden shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-200`}
+  >
     <div className="px-6 py-4 border-b border-gray-200 bg-white/50 flex items-center gap-3">
       {Icon && <Icon className="h-5 w-5 text-emerald-600" />}
       <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
     </div>
-    <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
-      {children}
-    </div>
+    <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">{children}</div>
   </div>
 );
 
@@ -610,4 +676,3 @@ const DocumentItem = ({ label, path }) => (
 );
 
 export default DetailProduksi;
-

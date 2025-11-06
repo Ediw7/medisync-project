@@ -13,7 +13,7 @@ import {
   Calendar,
   Package,
   AlertTriangle,
-  FileText
+  FileText,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -46,43 +46,54 @@ const PbfDashboard = () => {
         }
 
         const response = await fetch('http://localhost:5000/api/pbf/dashboard', {
-          headers: { 'Authorization': `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}` },
         });
 
-        const contentType = response.headers.get("content-type");
+        const contentType = response.headers.get('content-type');
         if (!response.ok) {
-            let errorMsg = `Gagal mengambil data dasbor: Status ${response.status}`;
-             if (contentType && contentType.indexOf("application/json") !== -1) {
-                const errData = await response.json();
-                errorMsg = errData.message || errorMsg;
-            } else {
-                 errorMsg = await response.text() || errorMsg;
-            }
-            throw new Error(errorMsg);
+          let errorMsg = `Gagal mengambil data dasbor: Status ${response.status}`;
+          if (contentType && contentType.indexOf('application/json') !== -1) {
+            const errData = await response.json();
+            errorMsg = errData.message || errorMsg;
+          } else {
+            errorMsg = (await response.text()) || errorMsg;
+          }
+          throw new Error(errorMsg);
         }
 
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-            const result = await response.json();
-            if (result.success && result.data) {
-              setStats(result.data.stats || { totalDipesan: 0, pengirimanAktif: 0, stokTersedia: 0, pesananBelumSelesai: 0 });
-              setStokTerbaru(result.data.stokTerbaru || []);
-              setPesananTerbaru(result.data.pesananTerbaru || []);
-            } else {
-              throw new Error(result.message || 'Data dasbor tidak tersedia atau format salah.');
-            }
+        if (contentType && contentType.indexOf('application/json') !== -1) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            setStats(
+              result.data.stats || {
+                totalDipesan: 0,
+                pengirimanAktif: 0,
+                stokTersedia: 0,
+                pesananBelumSelesai: 0,
+              }
+            );
+            setStokTerbaru(result.data.stokTerbaru || []);
+            setPesananTerbaru(result.data.pesananTerbaru || []);
+          } else {
+            throw new Error(result.message || 'Data dasbor tidak tersedia atau format salah.');
+          }
         } else {
-            const resultText = await response.text();
-             console.warn("Received non-JSON response:", resultText);
-             throw new Error('Menerima format data tidak terduga dari server.');
+          const resultText = await response.text();
+          console.warn('Received non-JSON response:', resultText);
+          throw new Error('Menerima format data tidak terduga dari server.');
         }
-
       } catch (err) {
         setError(err.message);
         toast.error(err.message || 'Gagal memuat data dasbor.');
-        if ((err.message.includes('401') || err.message.includes('403') || err.message.includes('login')) && token) {
-            navigate('/login/pbf');
-        } else if (!token){
-            navigate('/login/pbf');
+        if (
+          (err.message.includes('401') ||
+            err.message.includes('403') ||
+            err.message.includes('login')) &&
+          token
+        ) {
+          navigate('/login/pbf');
+        } else if (!token) {
+          navigate('/login/pbf');
         }
       } finally {
         setIsLoading(false);
@@ -97,27 +108,50 @@ const PbfDashboard = () => {
     navigate('/');
   };
 
-  const StatCard = ({ icon, value, label, unit, trend, color = "emerald", isCurrency = false }) => {
+  const StatCard = ({ icon, value, label, unit, trend, color = 'emerald', isCurrency = false }) => {
     const colorClasses = {
-      emerald: { bg: "bg-gradient-to-br from-emerald-400 to-emerald-600", text: "text-emerald-600", bgLight: "bg-emerald-50" },
-      blue: { bg: "bg-gradient-to-br from-blue-400 to-blue-600", text: "text-blue-600", bgLight: "bg-blue-50" },
-      purple: { bg: "bg-gradient-to-br from-purple-400 to-purple-600", text: "text-purple-600", bgLight: "bg-purple-50" },
-      orange: { bg: "bg-gradient-to-br from-orange-400 to-orange-600", text: "text-orange-600", bgLight: "bg-orange-50" },
+      emerald: {
+        bg: 'bg-gradient-to-br from-emerald-400 to-emerald-600',
+        text: 'text-emerald-600',
+        bgLight: 'bg-emerald-50',
+      },
+      blue: {
+        bg: 'bg-gradient-to-br from-blue-400 to-blue-600',
+        text: 'text-blue-600',
+        bgLight: 'bg-blue-50',
+      },
+      purple: {
+        bg: 'bg-gradient-to-br from-purple-400 to-purple-600',
+        text: 'text-purple-600',
+        bgLight: 'bg-purple-50',
+      },
+      orange: {
+        bg: 'bg-gradient-to-br from-orange-400 to-orange-600',
+        text: 'text-orange-600',
+        bgLight: 'bg-orange-50',
+      },
     };
     const selectedColor = colorClasses[color] || colorClasses.emerald;
 
     return (
       <div className="group relative bg-white p-5 rounded-xl shadow-sm border border-slate-200 hover:shadow-lg hover:border-slate-300 transition-all duration-300 overflow-hidden">
-        <div className={`absolute -top-4 -right-4 w-24 h-24 ${selectedColor.bgLight} rounded-full opacity-50 blur-lg group-hover:scale-125 transition-transform duration-500`}></div>
-        <ArrowUpRight className="absolute top-4 right-4 text-slate-300 group-hover:text-slate-400 transition-colors" size={18} />
+        <div
+          className={`absolute -top-4 -right-4 w-24 h-24 ${selectedColor.bgLight} rounded-full opacity-50 blur-lg group-hover:scale-125 transition-transform duration-500`}
+        ></div>
+        <ArrowUpRight
+          className="absolute top-4 right-4 text-slate-300 group-hover:text-slate-400 transition-colors"
+          size={18}
+        />
 
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-3">
             <div className={`p-2.5 rounded-lg ${selectedColor.bg} shadow-md`}>
-              {React.cloneElement(icon, { className: "text-white", size: 20 })}
+              {React.cloneElement(icon, { className: 'text-white', size: 20 })}
             </div>
             {trend && (
-              <span className={`flex items-center text-xs font-semibold ${selectedColor.text} ${selectedColor.bgLight} px-2 py-1 rounded-full`}>
+              <span
+                className={`flex items-center text-xs font-semibold ${selectedColor.text} ${selectedColor.bgLight} px-2 py-1 rounded-full`}
+              >
                 <TrendingUp size={12} className="mr-1" />
                 {trend}
               </span>
@@ -136,37 +170,42 @@ const PbfDashboard = () => {
 
   const getStatusBadge = (status) => {
     const styles = {
-      'Diproses': 'bg-amber-50 text-amber-700 border-amber-200',
+      Diproses: 'bg-amber-50 text-amber-700 border-amber-200',
       'Menunggu Konfirmasi': 'bg-amber-50 text-amber-700 border-amber-200',
-      'Diterima': 'bg-green-50 text-green-700 border-green-200',
-      'Dikirim': 'bg-blue-50 text-blue-700 border-blue-200',
-      'Selesai': 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      'Dibatalkan': 'bg-red-50 text-red-700 border-red-200',
+      Diterima: 'bg-green-50 text-green-700 border-green-200',
+      Dikirim: 'bg-blue-50 text-blue-700 border-blue-200',
+      Selesai: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      Dibatalkan: 'bg-red-50 text-red-700 border-red-200',
       'Pembatalan Diajukan': 'bg-yellow-50 text-yellow-700 border-yellow-200',
-      'Perlu Dikirim': 'bg-orange-50 text-orange-700 border-orange-200'
+      'Perlu Dikirim': 'bg-orange-50 text-orange-700 border-orange-200',
     };
     return styles[status] || 'bg-slate-50 text-slate-700 border-slate-200';
   };
-  
+
   const formatDate = (dateString) => {
-     if (!dateString) return '-';
-     try {
-        const date = new Date(dateString);
-         if (isNaN(date.getTime())) return '-';
-         return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
-     } catch (e) {
-         return '-';
-     }
+    if (!dateString) return '-';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '-';
+      return date.toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'UTC',
+      });
+    } catch (e) {
+      return '-';
+    }
   };
 
   if (isLoading) {
     return (
-       <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
-          <div className="relative">
-            <Loader2 className="animate-spin h-12 w-12 text-emerald-600" />
-            <div className="absolute inset-0 h-12 w-12 rounded-full border-4 border-emerald-200 animate-ping opacity-20"></div>
-          </div>
-          <p className="mt-4 text-slate-700 font-medium">Memuat dasbor PBF...</p>
+      <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
+        <div className="relative">
+          <Loader2 className="animate-spin h-12 w-12 text-emerald-600" />
+          <div className="absolute inset-0 h-12 w-12 rounded-full border-4 border-emerald-200 animate-ping opacity-20"></div>
+        </div>
+        <p className="mt-4 text-slate-700 font-medium">Memuat dasbor PBF...</p>
       </div>
     );
   }
@@ -174,15 +213,16 @@ const PbfDashboard = () => {
   return (
     <div className="flex min-h-screen bg-slate-50">
       <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
-        <NavbarPbf onLogout={handleLogout} username={username}/>
-        
+      <div
+        className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}
+      >
+        <NavbarPbf onLogout={handleLogout} username={username} />
+
         <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
           <div className="max-w-7xl mx-auto">
-
             <div className="mb-10 relative">
-               <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-               <div className="absolute -top-20 -right-20 w-72 h-72 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+              <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+              <div className="absolute -top-20 -right-20 w-72 h-72 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
 
               <div className="relative">
                 <div className="flex items-center gap-3 mb-3">
@@ -202,7 +242,14 @@ const PbfDashboard = () => {
                 </p>
                 <div className="flex items-center gap-2 mt-2 text-sm text-slate-500">
                   <Calendar size={16} />
-                  <span>{new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                  <span>
+                    {new Date().toLocaleDateString('id-ID', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </span>
                 </div>
               </div>
             </div>
@@ -229,7 +276,7 @@ const PbfDashboard = () => {
                 unit=""
                 color="purple"
               />
-               <StatCard
+              <StatCard
                 icon={<Box />}
                 value={stats.stokTersedia}
                 label="Total Stok Tersedia"
@@ -257,27 +304,48 @@ const PbfDashboard = () => {
                   <table className="min-w-full">
                     <thead className="bg-slate-50 border-b border-slate-200">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Batch ID</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Nama Obat</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Stok</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Kedaluwarsa</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Batch ID
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Nama Obat
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Stok
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Kedaluwarsa
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-100">
-                      {stokTerbaru.length > 0 ? stokTerbaru.map((item, index) => (
-                        <tr key={item.batch_id || index} className="hover:bg-emerald-50/50 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 font-mono">{item.batch_id}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{item.nama_obat}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-700">{item.stok.toLocaleString('id-ID')} Pcs</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-orange-600 font-medium">
-                            {formatDate(item.tanggal_kadaluarsa)}
+                      {stokTerbaru.length > 0 ? (
+                        stokTerbaru.map((item, index) => (
+                          <tr
+                            key={item.batch_id || index}
+                            className="hover:bg-emerald-50/50 transition-colors"
+                          >
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 font-mono">
+                              {item.batch_id}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                              {item.nama_obat}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-700">
+                              {item.stok.toLocaleString('id-ID')} Pcs
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-orange-600 font-medium">
+                              {formatDate(item.tanggal_kadaluarsa)}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="4" className="text-center py-10 text-slate-500">
+                            <Package size={32} className="mx-auto mb-2 opacity-50" />
+                            Tidak ada data stok terbaru.
                           </td>
                         </tr>
-                      )) : (
-                           <tr><td colSpan="4" className="text-center py-10 text-slate-500">
-                             <Package size={32} className="mx-auto mb-2 opacity-50"/>
-                             Tidak ada data stok terbaru.
-                           </td></tr>
                       )}
                     </tbody>
                   </table>
@@ -295,32 +363,52 @@ const PbfDashboard = () => {
                   <table className="min-w-full">
                     <thead className="bg-slate-50 border-b border-slate-200">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Nama Apotek</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Obat & Batch</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Jumlah</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Nama Apotek
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Obat & Batch
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Jumlah
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Status
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-100">
-                      {pesananTerbaru.length > 0 ? pesananTerbaru.map(item => (
-                        <tr key={item.id} className="hover:bg-blue-50/50 transition-colors">
-                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{item.namaApotek}</td>
-                           <td className="px-6 py-4 whitespace-nowrap">
-                             <span className="text-sm text-slate-700 block">{item.obat}</span>
-                             <span className="text-xs text-slate-500 font-mono bg-slate-100 px-1.5 py-0.5 rounded">Batch: {item.batchId}</span>
-                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-700">{(item.stok || 0).toLocaleString('id-ID')} Pcs</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusBadge(item.status)}`}>
-                              {item.status}
-                            </span>
+                      {pesananTerbaru.length > 0 ? (
+                        pesananTerbaru.map((item) => (
+                          <tr key={item.id} className="hover:bg-blue-50/50 transition-colors">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+                              {item.namaApotek}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className="text-sm text-slate-700 block">{item.obat}</span>
+                              <span className="text-xs text-slate-500 font-mono bg-slate-100 px-1.5 py-0.5 rounded">
+                                Batch: {item.batchId}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-700">
+                              {(item.stok || 0).toLocaleString('id-ID')} Pcs
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                              <span
+                                className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusBadge(item.status)}`}
+                              >
+                                {item.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="4" className="text-center py-10 text-slate-500">
+                            <FileText size={32} className="mx-auto mb-2 opacity-50" />
+                            Tidak ada pesanan terbaru.
                           </td>
                         </tr>
-                      )) : (
-                           <tr><td colSpan="4" className="text-center py-10 text-slate-500">
-                               <FileText size={32} className="mx-auto mb-2 opacity-50" />
-                               Tidak ada pesanan terbaru.
-                           </td></tr>
                       )}
                     </tbody>
                   </table>
@@ -333,9 +421,16 @@ const PbfDashboard = () => {
 
       <style jsx>{`
         @keyframes blob {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
+          0%,
+          100% {
+            transform: translate(0, 0) scale(1);
+          }
+          33% {
+            transform: translate(30px, -50px) scale(1.1);
+          }
+          66% {
+            transform: translate(-20px, 20px) scale(0.9);
+          }
         }
         .animate-blob {
           animation: blob 7s infinite;

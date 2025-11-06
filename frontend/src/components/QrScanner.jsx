@@ -14,32 +14,38 @@ const QrScanner = React.memo(({ onScanResult, onClose }) => {
   // --- STOP VIDEO SEBELUM RESET ---
   const stopVideo = useCallback(() => {
     if (videoRef.current?.srcObject) {
-      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
     }
   }, []);
 
   // --- SCAN HANDLER ---
-  const handleScan = useCallback((result) => {
-    if (result?.text && !hasScanned) {
-      setHasScanned(true);
-      setIsScanning(false);
-      stopVideo();
-      onScanResult(result.text);
-      toast.success('QR Code berhasil dipindai!');
-      setTimeout(() => onClose(), 1500);
-    }
-  }, [hasScanned, onScanResult, onClose, stopVideo]);
+  const handleScan = useCallback(
+    (result) => {
+      if (result?.text && !hasScanned) {
+        setHasScanned(true);
+        setIsScanning(false);
+        stopVideo();
+        onScanResult(result.text);
+        toast.success('QR Code berhasil dipindai!');
+        setTimeout(() => onClose(), 1500);
+      }
+    },
+    [hasScanned, onScanResult, onClose, stopVideo]
+  );
 
   // --- ERROR HANDLER ---
-  const handleError = useCallback((err) => {
-    stopVideo();
-    let msg = 'Gagal mengakses kamera.';
-    if (err.name === 'NotAllowedError') msg = 'Akses kamera ditolak. Izinkan di pengaturan.';
-    else if (err.name === 'NotFoundError') msg = 'Kamera tidak ditemukan.';
-    else if (err.name === 'AbortError') msg = 'Kamera terganggu. Coba lagi.';
-    setError(msg);
-    setIsScanning(false);
-  }, [stopVideo]);
+  const handleError = useCallback(
+    (err) => {
+      stopVideo();
+      let msg = 'Gagal mengakses kamera.';
+      if (err.name === 'NotAllowedError') msg = 'Akses kamera ditolak. Izinkan di pengaturan.';
+      else if (err.name === 'NotFoundError') msg = 'Kamera tidak ditemukan.';
+      else if (err.name === 'AbortError') msg = 'Kamera terganggu. Coba lagi.';
+      setError(msg);
+      setIsScanning(false);
+    },
+    [stopVideo]
+  );
 
   // --- RESET SCANNER ---
   const resetScanner = useCallback(() => {
@@ -47,7 +53,7 @@ const QrScanner = React.memo(({ onScanResult, onClose }) => {
     setIsScanning(true);
     setError(null);
     setHasScanned(false);
-    setScannerKey(prev => prev + 1); // Force remount
+    setScannerKey((prev) => prev + 1); // Force remount
   }, [stopVideo]);
 
   // --- UPLOAD GAMBAR (ZXING) ---
@@ -83,16 +89,12 @@ const QrScanner = React.memo(({ onScanResult, onClose }) => {
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
-        
         {/* HEADER */}
         <div className="flex items-center justify-between p-5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
           <h3 className="text-xl font-bold flex items-center gap-3">
             <Camera size={22} /> Pindai QR Code Obat
           </h3>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-full hover:bg-white/20 transition-all"
-          >
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-white/20 transition-all">
             <X size={22} />
           </button>
         </div>
@@ -166,14 +168,31 @@ const QrScanner = React.memo(({ onScanResult, onClose }) => {
       {/* ANIMASI */}
       <style jsx>{`
         @keyframes laser {
-          0%, 100% { transform: translateY(-50%) scaleY(1); opacity: 0.8; }
-          50% { transform: translateY(-50%) scaleY(2); opacity: 1; }
+          0%,
+          100% {
+            transform: translateY(-50%) scaleY(1);
+            opacity: 0.8;
+          }
+          50% {
+            transform: translateY(-50%) scaleY(2);
+            opacity: 1;
+          }
         }
-        .animate-laser { animation: laser 1.8s infinite ease-in-out; }
-        .animate-in { animation: fadeIn 0.3s ease-out; }
+        .animate-laser {
+          animation: laser 1.8s infinite ease-in-out;
+        }
+        .animate-in {
+          animation: fadeIn 0.3s ease-out;
+        }
         @keyframes fadeIn {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
+          from {
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
         }
       `}</style>
     </div>

@@ -1,34 +1,34 @@
-"use client";
+'use client';
 
-import { Link } from "react-router-dom";
-import { Factory, Truck, Store, ArrowRight } from "lucide-react";
-import { AnimatedBackground } from "../components/AnimatedBackground"
+import { Link } from 'react-router-dom';
+import { Factory, Truck, Store, ArrowRight } from 'lucide-react';
+import { AnimatedBackground } from '../components/AnimatedBackground';
 
 function PilihRole() {
   const roles = [
     {
-      name: "Produsen",
-      key: "produsen",
-      to: "/login/produsen",
+      name: 'Produsen',
+      key: 'produsen',
+      to: '/login/produsen',
       icon: <Factory size={48} />,
-      description: "Manufaktur dan produksi obat-obatan",
-      color: "from-emerald-500 to-[#047857]",
+      description: 'Manufaktur dan produksi obat-obatan',
+      color: 'from-emerald-500 to-[#047857]',
     },
     {
-      name: "PBF",
-      key: "pbf",
-      to: "/login/pbf",
+      name: 'PBF',
+      key: 'pbf',
+      to: '/login/pbf',
       icon: <Truck size={48} />,
-      description: "Distribusi dan penyaluran produk farmasi",
-      color: "from-emerald-500 to-[#047857]",
+      description: 'Distribusi dan penyaluran produk farmasi',
+      color: 'from-emerald-500 to-[#047857]',
     },
     {
-      name: "Apotek",
-      key: "apotek",
-      to: "/login/apotek",
+      name: 'Apotek',
+      key: 'apotek',
+      to: '/login/apotek',
       icon: <Store size={48} />,
-      description: "Pelayanan obat dan konsultasi farmasi",
-      color: "from-emerald-500 to-[#047857]",
+      description: 'Pelayanan obat dan konsultasi farmasi',
+      color: 'from-emerald-500 to-[#047857]',
     },
   ];
 
@@ -44,25 +44,25 @@ function PilihRole() {
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-gradient-to-br from-emerald-600/10 to-emerald-500/10 animate-liquid blur-2xl"></div>
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-br from-emerald-400/5 to-emerald-600/10 rounded-full blur-3xl animate-pulse"></div>
       </div>
-      <div  
+      <div
         className="absolute bottom-0 right-0 -translate-x-1 w-96 h-96 bg-[#047857]/40 rounded-full blur-3xl animate-ping"
-        style={{ animationDelay: "3s" }}
+        style={{ animationDelay: '3s' }}
       ></div>
-      <div  
+      <div
         className="absolute bottom-0 left-0 w-96 h-96 bg-green-200 rounded-full blur-3xl animate-ping"
-        style={{ animationDelay: "3s" }}
+        style={{ animationDelay: '3s' }}
       ></div>
       <div
         className="absolute top-1/2 left-1/4 w-64 h-64 bg-blue-200/20 rounded-full blur-2xl animate-pulse"
-        style={{ animationDelay: "1s" }}
+        style={{ animationDelay: '1s' }}
       ></div>
       <div
         className="absolute bottom-1/2 right-1/4 w-64 h-64 bg-blue-200/20 rounded-full blur-2xl animate-pulse"
-        style={{ animationDelay: "1s" }}
+        style={{ animationDelay: '1s' }}
       ></div>
       <div
         className="absolute bottom-1/4 left-1/2 w-48 h-48 bg-purple-200/20 rounded-full blur-2xl animate-pulse"
-        style={{ animationDelay: "3s" }}
+        style={{ animationDelay: '3s' }}
       ></div>
       <AnimatedBackground />
 
@@ -70,15 +70,15 @@ function PilihRole() {
         {/* Header Section */}
         <div className="text-center mb-16 animate-fade-in">
           <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-            Pilih Peran{" "}
+            Pilih Peran{' '}
             <span className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-transparent bg-clip-text">
               Anda
             </span>
           </h1>
 
           <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Pilih peran Anda untuk masuk ke platform dan mulai mengelola rantai
-            pasok farmasi dengan teknologi blockchain terpercaya.
+            Pilih peran Anda untuk masuk ke platform dan mulai mengelola rantai pasok farmasi dengan
+            teknologi blockchain terpercaya.
           </p>
         </div>
 
@@ -205,12 +205,14 @@ function PilihRole() {
         @keyframes glow {
           0%,
           100% {
-            box-shadow: 0 0 20px rgba(34, 197, 94, 0.4),
+            box-shadow:
+              0 0 20px rgba(34, 197, 94, 0.4),
               0 0 40px rgba(34, 197, 94, 0.2);
             border-color: rgba(255, 255, 255, 0.5);
           }
           50% {
-            box-shadow: 0 0 30px rgba(34, 197, 94, 0.7),
+            box-shadow:
+              0 0 30px rgba(34, 197, 94, 0.7),
               0 0 60px rgba(34, 197, 94, 0.4);
             border-color: rgba(34, 197, 94, 0.6);
           }

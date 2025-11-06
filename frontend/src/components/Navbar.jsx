@@ -1,12 +1,12 @@
-"use client"
+'use client';
 
-import React from "react"
-import { Link } from "react-router-dom"
-import { Menu, X, ArrowRight } from "lucide-react"
-import Logo from "../assets/logo.png";
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Menu, X, ArrowRight } from 'lucide-react';
+import Logo from '../assets/logo.png';
 
 const Navbar = () => {
-  const [isOpen, setIsOpen] = React.useState(false)
+  const [isOpen, setIsOpen] = React.useState(false);
 
   // Fungsi helper untuk smooth scroll
   const handleScroll = (e, targetId) => {
@@ -15,7 +15,7 @@ const Navbar = () => {
     if (targetElement) {
       targetElement.scrollIntoView({
         behavior: 'smooth',
-        block: 'start' 
+        block: 'start',
       });
     }
     setIsOpen(false); // Tutup menu mobile jika diklik
@@ -45,8 +45,7 @@ const Navbar = () => {
           </div>
 
           <div className="hidden md:flex items-center gap-6 text-base text-[#121212] relative z-10 font-semibold">
-
-              {/* --- PERBAIKAN 2 --- */}
+            {/* --- PERBAIKAN 2 --- */}
             <a
               href="#fitur" // Ganti 'to' menjadi 'href' dan sesuaikan ID
               onClick={(e) => handleScroll(e, 'fitur')} // Tambahkan onClick handler
@@ -86,9 +85,7 @@ const Navbar = () => {
               ></div>
               <span className="relative z-10">TENTANG</span>
             </a>
-            
-          
-            
+
             {/* --- PERBAIKAN 3 --- */}
             <a
               href="#kontak" // Ganti 'to' menjadi 'href'
@@ -211,7 +208,7 @@ const Navbar = () => {
         )}
       </div>
     </nav>
-  )
-}
+  );
+};
 
-export default Navbar
+export default Navbar;

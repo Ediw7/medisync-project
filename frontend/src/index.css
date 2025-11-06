@@ -1,7 +1,7 @@
 /* Enhanced Liquid Glass Effect CSS */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
 @tailwind base;
 @tailwind components;
@@ -9,17 +9,22 @@
 
 @custom-variant dark (&:is(.dark *));
 
-
 @layer base {
   body {
-    font-family: 'Poppins', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif; /* Diubah ke Poppins */
+    font-family:
+      'Poppins',
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      sans-serif; /* Diubah ke Poppins */
     font-feature-settings: 'cv11', 'ss01';
     font-variation-settings: 'opsz' 32;
     scroll-behavior: smooth;
     background: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #ffffff 100%);
     min-height: 100vh;
   }
-  
+
   * {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -34,17 +39,21 @@
   .animate-slide-up {
     animation: slideUp 0.6s ease-out;
   }
-  
+
   .glass-morphism {
     background: rgba(255, 255, 255, 0.25);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.18);
   }
-  
+
   .liquid-glass {
-    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0.05) 100%
+    );
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,255,255,0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
   }
 
   @keyframes fadeIn {
@@ -66,23 +75,23 @@
       transform: translateY(0);
     }
   }
-  
+
   /* Scrollbar Styling */
   ::-webkit-scrollbar {
     width: 8px;
   }
-  
+
   ::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
   }
-  
+
   ::-webkit-scrollbar-thumb {
     background: linear-gradient(135deg, rgba(34, 197, 94, 0.6), rgba(22, 163, 74, 0.8));
     border-radius: 10px;
     border: 2px solid rgba(255, 255, 255, 0.1);
   }
-  
+
   ::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(135deg, rgba(34, 197, 94, 0.8), rgba(22, 163, 74, 1));
   }
@@ -105,7 +114,8 @@
   z-index: -2;
   inset: -1px;
   border-radius: 1.5rem;
-  background: linear-gradient(135deg, 
+  background: linear-gradient(
+    135deg,
     rgba(255, 255, 255, 0.1) 0%,
     rgba(255, 255, 255, 0.05) 25%,
     rgba(255, 255, 255, 0.08) 50%,
@@ -125,11 +135,11 @@
   border-radius: 1.5rem;
   backdrop-filter: blur(25px) saturate(200%) contrast(110%);
   filter: url(#container-glass);
-  background: 
+  background:
     radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.08) 0%, transparent 60%),
     radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.12) 0%, transparent 60%),
     radial-gradient(circle at 60% 20%, rgba(255, 255, 255, 0.06) 0%, transparent 60%),
-    radial-gradient(circle at 40% 80%, rgba(255, 255, 255, 0.10) 0%, transparent 60%);
+    radial-gradient(circle at 40% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
   overflow: hidden;
   animation: waveDistortion 6s ease-in-out infinite alternate;
 }
@@ -143,14 +153,14 @@
   height: 100%;
   z-index: -3;
   border-radius: 1.5rem;
-  background: 
-    linear-gradient(45deg, 
-      rgba(255, 255, 255, 0.06) 0%,
-      rgba(255, 255, 255, 0.03) 25%,
-      rgba(255, 255, 255, 0.08) 50%,
-      rgba(255, 255, 255, 0.04) 75%,
-      rgba(255, 255, 255, 0.07) 100%
-    );
+  background: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.06) 0%,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.04) 75%,
+    rgba(255, 255, 255, 0.07) 100%
+  );
   filter: blur(3px);
   animation: liquidMove 10s ease-in-out infinite;
   transform-origin: center center;
@@ -158,8 +168,10 @@
 
 /* Flowing animation */
 @keyframes liquidFlow {
-  0%, 100% {
-    background: linear-gradient(135deg, 
+  0%,
+  100% {
+    background: linear-gradient(
+      135deg,
       rgba(255, 255, 255, 0.1) 0%,
       rgba(255, 255, 255, 0.05) 25%,
       rgba(255, 255, 255, 0.08) 50%,
@@ -169,17 +181,19 @@
     transform: scale(1) rotate(0deg);
   }
   25% {
-    background: linear-gradient(165deg, 
+    background: linear-gradient(
+      165deg,
       rgba(255, 255, 255, 0.15) 0%,
       rgba(255, 255, 255, 0.08) 25%,
       rgba(255, 255, 255, 0.04) 50%,
-      rgba(255, 255, 255, 0.10) 75%,
+      rgba(255, 255, 255, 0.1) 75%,
       rgba(255, 255, 255, 0.09) 100%
     );
     transform: scale(1.02) rotate(1deg);
   }
   50% {
-    background: linear-gradient(195deg, 
+    background: linear-gradient(
+      195deg,
       rgba(255, 255, 255, 0.07) 0%,
       rgba(255, 255, 255, 0.11) 25%,
       rgba(255, 255, 255, 0.09) 50%,
@@ -189,7 +203,8 @@
     transform: scale(0.98) rotate(-0.5deg);
   }
   75% {
-    background: linear-gradient(225deg, 
+    background: linear-gradient(
+      225deg,
       rgba(255, 255, 255, 0.09) 0%,
       rgba(255, 255, 255, 0.06) 25%,
       rgba(255, 255, 255, 0.12) 50%,
@@ -222,7 +237,8 @@
 
 /* Liquid movement animation */
 @keyframes liquidMove {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0%) scaleX(1) scaleY(1) skewX(0deg);
     opacity: 0.7;
   }
@@ -261,7 +277,8 @@
   left: -2px;
   right: -2px;
   bottom: -2px;
-  background: linear-gradient(45deg, 
+  background: linear-gradient(
+    45deg,
     rgba(255, 255, 255, 0.15),
     rgba(255, 255, 255, 0.08),
     rgba(255, 255, 255, 0.12),
@@ -284,15 +301,17 @@
   background: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(20px) saturate(200%);
   border: 1px solid rgba(255, 255, 255, 0.25);
-  box-shadow: 
+  box-shadow:
     0 25px 50px -12px rgba(0, 0, 0, 0.3),
     0 0 30px rgba(255, 255, 255, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 @keyframes cardLiquidFlow {
-  0%, 100% {
-    background: linear-gradient(45deg, 
+  0%,
+  100% {
+    background: linear-gradient(
+      45deg,
       rgba(255, 255, 255, 0.15),
       rgba(255, 255, 255, 0.08),
       rgba(255, 255, 255, 0.12),
@@ -300,8 +319,9 @@
     );
   }
   50% {
-    background: linear-gradient(225deg, 
-      rgba(255, 255, 255, 0.20),
+    background: linear-gradient(
+      225deg,
+      rgba(255, 255, 255, 0.2),
       rgba(255, 255, 255, 0.12),
       rgba(255, 255, 255, 0.08),
       rgba(255, 255, 255, 0.15)

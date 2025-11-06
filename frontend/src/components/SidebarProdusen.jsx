@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 import {
   FaHome,
   FaCogs,
@@ -8,49 +8,44 @@ import {
   FaAngleLeft,
   FaAngleRight,
   FaTimes,
-} from "react-icons/fa";
-import { NavLink } from "react-router-dom";
+} from 'react-icons/fa';
+import { NavLink } from 'react-router-dom';
 
-const SidebarProdusen = ({
-  isCollapsed,
-  setIsCollapsed,
-  isMobileOpen = false,
-  onMobileClose
-}) => {
+const SidebarProdusen = ({ isCollapsed, setIsCollapsed, isMobileOpen = false, onMobileClose }) => {
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
   };
 
   const menuItems = [
     {
-      path: "/produsen/dashboard",
+      path: '/produsen/dashboard',
       icon: <FaHome />,
-      label: "Dashboard",
-      description: "Ringkasan dan overview"
+      label: 'Dashboard',
+      description: 'Ringkasan dan overview',
     },
     {
-      path: "/produsen/manajemen-produksi",
+      path: '/produsen/manajemen-produksi',
       icon: <FaCogs />,
-      label: "Manajemen Produksi",
-      description: "Kelola produksi obat"
+      label: 'Manajemen Produksi',
+      description: 'Kelola produksi obat',
     },
     {
-      path: "/produsen/pengelolaan-pengiriman",
+      path: '/produsen/pengelolaan-pengiriman',
       icon: <FaTruck />,
-      label: "Pengelolaan Pengiriman",
-      description: "Tracking pengiriman"
+      label: 'Pengelolaan Pengiriman',
+      description: 'Tracking pengiriman',
     },
     {
-      path: "/produsen/monitoring-stok",
+      path: '/produsen/monitoring-stok',
       icon: <FaChartLine />,
-      label: "Monitoring Stok",
-      description: "Pantau ketersediaan stok"
+      label: 'Monitoring Stok',
+      description: 'Pantau ketersediaan stok',
     },
     {
-      path: "/produsen/laporan-analitik",
+      path: '/produsen/laporan-analitik',
       icon: <FaClipboardList />,
-      label: "Laporan Analitik",
-      description: "Laporan dan statistik"
+      label: 'Laporan Analitik',
+      description: 'Laporan dan statistik',
     },
   ];
 
@@ -64,28 +59,24 @@ const SidebarProdusen = ({
     <>
       {/* Mobile Overlay */}
       {isMobileOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={onMobileClose}
-        />
+        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={onMobileClose} />
       )}
 
       {/* Sidebar */}
       <aside
         className={`fixed top-0 left-0 h-screen text-white transition-all duration-300 shadow-2xl z-50 mt-4
-          ${isCollapsed ? "w-20" : "w-72"}
-          ${isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+          ${isCollapsed ? 'w-20' : 'w-72'}
+          ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           bg-gradient-to-b from-[#18A375] via-[#16956D] to-[#129967]`}
       >
         {/* Header Section */}
         <div className="relative border-b border-white/10">
-          <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} ${isCollapsed ? 'p-4' : 'px-6 py-5'} pt-16 transition-all duration-300`}>
-
+          <div
+            className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} ${isCollapsed ? 'p-4' : 'px-6 py-5'} pt-16 transition-all duration-300`}
+          >
             {!isCollapsed && (
               <div>
-                <h3 className="text-xl font-bold tracking-wide">
-                  Produsen
-                </h3>
+                <h3 className="text-xl font-bold tracking-wide">Produsen</h3>
                 <p className="text-xs text-white/70 mt-1">Panel Administrator</p>
               </div>
             )}
@@ -102,7 +93,7 @@ const SidebarProdusen = ({
             <button
               onClick={toggleSidebar}
               className="hidden lg:block p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-all duration-200 hover:scale-110"
-              aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               {isCollapsed ? (
                 <FaAngleRight className="text-lg" />
@@ -123,11 +114,11 @@ const SidebarProdusen = ({
                   onClick={handleNavClick}
                   className={({ isActive }) =>
                     `group relative flex items-center px-4 py-3.5 rounded-xl transition-all duration-200 ${
-                      isCollapsed ? "justify-center" : ""
+                      isCollapsed ? 'justify-center' : ''
                     } ${
                       isActive
-                        ? "bg-white/20 shadow-lg backdrop-blur-md border border-white/20 scale-[1.02]"
-                        : "hover:bg-white/10 hover:translate-x-1 hover:scale-[1.01]"
+                        ? 'bg-white/20 shadow-lg backdrop-blur-md border border-white/20 scale-[1.02]'
+                        : 'hover:bg-white/10 hover:translate-x-1 hover:scale-[1.01]'
                     }`
                   }
                 >
@@ -143,14 +134,18 @@ const SidebarProdusen = ({
                         <div className="absolute top-2 right-2 w-2 h-2 bg-white rounded-full" />
                       )}
 
-                      <div className={`flex items-center ${isCollapsed ? "" : "w-full"}`}>
-                        <div className={`text-xl flex-shrink-0 ${isCollapsed ? "" : "mr-4"} ${isActive ? "scale-110" : "group-hover:scale-110"} transition-transform duration-200`}>
+                      <div className={`flex items-center ${isCollapsed ? '' : 'w-full'}`}>
+                        <div
+                          className={`text-xl flex-shrink-0 ${isCollapsed ? '' : 'mr-4'} ${isActive ? 'scale-110' : 'group-hover:scale-110'} transition-transform duration-200`}
+                        >
                           {item.icon}
                         </div>
 
                         {!isCollapsed && (
                           <div className="flex-1">
-                            <span className={`font-medium text-sm tracking-wide block ${isActive ? "font-semibold" : ""}`}>
+                            <span
+                              className={`font-medium text-sm tracking-wide block ${isActive ? 'font-semibold' : ''}`}
+                            >
                               {item.label}
                             </span>
                             <span className="text-xs text-white/60 mt-0.5 block">

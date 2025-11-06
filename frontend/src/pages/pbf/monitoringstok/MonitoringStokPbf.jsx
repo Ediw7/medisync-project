@@ -13,20 +13,19 @@ import {
   Calendar,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import {FaBoxOpen} from "react-icons/fa";
+import { FaBoxOpen } from 'react-icons/fa';
 
 const NavItem = ({ to, children }) => {
   const location = useLocation();
   const isActive = location.pathname === to;
 
-  const baseClass = "py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap block text-center sm:inline-block";
-  const activeClass = "bg-emerald-600 text-white shadow-md";
-  const inactiveClass = "text-slate-500 hover:text-emerald-800 hover:bg-gray-300";
+  const baseClass =
+    'py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap block text-center sm:inline-block';
+  const activeClass = 'bg-emerald-600 text-white shadow-md';
+  const inactiveClass = 'text-slate-500 hover:text-emerald-800 hover:bg-gray-300';
 
   return isActive ? (
-    <span className={`${baseClass} ${activeClass}`}>
-      {children}
-    </span>
+    <span className={`${baseClass} ${activeClass}`}>{children}</span>
   ) : (
     <Link to={to} className={`${baseClass} ${inactiveClass}`}>
       {children}
@@ -44,8 +43,8 @@ const MonitoringStokPbf = () => {
   const [statusFilter, setStatusFilter] = useState('Semua');
   const [stats, setStats] = useState({
     totalStok: 0,
-    distribusiBulanIni: 0, 
-    stokMenipis: 0,   
+    distribusiBulanIni: 0,
+    stokMenipis: 0,
   });
   const username = localStorage.getItem('username');
 
@@ -61,70 +60,83 @@ const MonitoringStokPbf = () => {
       // 1. Buat dua permintaan data sekaligus
       const [stokResponse, distribusiResponse] = await Promise.all([
         fetch('http://localhost:5000/api/pbf/stok', {
-          headers: { 'Authorization': `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}` },
         }),
         // Pastikan endpoint ini ada di backend Anda!
         fetch('http://localhost:5000/api/pbf/riwayat-distribusi', {
-          headers: { 'Authorization': `Bearer ${token}` },
-        })
+          headers: { Authorization: `Bearer ${token}` },
+        }),
       ]);
 
       if (!stokResponse.ok) {
-           const errorText = await stokResponse.text();
-           throw new Error(`Gagal mengambil data stok: ${stokResponse.status} - ${errorText}`);
+        const errorText = await stokResponse.text();
+        throw new Error(`Gagal mengambil data stok: ${stokResponse.status} - ${errorText}`);
       }
       if (!distribusiResponse.ok) {
-           // Gagal mengambil riwayat tidak fatal, kita log saja
-           console.warn(`Gagal mengambil data distribusi: ${distribusiResponse.status}`);
+        // Gagal mengambil riwayat tidak fatal, kita log saja
+        console.warn(`Gagal mengambil data distribusi: ${distribusiResponse.status}`);
       }
 
       const stokResult = await stokResponse.json();
-      const distribusiResult = await distribusiResponse.json().catch(() => ({ success: false, data: [] }));
+      const distribusiResult = await distribusiResponse
+        .json()
+        .catch(() => ({ success: false, data: [] }));
 
-      if (!stokResult.success || !stokResult.data) throw new Error(stokResult.message || 'Format data stok tidak valid.');
+      if (!stokResult.success || !stokResult.data)
+        throw new Error(stokResult.message || 'Format data stok tidak valid.');
 
       const data = stokResult.data.stokList || [];
-      
+
       // Ambil statistik (totalStok, stokMenipis) dari backend
-      const backendStats = stokResult.data.stats || { totalStok: 0, distribusiBulanIni: 0, stokMenipis: 0 };
+      const backendStats = stokResult.data.stats || {
+        totalStok: 0,
+        distribusiBulanIni: 0,
+        stokMenipis: 0,
+      };
 
       // 2. Hitung 'distribusiBulanIni' di frontend (menggunakan logika Anda)
-      const distribusiBulanIni = (distribusiResult.data || []).filter(item => {
-            if (!item.tanggal_pengiriman) return false;
-            const bulanIni = new Date().getMonth();
-            const tahunIni = new Date().getFullYear();
-            const tanggalData = new Date(item.tanggal_pengiriman);
-            return tanggalData.getMonth() === bulanIni && tanggalData.getFullYear() === tahunIni;
-      }).reduce((sum, item) => sum + Number(item.jumlah_total_obat || 0), 0); // Pastikan pakai Number()
+      const distribusiBulanIni = (distribusiResult.data || [])
+        .filter((item) => {
+          if (!item.tanggal_pengiriman) return false;
+          const bulanIni = new Date().getMonth();
+          const tahunIni = new Date().getFullYear();
+          const tanggalData = new Date(item.tanggal_pengiriman);
+          return tanggalData.getMonth() === bulanIni && tanggalData.getFullYear() === tahunIni;
+        })
+        .reduce((sum, item) => sum + Number(item.jumlah_total_obat || 0), 0); // Pastikan pakai Number()
 
       // (Logika status_stok Anda sudah benar)
-      const dataWithStockStatus = data.map(item => {
-          let status_stok = 'Tersedia';
-          if (item.stok === 0) {
-              status_stok = 'Habis';
-          } else if (item.stok < 2000) {
-              status_stok = 'Menipis';
-          }
-          return {...item, status_stok};
+      const dataWithStockStatus = data.map((item) => {
+        let status_stok = 'Tersedia';
+        if (item.stok === 0) {
+          status_stok = 'Habis';
+        } else if (item.stok < 2000) {
+          status_stok = 'Menipis';
+        }
+        return { ...item, status_stok };
       });
 
       setStokData(dataWithStockStatus);
-      
+
       // 3. Set statistik gabungan
       setStats({
-          totalStok: backendStats.totalStok,
-          distribusiBulanIni: distribusiBulanIni, // <-- Gunakan hasil hitungan frontend
-          stokMenipis: backendStats.stokMenipis
-      }); 
-
+        totalStok: backendStats.totalStok,
+        distribusiBulanIni: distribusiBulanIni, // <-- Gunakan hasil hitungan frontend
+        stokMenipis: backendStats.stokMenipis,
+      });
     } catch (error) {
       setError(error.message);
       toast.error(error.message || 'Gagal memuat data.');
-      if ((error.message.includes('401') || error.message.includes('403') || error.message.includes('login')) && token) {
-            navigate('/login/pbf');
-        } else if (!token) {
-             navigate('/login/pbf');
-        }
+      if (
+        (error.message.includes('401') ||
+          error.message.includes('403') ||
+          error.message.includes('login')) &&
+        token
+      ) {
+        navigate('/login/pbf');
+      } else if (!token) {
+        navigate('/login/pbf');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -132,8 +144,8 @@ const MonitoringStokPbf = () => {
   // --- PERBAIKAN SELESAI ---
 
   useEffect(() => {
-     fetchData();
-  }, [fetchData]); 
+    fetchData();
+  }, [fetchData]);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -142,39 +154,66 @@ const MonitoringStokPbf = () => {
 
   const filteredData = useMemo(() => {
     return stokData
-      .filter(item => {
+      .filter((item) => {
         if (statusFilter === 'Semua') return true;
         return item.status_stok === statusFilter;
       })
-      .filter(item =>
-        item.batch_id?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        item.nama_obat?.toLowerCase().includes(searchTerm.toLowerCase())
+      .filter(
+        (item) =>
+          item.batch_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.nama_obat?.toLowerCase().includes(searchTerm.toLowerCase())
       );
   }, [stokData, searchTerm, statusFilter]);
 
-
-  const StatCard = ({ icon, value, label, unit, trend, color = "emerald", isCurrency = false }) => {
+  const StatCard = ({ icon, value, label, unit, trend, color = 'emerald', isCurrency = false }) => {
     const colorClasses = {
-      emerald: { bg: "bg-gradient-to-br from-emerald-400 to-emerald-600", text: "text-emerald-600", bgLight: "bg-emerald-50" },
-      blue: { bg: "bg-gradient-to-br from-blue-400 to-blue-600", text: "text-blue-600", bgLight: "bg-blue-50" },
-      purple: { bg: "bg-gradient-to-br from-purple-400 to-purple-600", text: "text-purple-600", bgLight: "bg-purple-50" },
-      orange: { bg: "bg-gradient-to-br from-orange-400 to-orange-600", text: "text-orange-600", bgLight: "bg-orange-50" },
-      red: { bg: "bg-gradient-to-br from-red-400 to-red-600", text: "text-red-600", bgLight: "bg-red-50" },
+      emerald: {
+        bg: 'bg-gradient-to-br from-emerald-400 to-emerald-600',
+        text: 'text-emerald-600',
+        bgLight: 'bg-emerald-50',
+      },
+      blue: {
+        bg: 'bg-gradient-to-br from-blue-400 to-blue-600',
+        text: 'text-blue-600',
+        bgLight: 'bg-blue-50',
+      },
+      purple: {
+        bg: 'bg-gradient-to-br from-purple-400 to-purple-600',
+        text: 'text-purple-600',
+        bgLight: 'bg-purple-50',
+      },
+      orange: {
+        bg: 'bg-gradient-to-br from-orange-400 to-orange-600',
+        text: 'text-orange-600',
+        bgLight: 'bg-orange-50',
+      },
+      red: {
+        bg: 'bg-gradient-to-br from-red-400 to-red-600',
+        text: 'text-red-600',
+        bgLight: 'bg-red-50',
+      },
     };
     const selectedColor = colorClasses[color] || colorClasses.emerald;
 
     return (
       <div className="group relative bg-white p-5 rounded-xl shadow-sm border border-slate-200 hover:shadow-lg hover:border-slate-300 transition-all duration-300 overflow-hidden">
-        <div className={`absolute -top-4 -right-4 w-24 h-24 ${selectedColor.bgLight} rounded-full opacity-50 blur-lg group-hover:scale-125 transition-transform duration-500`}></div>
-        <ArrowUpRight className="absolute top-4 right-4 text-slate-300 group-hover:text-slate-400 transition-colors" size={18} />
+        <div
+          className={`absolute -top-4 -right-4 w-24 h-24 ${selectedColor.bgLight} rounded-full opacity-50 blur-lg group-hover:scale-125 transition-transform duration-500`}
+        ></div>
+        <ArrowUpRight
+          className="absolute top-4 right-4 text-slate-300 group-hover:text-slate-400 transition-colors"
+          size={18}
+        />
 
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-3">
             <div className={`p-2.5 rounded-lg ${selectedColor.bg} shadow-md`}>
-              {React.cloneElement(icon, { className: "text-white", size: 20 })}
+              {React.cloneElement(icon, { className: 'text-white', size: 20 })}
             </div>
             {trend && (
-              <span className={`flex items-center text-xs font-semibold ${selectedColor.text} ${selectedColor.bgLight} px-2 py-1 rounded-full`}>
+              <span
+                className={`flex items-center text-xs font-semibold ${selectedColor.text} ${selectedColor.bgLight} px-2 py-1 rounded-full`}
+              >
                 <TrendingUp size={12} className="mr-1" />
                 {trend}
               </span>
@@ -193,32 +232,41 @@ const MonitoringStokPbf = () => {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'Tersedia': return 'bg-green-100 text-green-800 border-green-200';
-      case 'Menipis': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'Habis': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-slate-100 text-slate-800 border-slate-200';
+      case 'Tersedia':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'Menipis':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'Habis':
+        return 'bg-red-100 text-red-800 border-red-200';
+      default:
+        return 'bg-slate-100 text-slate-800 border-slate-200';
     }
   };
-  
+
   const formatDate = (dateString) => {
-     if (!dateString) return '-';
-     try {
-        const date = new Date(dateString);
-         if (isNaN(date.getTime())) return '-';
-         return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
-     } catch (e) {
-         return '-';
-     }
+    if (!dateString) return '-';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '-';
+      return date.toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'UTC',
+      });
+    } catch (e) {
+      return '-';
+    }
   };
 
   if (isLoading && stokData.length === 0) {
-     return (
-       <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
-          <div className="relative">
-            <Loader2 className="animate-spin h-12 w-12 text-emerald-600" />
-            <div className="absolute inset-0 h-12 w-12 rounded-full border-4 border-emerald-200 animate-ping opacity-20"></div>
-          </div>
-          <p className="mt-4 text-slate-700 font-medium">Memuat Monitoring Stok PBF...</p>
+    return (
+      <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
+        <div className="relative">
+          <Loader2 className="animate-spin h-12 w-12 text-emerald-600" />
+          <div className="absolute inset-0 h-12 w-12 rounded-full border-4 border-emerald-200 animate-ping opacity-20"></div>
+        </div>
+        <p className="mt-4 text-slate-700 font-medium">Memuat Monitoring Stok PBF...</p>
       </div>
     );
   }
@@ -226,9 +274,11 @@ const MonitoringStokPbf = () => {
   return (
     <div className="flex min-h-screen bg-slate-50">
       <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+      <div
+        className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}
+      >
         <NavbarPbf onLogout={handleLogout} username={username} />
-        
+
         <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
           <div className="max-w-7xl mx-auto">
             {/* HEADER */}
@@ -244,17 +294,26 @@ const MonitoringStokPbf = () => {
                     <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-emerald-900 to-teal-900 bg-clip-text text-transparent">
                       Monitoring Stok PBF
                     </h1>
-                    <p className="text-slate-600 text-lg mt-1">Pantau ketersediaan stok obat di gudang PBF Anda.</p>
+                    <p className="text-slate-600 text-lg mt-1">
+                      Pantau ketersediaan stok obat di gudang PBF Anda.
+                    </p>
                   </div>
                 </div>
-                 <div className="flex items-center gap-2 mt-2 text-sm text-slate-500">
+                <div className="flex items-center gap-2 mt-2 text-sm text-slate-500">
                   <Calendar size={16} />
-                  <span>{new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                  <span>
+                    {new Date().toLocaleDateString('id-ID', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </span>
                 </div>
               </div>
             </div>
-            
-             {error && (
+
+            {error && (
               <div className="p-4 mb-6 bg-red-50 text-red-700 rounded-lg border border-red-200 flex items-center gap-2 text-sm">
                 <AlertTriangle size={18} /> {error}
               </div>
@@ -262,93 +321,153 @@ const MonitoringStokPbf = () => {
 
             {/* --- KARTU KPI --- */}
             {isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-                    {/* Placeholder loading untuk KPI */}
-                    <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 h-[100px] animate-pulse"><div className="w-3/4 h-4 bg-slate-200 rounded"></div><div className="w-1/2 h-6 bg-slate-200 rounded mt-2"></div></div>
-                    <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 h-[100px] animate-pulse"><div className="w-3/4 h-4 bg-slate-200 rounded"></div><div className="w-1/2 h-6 bg-slate-200 rounded mt-2"></div></div>
-                    <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 h-[100px] animate-pulse"><div className="w-3/4 h-4 bg-slate-200 rounded"></div><div className="w-1/2 h-6 bg-slate-200 rounded mt-2"></div></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                {/* Placeholder loading untuk KPI */}
+                <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 h-[100px] animate-pulse">
+                  <div className="w-3/4 h-4 bg-slate-200 rounded"></div>
+                  <div className="w-1/2 h-6 bg-slate-200 rounded mt-2"></div>
                 </div>
+                <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 h-[100px] animate-pulse">
+                  <div className="w-3/4 h-4 bg-slate-200 rounded"></div>
+                  <div className="w-1/2 h-6 bg-slate-200 rounded mt-2"></div>
+                </div>
+                <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 h-[100px] animate-pulse">
+                  <div className="w-3/4 h-4 bg-slate-200 rounded"></div>
+                  <div className="w-1/2 h-6 bg-slate-200 rounded mt-2"></div>
+                </div>
+              </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-                    <StatCard icon={<Package />} value={stats.totalStok} label="Total Stok Gudang" unit="Pcs" color="emerald" />
-                    <StatCard icon={<Truck />} value={stats.distribusiBulanIni} label="Distribusi Bulan Ini" unit="Pcs" color="blue" />
-                    <StatCard icon={<AlertTriangle />} value={stats.stokMenipis} label="Total Stok Menipis" unit="Pcs" color="orange" />
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                <StatCard
+                  icon={<Package />}
+                  value={stats.totalStok}
+                  label="Total Stok Gudang"
+                  unit="Pcs"
+                  color="emerald"
+                />
+                <StatCard
+                  icon={<Truck />}
+                  value={stats.distribusiBulanIni}
+                  label="Distribusi Bulan Ini"
+                  unit="Pcs"
+                  color="blue"
+                />
+                <StatCard
+                  icon={<AlertTriangle />}
+                  value={stats.stokMenipis}
+                  label="Total Stok Menipis"
+                  unit="Pcs"
+                  color="orange"
+                />
+              </div>
             )}
 
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-
               <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4">
-                 <div className="flex overflow-x-auto sm:overflow-visible w-full sm:w-auto">
-                   <div className="flex space-x-2 bg-slate-100 p-1.5 rounded-lg">
-                     <NavItem to="/pbf/monitoring-stok">Stok Gudang PBF</NavItem>
-                     <NavItem to="/pbf/riwayat-distribusi">Riwayat Distribusi</NavItem>
-                   </div>
-                 </div>
-                 <div className="flex items-center gap-2 w-full sm:w-auto">
-                   <div className="relative flex-1 sm:flex-none">
-                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                     <input
-                       type="text"
-                       className="w-full sm:w-60 pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                       placeholder="Cari batch / nama obat..."
-                       value={searchTerm}
-                       onChange={(e) => setSearchTerm(e.target.value)}
-                     />
-                   </div>
-                   <select
-                     value={statusFilter}
-                     onChange={(e) => setStatusFilter(e.target.value)}
-                     className="p-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none"
-                   >
-                     <option value="Semua">Semua Status</option>
-                     <option value="Tersedia">Tersedia</option>
-                     <option value="Menipis">Menipis</option>
-                     <option value="Habis">Habis</option>
-                   </select>
-                 </div>
+                <div className="flex overflow-x-auto sm:overflow-visible w-full sm:w-auto">
+                  <div className="flex space-x-2 bg-slate-100 p-1.5 rounded-lg">
+                    <NavItem to="/pbf/monitoring-stok">Stok Gudang PBF</NavItem>
+                    <NavItem to="/pbf/riwayat-distribusi">Riwayat Distribusi</NavItem>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <div className="relative flex-1 sm:flex-none">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <input
+                      type="text"
+                      className="w-full sm:w-60 pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      placeholder="Cari batch / nama obat..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="p-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none"
+                  >
+                    <option value="Semua">Semua Status</option>
+                    <option value="Tersedia">Tersedia</option>
+                    <option value="Menipis">Menipis</option>
+                    <option value="Habis">Habis</option>
+                  </select>
+                </div>
               </div>
 
               <div className="overflow-x-auto">
                 {isLoading && stokData.length > 0 ? (
-                   <div className="p-10 text-center text-slate-500">
-                       <Loader2 className="animate-spin h-8 w-8 mx-auto text-emerald-600" />
-                       <p className="mt-2">Memperbarui data stok...</p>
-                   </div>
-                 ) : (
+                  <div className="p-10 text-center text-slate-500">
+                    <Loader2 className="animate-spin h-8 w-8 mx-auto text-emerald-600" />
+                    <p className="mt-2">Memperbarui data stok...</p>
+                  </div>
+                ) : (
                   <table className="min-w-full">
                     <thead className="bg-slate-50 border-b border-slate-200">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Batch ID</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Nama Obat</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Stok</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Exp. Date</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Produsen</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Aksi</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Batch ID
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Nama Obat
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Stok
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Exp. Date
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Produsen
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Aksi
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-100">
                       {filteredData.length > 0 ? (
                         filteredData.map((item) => (
-                          <tr key={item.detail_pesanan_id} className="hover:bg-gray-50 transition-colors duration-150">
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 font-mono">{item.batch_id}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{item.nama_obat}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-700">{item.stok.toLocaleString('id-ID')} Pcs</td>
+                          <tr
+                            key={item.detail_pesanan_id}
+                            className="hover:bg-gray-50 transition-colors duration-150"
+                          >
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 font-mono">
+                              {item.batch_id}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                              {item.nama_obat}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-700">
+                              {item.stok.toLocaleString('id-ID')} Pcs
+                            </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                              {item.tanggal_kadaluarsa ? new Date(item.tanggal_kadaluarsa).toLocaleDateString('id-ID', {day: '2-digit', month:'short', year:'numeric'}) : '-'}
+                              {item.tanggal_kadaluarsa
+                                ? new Date(item.tanggal_kadaluarsa).toLocaleDateString('id-ID', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric',
+                                  })
+                                : '-'}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusBadge(item.status_stok)}`}>
+                              <span
+                                className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusBadge(item.status_stok)}`}
+                              >
                                 {item.status_stok}
                               </span>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{item.nama_produsen || '-'}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                              {item.nama_produsen || '-'}
+                            </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                               <button
-                                 onClick={() => navigate(`/pbf/stok/detail/${item.detail_pesanan_id}`)}
-                                 className="text-emerald-600 hover:text-emerald-800 p-1 hover:bg-emerald-100 rounded-md transition-colors"
-                           
+                                onClick={() =>
+                                  navigate(`/pbf/stok/detail/${item.detail_pesanan_id}`)
+                                }
+                                className="text-emerald-600 hover:text-emerald-800 p-1 hover:bg-emerald-100 rounded-md transition-colors"
                               >
                                 Lihat Detail
                               </button>
@@ -358,7 +477,7 @@ const MonitoringStokPbf = () => {
                       ) : (
                         <tr>
                           <td colSpan="7" className="px-6 py-10 text-center text-slate-500">
-                            <Package size={32} className="mx-auto mb-2 opacity-50"/>
+                            <Package size={32} className="mx-auto mb-2 opacity-50" />
                             Tidak ada data stok yang sesuai dengan filter.
                           </td>
                         </tr>
@@ -371,11 +490,18 @@ const MonitoringStokPbf = () => {
           </div>
         </main>
       </div>
-       <style jsx>{`
+      <style jsx>{`
         @keyframes blob {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
+          0%,
+          100% {
+            transform: translate(0, 0) scale(1);
+          }
+          33% {
+            transform: translate(30px, -50px) scale(1.1);
+          }
+          66% {
+            transform: translate(-20px, 20px) scale(0.9);
+          }
         }
         .animate-blob {
           animation: blob 7s infinite;

@@ -2,7 +2,16 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import SidebarPbf from '../../../components/SidebarPbf';
 import NavbarPbf from '../../../components/NavbarPbf';
-import { Search, Calendar, X, CheckCircle, Loader2, Package, ShoppingCart, AlertTriangle } from 'lucide-react';
+import {
+  Search,
+  Calendar,
+  X,
+  CheckCircle,
+  Loader2,
+  Package,
+  ShoppingCart,
+  AlertTriangle,
+} from 'lucide-react';
 import axios from 'axios';
 
 // --- MODAL ---
@@ -21,13 +30,20 @@ const SelesaiModal = ({ show, onClose, onConfirm, orderId }) => {
         <div className="text-center">
           <CheckCircle size={48} className="text-emerald-500 mx-auto mb-4" />
           <p className="text-slate-600 mb-6">
-            Apakah Anda yakin ingin menyelesaikan pesanan ID: <strong>{String(orderId).padStart(6, '0')}</strong>?
+            Apakah Anda yakin ingin menyelesaikan pesanan ID:{' '}
+            <strong>{String(orderId).padStart(6, '0')}</strong>?
           </p>
           <div className="flex justify-end gap-4">
-            <button onClick={onClose} className="py-2 px-4 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200">
+            <button
+              onClick={onClose}
+              className="py-2 px-4 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200"
+            >
               Batal
             </button>
-            <button onClick={onConfirm} className="py-2 px-4 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
+            <button
+              onClick={onConfirm}
+              className="py-2 px-4 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+            >
               Ya, Selesaikan
             </button>
           </div>
@@ -63,7 +79,8 @@ const PesanObat = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (!response.data.success) throw new Error(response.data.message || 'Gagal mengambil data pesanan');
+        if (!response.data.success)
+          throw new Error(response.data.message || 'Gagal mengambil data pesanan');
         setPesananData(response.data.data || []);
       } catch (error) {
         setError(error.message);
@@ -82,12 +99,13 @@ const PesanObat = () => {
 
   const filteredData = useMemo(() => {
     return pesananData
-      .filter(item => statusFilter === 'Semua Status' || item.status === statusFilter)
-      .filter(item =>
-        (item.nomor_po?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-        (item.nama_produsen?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+      .filter((item) => statusFilter === 'Semua Status' || item.status === statusFilter)
+      .filter(
+        (item) =>
+          (item.nomor_po?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+          (item.nama_produsen?.toLowerCase() || '').includes(searchTerm.toLowerCase())
       )
-      .filter(item => {
+      .filter((item) => {
         if (!dateRange.startDate || !dateRange.endDate) return true;
         const itemDate = new Date(item.tanggal_pesanan);
         const startDate = new Date(dateRange.startDate);
@@ -101,13 +119,13 @@ const PesanObat = () => {
   const getStatusBadge = (status) => {
     const badges = {
       'Perlu Dikirim': 'bg-amber-50 text-amber-700 border-amber-200',
-      'Dikirim': 'bg-blue-50 text-blue-700 border-blue-200',
-      'Selesai': 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      'Ditolak': 'bg-red-50 text-red-700 border-red-200',
-      'Dibatalkan': 'bg-red-50 text-red-700 border-red-200',
+      Dikirim: 'bg-blue-50 text-blue-700 border-blue-200',
+      Selesai: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      Ditolak: 'bg-red-50 text-red-700 border-red-200',
+      Dibatalkan: 'bg-red-50 text-red-700 border-red-200',
       'Pembatalan Ditolak': 'bg-pink-50 text-pink-700 border-pink-200',
       'Pengembalian Diajukan': 'bg-orange-50 text-orange-700 border-orange-200',
-      'Dikembalikan': 'bg-purple-50 text-purple-700 border-purple-200',
+      Dikembalikan: 'bg-purple-50 text-purple-700 border-purple-200',
       'Pengembalian Ditolak': 'bg-pink-50 text-pink-700 border-pink-200',
       'Pengembalian Selesai': 'bg-purple-50 text-purple-700 border-purple-200',
     };
@@ -117,7 +135,9 @@ const PesanObat = () => {
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('id-ID', {
-      day: '2-digit', month: 'long', year: 'numeric'
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
     });
   };
 
@@ -142,7 +162,7 @@ const PesanObat = () => {
   const handleConfirmSelesai = () => {
     alert('Pesanan telah dikonfirmasi selesai dan akan diarsipkan.');
     handleCloseSelesaiModal();
-    setPesananData(prev => prev.filter(item => item.id !== selectedOrderId));
+    setPesananData((prev) => prev.filter((item) => item.id !== selectedOrderId));
   };
 
   if (isLoading && pesananData.length === 0) {
@@ -160,11 +180,12 @@ const PesanObat = () => {
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
       <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+      <div
+        className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}
+      >
         <NavbarPbf onLogout={handleLogout} />
         <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
           <div className="max-w-7xl mx-auto">
-
             {/* Header */}
             <div className="mb-10 relative">
               <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
@@ -179,7 +200,9 @@ const PesanObat = () => {
                     <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-emerald-900 to-teal-900 bg-clip-text text-transparent">
                       Pesanan Obat
                     </h1>
-                    <p className="text-slate-600 text-lg mt-1">Kelola dan lacak pesanan obat ke produsen</p>
+                    <p className="text-slate-600 text-lg mt-1">
+                      Kelola dan lacak pesanan obat ke produsen
+                    </p>
                   </div>
                 </div>
 
@@ -200,7 +223,7 @@ const PesanObat = () => {
             )}
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200">
-             <div className="p-6 border-b border-slate-200 relative z-10">
+              <div className="p-6 border-b border-slate-200 relative z-10">
                 <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
                   <Package size={20} className="text-emerald-600" />
                   Daftar Pesanan Obat
@@ -262,22 +285,73 @@ const PesanObat = () => {
 
                     {isDateFilterOpen && (
                       <div className="absolute right-0 mt-2 w-80 bg-white p-4 rounded-xl shadow-xl z-20 border border-slate-200">
-                        <p className="text-sm font-semibold text-slate-900 mb-3">Pilih Rentang Tanggal</p>
+                        <p className="text-sm font-semibold text-slate-900 mb-3">
+                          Pilih Rentang Tanggal
+                        </p>
                         <div className="grid grid-cols-2 gap-3 mb-3">
                           <div>
                             <label className="text-xs text-slate-500 mb-1 block">Mulai</label>
-                            <input type="date" value={dateRange.startDate || ''} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500" />
+                            <input
+                              type="date"
+                              value={dateRange.startDate || ''}
+                              onChange={(e) =>
+                                setDateRange({ ...dateRange, startDate: e.target.value })
+                              }
+                              className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
+                            />
                           </div>
                           <div>
                             <label className="text-xs text-slate-500 mb-1 block">Selesai</label>
-                            <input type="date" value={dateRange.endDate || ''} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500" />
+                            <input
+                              type="date"
+                              value={dateRange.endDate || ''}
+                              onChange={(e) =>
+                                setDateRange({ ...dateRange, endDate: e.target.value })
+                              }
+                              className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
+                            />
                           </div>
                         </div>
                         <div className="flex gap-2 mb-3">
-                          <button onClick={() => { const today = new Date(); const lastWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7); setDateRange({ startDate: lastWeek.toISOString().split('T')[0], endDate: today.toISOString().split('T')[0] }); }} className="text-xs border border-slate-300 px-3 py-1.5 rounded-lg hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700">7 Hari Terakhir</button>
-                          <button onClick={() => { const today = new Date(); const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1); setDateRange({ startDate: startOfMonth.toISOString().split('T')[0], endDate: today.toISOString().split('T')[0] }); }} className="text-xs border border-slate-300 px-3 py-1.5 rounded-lg hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700">Bulan Ini</button>
+                          <button
+                            onClick={() => {
+                              const today = new Date();
+                              const lastWeek = new Date(
+                                today.getFullYear(),
+                                today.getMonth(),
+                                today.getDate() - 7
+                              );
+                              setDateRange({
+                                startDate: lastWeek.toISOString().split('T')[0],
+                                endDate: today.toISOString().split('T')[0],
+                              });
+                            }}
+                            className="text-xs border border-slate-300 px-3 py-1.5 rounded-lg hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700"
+                          >
+                            7 Hari Terakhir
+                          </button>
+                          <button
+                            onClick={() => {
+                              const today = new Date();
+                              const startOfMonth = new Date(
+                                today.getFullYear(),
+                                today.getMonth(),
+                                1
+                              );
+                              setDateRange({
+                                startDate: startOfMonth.toISOString().split('T')[0],
+                                endDate: today.toISOString().split('T')[0],
+                              });
+                            }}
+                            className="text-xs border border-slate-300 px-3 py-1.5 rounded-lg hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700"
+                          >
+                            Bulan Ini
+                          </button>
                         </div>
-                        <button onClick={() => setIsDateFilterOpen(false)} className="w-full py-2 bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-lg text-sm hover:shadow-lg">
+                        <button
+                          onClick={() => setIsDateFilterOpen(false)}
+                          className="w-full py-2 bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-lg text-sm hover:shadow-lg"
+                        >
                           Terapkan
                         </button>
                       </div>
@@ -290,12 +364,25 @@ const PesanObat = () => {
                 <table className="min-w-full">
                   <thead className="bg-slate-50 border-b-2 border-slate-200">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Nomor PO</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Produsen</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Total Harga</th> {/* GANTI */}
-                      <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Tanggal Pesanan</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Aksi</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
+                        Nomor PO
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
+                        Produsen
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
+                        Total Harga
+                      </th>{' '}
+                      {/* GANTI */}
+                      <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
+                        Tanggal Pesanan
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
+                        Aksi
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-slate-100">
@@ -303,8 +390,12 @@ const PesanObat = () => {
                       filteredData.map((item) => (
                         <tr key={item.id} className="hover:bg-emerald-50/30 transition-colors">
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-semibold text-slate-900 font-mono">{item.nomor_po}</div>
-                            <div className="text-xs text-slate-400">ID: {String(item.id).padStart(6, '0')}</div>
+                            <div className="text-sm font-semibold text-slate-900 font-mono">
+                              {item.nomor_po}
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              ID: {String(item.id).padStart(6, '0')}
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-slate-900">
@@ -320,7 +411,9 @@ const PesanObat = () => {
                             {formatDate(item.tanggal_pesanan)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusBadge(item.status)}`}>
+                            <span
+                              className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusBadge(item.status)}`}
+                            >
                               {item.status}
                             </span>
                           </td>
@@ -329,32 +422,86 @@ const PesanObat = () => {
                               {(() => {
                                 switch (item.status) {
                                   case 'Perlu Dikirim':
-                                    return <Link to={`/pbf/pesanan/${item.id}/batalkan`} className="text-red-600 hover:text-red-800">Batalkan</Link>;
+                                    return (
+                                      <Link
+                                        to={`/pbf/pesanan/${item.id}/batalkan`}
+                                        className="text-red-600 hover:text-red-800"
+                                      >
+                                        Batalkan
+                                      </Link>
+                                    );
                                   case 'Dikirim':
-                                    return <button onClick={() => navigate(`/pbf/pesanan/${item.id}/konfirmasi-penerimaan`)} className="text-emerald-600 hover:text-emerald-800">Konfirmasi</button>;
+                                    return (
+                                      <button
+                                        onClick={() =>
+                                          navigate(`/pbf/pesanan/${item.id}/konfirmasi-penerimaan`)
+                                        }
+                                        className="text-emerald-600 hover:text-emerald-800"
+                                      >
+                                        Konfirmasi
+                                      </button>
+                                    );
                                   case 'Selesai':
                                     return item.id_aset_blockchain ? (
-                                      <Link to={`/pbf/pesanan/riwayat/${item.id_aset_blockchain}`} className="text-emerald-600 hover:text-emerald-800">Lihat Riwayat</Link>
+                                      <Link
+                                        to={`/pbf/pesanan/riwayat/${item.id_aset_blockchain}`}
+                                        className="text-emerald-600 hover:text-emerald-800"
+                                      >
+                                        Lihat Riwayat
+                                      </Link>
                                     ) : (
                                       <span className="text-slate-400">Riwayat T/A</span>
                                     );
                                   case 'Pengembalian Selesai':
-                                    return <Link to={`/pbf/pesanan/${item.id}/detail-pengembalian`} className="text-purple-600 hover:text-purple-800">Lihat Riwayat</Link>;
+                                    return (
+                                      <Link
+                                        to={`/pbf/pesanan/${item.id}/detail-pengembalian`}
+                                        className="text-purple-600 hover:text-purple-800"
+                                      >
+                                        Lihat Riwayat
+                                      </Link>
+                                    );
                                   case 'Pembatalan Diajukan':
                                   case 'Dibatalkan':
                                   case 'Pembatalan Ditolak':
-                                    return <Link to={`/pbf/pesanan/${item.id}/detail-pembatalan`} className="text-yellow-700 hover:text-yellow-800">Lihat Detail</Link>;
+                                    return (
+                                      <Link
+                                        to={`/pbf/pesanan/${item.id}/detail-pembatalan`}
+                                        className="text-yellow-700 hover:text-yellow-800"
+                                      >
+                                        Lihat Detail
+                                      </Link>
+                                    );
                                   case 'Pengembalian Diajukan':
                                   case 'Dikembalikan':
                                     return (
                                       <>
-                                        <Link to={`/pbf/pesanan/${item.id}/detail-pengembalian`} className="text-blue-600 hover:text-blue-800">Detail</Link>
+                                        <Link
+                                          to={`/pbf/pesanan/${item.id}/detail-pengembalian`}
+                                          className="text-blue-600 hover:text-blue-800"
+                                        >
+                                          Detail
+                                        </Link>
                                       </>
                                     );
                                   case 'Pengembalian Ditolak':
-                                    return <Link to={`/pbf/pesanan/${item.id}/detail-pengembalian`} className="text-red-600 hover:text-red-800">Lihat Detail</Link>;
+                                    return (
+                                      <Link
+                                        to={`/pbf/pesanan/${item.id}/detail-pengembalian`}
+                                        className="text-red-600 hover:text-red-800"
+                                      >
+                                        Lihat Detail
+                                      </Link>
+                                    );
                                   default:
-                                    return <Link to={`/pbf/pesanan/${item.id}/detail-pengembalian`} className="text-slate-600 hover:text-slate-800">Lihat Detail</Link>;
+                                    return (
+                                      <Link
+                                        to={`/pbf/pesanan/${item.id}/detail-pengembalian`}
+                                        className="text-slate-600 hover:text-slate-800"
+                                      >
+                                        Lihat Detail
+                                      </Link>
+                                    );
                                 }
                               })()}
                             </div>
@@ -380,7 +527,12 @@ const PesanObat = () => {
           </div>
         </main>
 
-        <SelesaiModal show={showSelesaiModal} onClose={handleCloseSelesaiModal} onConfirm={handleConfirmSelesai} orderId={selectedOrderId} />
+        <SelesaiModal
+          show={showSelesaiModal}
+          onClose={handleCloseSelesaiModal}
+          onConfirm={handleConfirmSelesai}
+          orderId={selectedOrderId}
+        />
       </div>
     </div>
   );

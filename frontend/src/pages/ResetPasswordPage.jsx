@@ -1,78 +1,78 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { useParams, useNavigate, Link } from "react-router-dom"
-import axios from "axios"
-import { Lock, Eye, EyeOff, CheckCircle } from "lucide-react"
-import { AnimatedBackground } from "../components/AnimatedBackground"
+import { useState } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
+import { Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { AnimatedBackground } from '../components/AnimatedBackground';
 
 export default function ResetPasswordPage() {
-  const { token, role } = useParams()
-  const navigate = useNavigate()
+  const { token, role } = useParams();
+  const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    password: "",
-    confirmPassword: "",
-  })
-  const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState("")
-  const [message, setMessage] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
+    password: '',
+    confirmPassword: '',
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
     setForm((prev) => ({
       ...prev,
       [name]: value,
-    }))
+    }));
     // Clear errors when user starts typing
-    if (error) setError("")
-  }
+    if (error) setError('');
+  };
 
   const validateForm = () => {
     if (form.password.length < 6) {
-      setError("Password must be at least 6 characters.")
-      return false
+      setError('Password must be at least 6 characters.');
+      return false;
     }
     if (form.password !== form.confirmPassword) {
-      setError("Passwords do not match.")
-      return false
+      setError('Passwords do not match.');
+      return false;
     }
-    return true
-  }
+    return true;
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
-    if (!validateForm()) return
+    if (!validateForm()) return;
 
-    setIsLoading(true)
-    setError("")
+    setIsLoading(true);
+    setError('');
 
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/reset-password", {
+      const response = await axios.post('http://localhost:5000/api/auth/reset-password', {
         token,
         newPassword: form.password,
-      })
+      });
 
       setMessage(
         response.data?.message ||
-          "Your password has been reset successfully. You can now log in with your new password.",
-      )
-      setForm({ password: "", confirmPassword: "" })
+          'Your password has been reset successfully. You can now log in with your new password.'
+      );
+      setForm({ password: '', confirmPassword: '' });
     } catch (err) {
       const errorMessage =
         err.response?.data?.message ||
-        (err.code === "NETWORK_ERROR"
-          ? "An error occurred while connecting to the server."
-          : "Failed to reset password. The token may be invalid or expired.")
-      setError(errorMessage)
+        (err.code === 'NETWORK_ERROR'
+          ? 'An error occurred while connecting to the server.'
+          : 'Failed to reset password. The token may be invalid or expired.');
+      setError(errorMessage);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  const loginPath = role ? `/login/${role}` : "/login/produsen"
+  const loginPath = role ? `/login/${role}` : '/login/produsen';
 
   // Success state
   if (message) {
@@ -84,7 +84,10 @@ export default function ResetPasswordPage() {
               <CheckCircle className="h-16 w-16 text-green-600" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Password Reset Successful</h1>
-            <div className="bg-green-100 text-green-800 rounded-md p-4 mb-6 text-sm" aria-live="polite">
+            <div
+              className="bg-green-100 text-green-800 rounded-md p-4 mb-6 text-sm"
+              aria-live="polite"
+            >
               {message}
             </div>
             <Link
@@ -96,7 +99,7 @@ export default function ResetPasswordPage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -123,7 +126,7 @@ export default function ResetPasswordPage() {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword ? 'text' : 'password'}
                   id="password"
                   name="password"
                   value={form.password}
@@ -146,13 +149,16 @@ export default function ResetPasswordPage() {
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Confirm New Password
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword ? 'text' : 'password'}
                   id="confirmPassword"
                   name="confirmPassword"
                   value={form.confirmPassword}
@@ -170,7 +176,7 @@ export default function ResetPasswordPage() {
               disabled={isLoading}
               className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors"
             >
-              {isLoading ? "Saving..." : "Reset Password"}
+              {isLoading ? 'Saving...' : 'Reset Password'}
             </button>
           </form>
 
@@ -185,5 +191,5 @@ export default function ResetPasswordPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

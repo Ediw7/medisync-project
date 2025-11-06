@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import NavbarApotek from '../../../components/NavbarApotek';
-import { 
-    AlertCircle, 
-    Loader2, 
-    ArrowLeft, 
-    XCircle, 
-    Check, 
-    Package,
-    Undo2, // Ikon Pengembalian
-    Camera,
-    FileText,
-    Info,
-    Upload, // Ikon Upload
-    Edit,
-    AlertTriangle
+import {
+  AlertCircle,
+  Loader2,
+  ArrowLeft,
+  XCircle,
+  Check,
+  Package,
+  Undo2, // Ikon Pengembalian
+  Camera,
+  FileText,
+  Info,
+  Upload, // Ikon Upload
+  Edit,
+  AlertTriangle,
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
@@ -39,11 +39,11 @@ const AjukanPengembalianApotek = () => {
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      if (file.size > 5 * 1024 * 1024) {
+        // 5MB limit
         toast.error('Ukuran file tidak boleh melebihi 5MB.');
         e.target.value = null;
         return;
@@ -63,10 +63,12 @@ const AjukanPengembalianApotek = () => {
     setError(null);
     toast.dismiss();
 
-    const alasanFinal = selectedReason === 'Lainnya (jelaskan di catatan)' ? catatanLainnya : selectedReason;
+    const alasanFinal =
+      selectedReason === 'Lainnya (jelaskan di catatan)' ? catatanLainnya : selectedReason;
 
     if (!alasanFinal || alasanFinal.trim() === '') {
-      const msg = 'Anda harus memilih alasan pengembalian (atau mengisinya jika memilih "Lainnya").';
+      const msg =
+        'Anda harus memilih alasan pengembalian (atau mengisinya jika memilih "Lainnya").';
       setError(msg);
       toast.error(msg);
       return;
@@ -84,7 +86,7 @@ const AjukanPengembalianApotek = () => {
     const formData = new FormData();
     formData.append('alasan', alasanFinal);
     // Nama field ini ("buktiFotoPengembalian") HARUS sama dengan di multer (pengembalianRoute.js)
-    formData.append('buktiFotoPengembalian', buktiFoto); 
+    formData.append('buktiFotoPengembalian', buktiFoto);
 
     try {
       const token = localStorage.getItem('token');
@@ -94,12 +96,16 @@ const AjukanPengembalianApotek = () => {
 
       // --- PERBAIKAN ENDPOINT DI SINI ---
       // Panggil endpoint baru yang telah Anda buat
-      const response = await axios.put(`http://localhost:5000/api/apotek/pengembalian/${id}`, formData, {
-        headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data'
-        },
-      });
+      const response = await axios.put(
+        `http://localhost:5000/api/apotek/pengembalian/${id}`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
       // --- AKHIR PERBAIKAN ---
 
       if (!response.data.success) {
@@ -108,7 +114,6 @@ const AjukanPengembalianApotek = () => {
 
       toast.success('Pengajuan pengembalian berhasil dikirim.', { id: toastId });
       navigate('/apotek/pesan-obat/pengembalian'); // Arahkan ke tab pengembalian
-
     } catch (err) {
       const errorMsg = err.response?.data?.message || err.message;
       setError(errorMsg);
@@ -120,7 +125,7 @@ const AjukanPengembalianApotek = () => {
       setIsSubmitting(false);
     }
   };
-  
+
   const handleLogout = () => {
     localStorage.clear();
     navigate('/');
@@ -130,10 +135,9 @@ const AjukanPengembalianApotek = () => {
     <div className="flex min-h-screen bg-slate-50">
       <div className="flex-1 flex flex-col">
         <NavbarApotek onLogout={handleLogout} username={username} />
-        
+
         <main className="flex-1 overflow-auto pt-[72px] px-4 sm:px-12 py-8">
           <div className="max-w-3xl mx-auto">
-            
             {/* Header Halaman */}
             <div className="mb-10 relative">
               <div className="absolute -top-20 -left-20 w-72 h-72 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
@@ -154,7 +158,12 @@ const AjukanPengembalianApotek = () => {
                     <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-indigo-900 to-purple-900 bg-clip-text text-transparent">
                       Ajukan Pengembalian
                     </h1>
-                    <p className="text-slate-600 text-lg mt-1">Pesanan ID: <span className="font-medium text-slate-700 font-mono">#{String(id).padStart(6, '0')}</span></p>
+                    <p className="text-slate-600 text-lg mt-1">
+                      Pesanan ID:{' '}
+                      <span className="font-medium text-slate-700 font-mono">
+                        #{String(id).padStart(6, '0')}
+                      </span>
+                    </p>
                   </div>
                 </div>
               </div>
@@ -172,12 +181,14 @@ const AjukanPengembalianApotek = () => {
                 <div className="space-y-6">
                   {/* Pilihan Alasan */}
                   <div>
-                    <h3 className="text-lg font-semibold text-slate-800 mb-4">Pilih Alasan Pengembalian*</h3>
+                    <h3 className="text-lg font-semibold text-slate-800 mb-4">
+                      Pilih Alasan Pengembalian*
+                    </h3>
                     <div className="space-y-3">
                       {reasonsList.map((reason) => (
-                        <label 
-                          key={reason.id} 
-                          htmlFor={reason.id} 
+                        <label
+                          key={reason.id}
+                          htmlFor={reason.id}
                           className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
                             selectedReason === reason.label
                               ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-300'
@@ -193,7 +204,9 @@ const AjukanPengembalianApotek = () => {
                             onChange={() => setSelectedReason(reason.label)}
                             className="h-4 w-4 text-emerald-600 border-slate-300 focus:ring-emerald-500"
                           />
-                          <span className={`text-slate-500 ${selectedReason === reason.label ? 'text-emerald-600' : ''}`}>
+                          <span
+                            className={`text-slate-500 ${selectedReason === reason.label ? 'text-emerald-600' : ''}`}
+                          >
                             {React.cloneElement(reason.icon, { size: 20 })}
                           </span>
                           <span className="text-sm font-medium text-slate-700">{reason.label}</span>
@@ -205,7 +218,12 @@ const AjukanPengembalianApotek = () => {
                   {/* Textarea untuk Alasan "Lainnya" */}
                   {selectedReason === 'Lainnya (jelaskan di catatan)' && (
                     <div className="animate-in fade-in duration-300">
-                      <label htmlFor="catatanLainnya" className="block text-sm font-semibold text-slate-700 mb-2">Catatan Alasan Lainnya*</label>
+                      <label
+                        htmlFor="catatanLainnya"
+                        className="block text-sm font-semibold text-slate-700 mb-2"
+                      >
+                        Catatan Alasan Lainnya*
+                      </label>
                       <textarea
                         id="catatanLainnya"
                         value={catatanLainnya}
@@ -220,10 +238,19 @@ const AjukanPengembalianApotek = () => {
 
                   {/* Upload Bukti Foto */}
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">Unggah Bukti Foto*</label>
-                    <label htmlFor="buktiFoto" className="relative flex flex-col items-center justify-center w-full min-h-[150px] bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-emerald-500 transition-colors group p-4">
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Unggah Bukti Foto*
+                    </label>
+                    <label
+                      htmlFor="buktiFoto"
+                      className="relative flex flex-col items-center justify-center w-full min-h-[150px] bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-emerald-500 transition-colors group p-4"
+                    >
                       {previewUrl ? (
-                        <img src={previewUrl} alt="Preview" className="w-auto h-auto max-h-48 object-contain rounded-lg" />
+                        <img
+                          src={previewUrl}
+                          alt="Preview"
+                          className="w-auto h-auto max-h-48 object-contain rounded-lg"
+                        />
                       ) : (
                         <div className="text-center text-slate-500 group-hover:text-emerald-600 transition-colors">
                           <Upload size={32} className="mx-auto" />
@@ -231,9 +258,19 @@ const AjukanPengembalianApotek = () => {
                           <p className="text-xs text-slate-400 mt-1">JPG/PNG, Max 5MB</p>
                         </div>
                       )}
-                      <input id="buktiFoto" type="file" accept="image/jpeg,image/png" onChange={handleFileChange} className="hidden" />
+                      <input
+                        id="buktiFoto"
+                        type="file"
+                        accept="image/jpeg,image/png"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
                     </label>
-                    {buktiFoto && <p className="text-xs text-slate-500 mt-2 truncate">File terpilih: {buktiFoto.name}</p>}
+                    {buktiFoto && (
+                      <p className="text-xs text-slate-500 mt-2 truncate">
+                        File terpilih: {buktiFoto.name}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -252,7 +289,11 @@ const AjukanPengembalianApotek = () => {
                     className="w-full sm:w-auto py-2.5 px-6 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition flex items-center justify-center gap-2 disabled:bg-red-300"
                     disabled={isSubmitting || !selectedReason || !buktiFoto}
                   >
-                    {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Undo2 size={18} />}
+                    {isSubmitting ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Undo2 size={18} />
+                    )}
                     {isSubmitting ? 'Memproses...' : 'Ajukan Pengembalian'}
                   </button>
                 </div>
@@ -261,12 +302,19 @@ const AjukanPengembalianApotek = () => {
           </div>
         </main>
       </div>
-      
+
       <style jsx global>{`
-         @keyframes blob {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
+        @keyframes blob {
+          0%,
+          100% {
+            transform: translate(0, 0) scale(1);
+          }
+          33% {
+            transform: translate(30px, -50px) scale(1.1);
+          }
+          66% {
+            transform: translate(-20px, 20px) scale(0.9);
+          }
         }
         .animate-blob {
           animation: blob 7s infinite;

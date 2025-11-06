@@ -13,7 +13,7 @@ import {
   XCircle,
   HelpCircle,
   Image as ImageIcon,
-  X
+  X,
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
@@ -22,21 +22,36 @@ import { toast } from 'react-hot-toast';
 const BuktiFotoModal = ({ isOpen, onClose, imageUrl }) => {
   if (!isOpen) return null;
   const fullImageUrl = imageUrl
-    ? (imageUrl.startsWith('http') ? imageUrl : `http://localhost:5000/${imageUrl.replace(/\\/g, '/')}`)
+    ? imageUrl.startsWith('http')
+      ? imageUrl
+      : `http://localhost:5000/${imageUrl.replace(/\\/g, '/')}`
     : null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white p-4 rounded-lg shadow-2xl relative w-full max-w-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white p-4 rounded-lg shadow-2xl relative w-full max-w-lg overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex justify-between items-center pb-3 mb-4 border-b border-slate-200">
           <h3 className="text-lg font-semibold text-slate-800">Bukti Foto Pengembalian</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-full">
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-full"
+          >
             <X size={20} />
           </button>
         </div>
         {fullImageUrl ? (
           <div className="bg-slate-100 p-2 rounded">
-            <img src={fullImageUrl} alt="Bukti Foto" className="w-full h-auto max-h-[70vh] object-contain rounded" />
+            <img
+              src={fullImageUrl}
+              alt="Bukti Foto"
+              className="w-full h-auto max-h-[70vh] object-contain rounded"
+            />
           </div>
         ) : (
           <div className="text-center py-10 text-slate-500">
@@ -56,7 +71,7 @@ const ReturnStatusTimeline = ({ status, alasanPenolakan }) => {
     { name: 'Menunggu Konfirmasi', icon: HelpCircle },
     { name: 'Disetujui Produsen', icon: CheckCircle2 },
     { name: 'Barang Dikirim Balik', icon: Truck },
-    { name: 'Selesai & Dana Kembali', icon: Package }
+    { name: 'Selesai & Dana Kembali', icon: Package },
   ];
 
   let currentIndex = -1;
@@ -79,25 +94,37 @@ const ReturnStatusTimeline = ({ status, alasanPenolakan }) => {
 
           return (
             <div key={index} className="flex flex-col items-center flex-1 relative">
-              <div className={`w-14 h-14 rounded-full flex items-center justify-center border-2 transition-all duration-300 z-10 ${
-                isCurrent ? 'bg-emerald-100 border-emerald-500 animate-pulse' :
-                isCompleted ? 'bg-emerald-500 border-emerald-600 text-white' :
-                isRejected ? 'bg-red-500 border-red-600 text-white' :
-                'bg-slate-100 border-slate-300 text-slate-400'
-              }`}>
+              <div
+                className={`w-14 h-14 rounded-full flex items-center justify-center border-2 transition-all duration-300 z-10 ${
+                  isCurrent
+                    ? 'bg-emerald-100 border-emerald-500 animate-pulse'
+                    : isCompleted
+                      ? 'bg-emerald-500 border-emerald-600 text-white'
+                      : isRejected
+                        ? 'bg-red-500 border-red-600 text-white'
+                        : 'bg-slate-100 border-slate-300 text-slate-400'
+                }`}
+              >
                 <step.icon size={26} />
               </div>
-              <p className={`mt-3 text-sm font-semibold text-center w-32 ${
-                isCurrent ? 'text-emerald-700' :
-                isCompleted ? 'text-slate-800' :
-                isRejected ? 'text-red-700' :
-                'text-slate-500'
-              }`}>
+              <p
+                className={`mt-3 text-sm font-semibold text-center w-32 ${
+                  isCurrent
+                    ? 'text-emerald-700'
+                    : isCompleted
+                      ? 'text-slate-800'
+                      : isRejected
+                        ? 'text-red-700'
+                        : 'text-slate-500'
+                }`}
+              >
                 {isRejected ? 'Pengajuan Ditolak' : step.name}
               </p>
               {index < steps.length - 1 && !isHidden && (
                 <div className="absolute top-7 left-1/2 w-full h-1.5 -translate-x-1/2 z-0">
-                  <div className={`h-full rounded-full transition-all ${isCompleted ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                  <div
+                    className={`h-full rounded-full transition-all ${isCompleted ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                  />
                 </div>
               )}
             </div>
@@ -137,7 +164,7 @@ const DetailPengembalian = () => {
         if (!token) throw new Error('Silakan login terlebih dahulu');
 
         const response = await axios.get(`http://localhost:5000/api/pbf/pesanan/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         if (!response.data.success || !response.data.data) {
@@ -156,7 +183,10 @@ const DetailPengembalian = () => {
     fetchData();
   }, [id, navigate]);
 
-  const handleLogout = () => { localStorage.clear(); navigate('/'); };
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate('/');
+  };
 
   // --- LOADING ---
   if (isLoading) {
@@ -176,14 +206,19 @@ const DetailPengembalian = () => {
     return (
       <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
         <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-        <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+        <div
+          className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}
+        >
           <NavbarPbf onLogout={handleLogout} username={username} />
           <main className="flex-1 flex items-center justify-center p-6 pt-[72px]">
             <div className="bg-white p-8 rounded-2xl shadow-lg border border-red-200 text-center max-w-md">
               <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
               <h2 className="text-xl font-bold text-red-800 mb-2">Gagal Memuat Data</h2>
               <p className="text-red-600 mb-6">{error || 'Data tidak ditemukan.'}</p>
-              <button onClick={() => navigate('/pbf/pesan-obat')} className="flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition mx-auto">
+              <button
+                onClick={() => navigate('/pbf/pesan-obat')}
+                className="flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition mx-auto"
+              >
                 <ArrowLeft size={18} /> Kembali ke Daftar Pesanan
               </button>
             </div>
@@ -197,15 +232,18 @@ const DetailPengembalian = () => {
 
   // Ambil alasan
   const alasanPengajuan = pesanan.alasan_pengembalian || 'Tidak ada alasan tercatat.';
-  const alasanPenolakan = pesanan.catatan_khusus?.split('[PENOLAKAN PENGEMBALIAN]:')[1]?.trim() || '-';
+  const alasanPenolakan =
+    pesanan.catatan_khusus?.split('[PENOLAKAN PENGEMBALIAN]:')[1]?.trim() || '-';
 
   // Status Badge
   const getStatusBadge = () => {
     const status = pesanan.status;
-    if (status.includes('Selesai')) return { text: 'Selesai', color: 'emerald', icon: CheckCircle2 };
+    if (status.includes('Selesai'))
+      return { text: 'Selesai', color: 'emerald', icon: CheckCircle2 };
     if (status.includes('Ditolak')) return { text: 'Ditolak', color: 'red', icon: XCircle };
     if (status.includes('Diajukan')) return { text: 'Menunggu', color: 'amber', icon: HelpCircle };
-    if (status.includes('Disetujui') || status.includes('Dikembalikan')) return { text: 'Diproses', color: 'blue', icon: Truck };
+    if (status.includes('Disetujui') || status.includes('Dikembalikan'))
+      return { text: 'Diproses', color: 'blue', icon: Truck };
     return { text: 'Unknown', color: 'slate', icon: HelpCircle };
   };
   const badge = getStatusBadge();
@@ -213,12 +251,17 @@ const DetailPengembalian = () => {
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
       <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+      <div
+        className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}
+      >
         <NavbarPbf onLogout={handleLogout} username={username} />
 
         <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
           <div className="max-w-5xl mx-auto">
-            <button onClick={() => navigate('/pbf/pesan-obat')} className="mb-6 inline-flex items-center text-emerald-600 hover:text-emerald-700 transition-colors text-sm font-medium">
+            <button
+              onClick={() => navigate('/pbf/pesan-obat')}
+              className="mb-6 inline-flex items-center text-emerald-600 hover:text-emerald-700 transition-colors text-sm font-medium"
+            >
               <ArrowLeft size={16} className="mr-1" /> Kembali ke Daftar Pesanan
             </button>
 
@@ -227,9 +270,13 @@ const DetailPengembalian = () => {
               <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
                   <h1 className="text-2xl font-bold text-white">Detail & Pelacakan Pengembalian</h1>
-                  <p className="text-sm text-emerald-50 mt-1">Nomor PO: <span className="font-mono">{pesanan.nomor_po}</span></p>
+                  <p className="text-sm text-emerald-50 mt-1">
+                    Nomor PO: <span className="font-mono">{pesanan.nomor_po}</span>
+                  </p>
                 </div>
-                <div className={`px-4 py-2 rounded-full border-2 text-sm font-semibold flex items-center gap-2 bg-white text-${badge.color}-700 border-${badge.color}-200`}>
+                <div
+                  className={`px-4 py-2 rounded-full border-2 text-sm font-semibold flex items-center gap-2 bg-white text-${badge.color}-700 border-${badge.color}-200`}
+                >
                   <badge.icon size={16} />
                   Status: {badge.text}
                 </div>
@@ -237,7 +284,9 @@ const DetailPengembalian = () => {
 
               {/* TIMELINE */}
               <div className="p-8 py-12 border-b border-slate-200">
-                <h3 className="text-lg font-bold text-slate-900 mb-8 text-center">Riwayat Status Pengembalian</h3>
+                <h3 className="text-lg font-bold text-slate-900 mb-8 text-center">
+                  Riwayat Status Pengembalian
+                </h3>
                 <ReturnStatusTimeline status={pesanan.status} alasanPenolakan={alasanPenolakan} />
               </div>
 
@@ -250,7 +299,9 @@ const DetailPengembalian = () => {
                   <div className="space-y-1">
                     <span className="text-sm font-medium text-slate-500">Alasan Pengajuan</span>
                     <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                      <p className="text-sm font-semibold text-slate-900 whitespace-pre-wrap leading-relaxed">{alasanPengajuan}</p>
+                      <p className="text-sm font-semibold text-slate-900 whitespace-pre-wrap leading-relaxed">
+                        {alasanPengajuan}
+                      </p>
                     </div>
                   </div>
                   <div className="space-y-1">
@@ -263,7 +314,9 @@ const DetailPengembalian = () => {
                             alt="Bukti"
                             className="w-full h-48 object-cover rounded-md"
                           />
-                          <p className="text-xs text-emerald-600 mt-2 text-center">Klik untuk memperbesar</p>
+                          <p className="text-xs text-emerald-600 mt-2 text-center">
+                            Klik untuk memperbesar
+                          </p>
                         </div>
                       </button>
                     ) : (
@@ -284,23 +337,39 @@ const DetailPengembalian = () => {
                   <table className="min-w-full">
                     <thead className="bg-slate-50">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Obat</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Batch ID</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Jumlah</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Subtotal</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                          Obat
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                          Batch ID
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                          Jumlah
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                          Subtotal
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-100">
-                      {detail_pesanan.length > 0 ? detail_pesanan.map((item) => (
-                        <tr key={item.id}>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">{item.nama_obat}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600 font-mono">{item.batch_id || 'N/A'}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600">{item.jumlah_pesanan}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-emerald-700">
-                            Rp. {item.total_harga.toLocaleString('id-ID')}
-                          </td>
-                        </tr>
-                      )) : (
+                      {detail_pesanan.length > 0 ? (
+                        detail_pesanan.map((item) => (
+                          <tr key={item.id}>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">
+                              {item.nama_obat}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600 font-mono">
+                              {item.batch_id || 'N/A'}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600">
+                              {item.jumlah_pesanan}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-emerald-700">
+                              Rp. {item.total_harga.toLocaleString('id-ID')}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
                         <tr>
                           <td colSpan="4" className="text-center py-10 text-slate-500">
                             Tidak ada detail item.
@@ -319,7 +388,10 @@ const DetailPengembalian = () => {
                     Pengajuan Anda <strong>ditolak</strong>. Pesanan dianggap selesai. <br />
                     Silakan hubungi Produsen jika ada pertanyaan.
                   </p>
-                  <button onClick={() => navigate('/pbf/pesan-obat')} className="w-full sm:w-auto px-6 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition">
+                  <button
+                    onClick={() => navigate('/pbf/pesan-obat')}
+                    className="w-full sm:w-auto px-6 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition"
+                  >
                     Kembali ke Daftar
                   </button>
                 </div>
@@ -329,7 +401,11 @@ const DetailPengembalian = () => {
         </main>
       </div>
 
-      <BuktiFotoModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} imageUrl={pesanan.bukti_foto} />
+      <BuktiFotoModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        imageUrl={pesanan.bukti_foto}
+      />
     </div>
   );
 };

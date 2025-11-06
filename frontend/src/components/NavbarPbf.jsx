@@ -11,7 +11,6 @@ const NavbarPbf = ({ onLogout, onToggleSidebar }) => {
   return (
     <nav className="fixed top-0 left-0 w-full bg-white border-b border-gray-200 z-50 shadow-sm">
       <div className="flex justify-between items-center px-4 lg:px-6 py-1">
-
         {/* Left Section (Tidak Berubah) */}
         <div className="flex items-center space-x-4">
           <button
@@ -32,7 +31,9 @@ const NavbarPbf = ({ onLogout, onToggleSidebar }) => {
               className="w-full flex items-center space-x-3 px-4 py-2.5 hover:bg-red-50 transition-colors text-left group"
             >
               <FaSignOutAlt className="text-red-500 group-hover:text-red-600" />
-              <span className="text-sm text-red-500 group-hover:text-red-600 font-medium">Logout</span>
+              <span className="text-sm text-red-500 group-hover:text-red-600 font-medium">
+                Logout
+              </span>
             </button>
           </div>
 
@@ -55,10 +56,7 @@ const NavbarPbf = ({ onLogout, onToggleSidebar }) => {
             {/* Profile Dropdown */}
             {showProfileMenu && (
               <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setShowProfileMenu(false)}
-                />
+                <div className="fixed inset-0 z-40" onClick={() => setShowProfileMenu(false)} />
                 <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
                   <div className="p-4 border-b border-gray-200 bg-gray-50">
                     <p className="font-semibold text-gray-800">{username || 'PBF'}</p>
@@ -76,8 +74,6 @@ const NavbarPbf = ({ onLogout, onToggleSidebar }) => {
                       <span className="text-sm text-gray-700">Profil Saya</span>
                     </Link>
                     {/* --- AKHIR PERBAIKAN --- */}
-                    
-                   
                   </div>
                 </div>
               </>

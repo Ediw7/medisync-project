@@ -2,20 +2,20 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
-import { 
-  Loader2, 
-  AlertTriangle, 
-  User, 
-  Shield, 
-  Building, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  FileText, 
+import {
+  Loader2,
+  AlertTriangle,
+  User,
+  Shield,
+  Building,
+  Mail,
+  Phone,
+  MapPin,
+  FileText,
   Lock,
   Save,
   Edit,
-  X
+  X,
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
@@ -33,9 +33,21 @@ const InfoItem = ({ label, value, icon: Icon, isFull = false }) => (
 );
 
 // --- Komponen Input (Mode Edit) ---
-const EditItem = ({ label, name, value, onChange, disabled = false, type = 'text', icon: Icon, required = false }) => (
+const EditItem = ({
+  label,
+  name,
+  value,
+  onChange,
+  disabled = false,
+  type = 'text',
+  icon: Icon,
+  required = false,
+}) => (
   <div className={`col-span-1 ${type === 'textarea' ? 'md:col-span-2' : ''}`}>
-    <label htmlFor={name} className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
+    <label
+      htmlFor={name}
+      className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5"
+    >
       <Icon size={14} /> {label}
     </label>
     <div className="relative">
@@ -71,14 +83,14 @@ const SecuritySettings = () => {
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
   const [isSaving, setIsSaving] = useState(false);
   const [passError, setPassError] = useState('');
 
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
-    setPasswordData(prev => ({ ...prev, [name]: value }));
+    setPasswordData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handlePasswordSubmit = async (e) => {
@@ -96,13 +108,17 @@ const SecuritySettings = () => {
     setIsSaving(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.put('http://localhost:5000/api/produsen/change-password', {
-        currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
+      const response = await axios.put(
+        'http://localhost:5000/api/produsen/change-password',
+        {
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
       if (response.data.success) {
         toast.success('Password berhasil diubah!');
         setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -124,7 +140,7 @@ const SecuritySettings = () => {
             <Shield size={20} /> Keamanan Akun
           </h2>
         </div>
-        
+
         <div className="p-6 space-y-4 max-w-lg">
           {passError && (
             <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm font-medium">
@@ -176,11 +192,24 @@ const SecuritySettings = () => {
 };
 
 // --- Komponen Input Helper ---
-const InputField = ({ label, name, value, onChange, disabled = false, type = 'text', icon: Icon, required = false }) => (
+const InputField = ({
+  label,
+  name,
+  value,
+  onChange,
+  disabled = false,
+  type = 'text',
+  icon: Icon,
+  required = false,
+}) => (
   <div>
-    <label htmlFor={name} className="block text-sm font-semibold text-slate-700 mb-2">{label}</label>
+    <label htmlFor={name} className="block text-sm font-semibold text-slate-700 mb-2">
+      {label}
+    </label>
     <div className="relative">
-      {Icon && <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />}
+      {Icon && (
+        <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+      )}
       <input
         id={name}
         name={name}
@@ -207,9 +236,9 @@ const ProfileDetails = ({ profile, onProfileUpdate }) => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
-  
+
   const handleCancelEdit = () => {
     setIsEditing(false);
     setFormData({ ...profile });
@@ -221,7 +250,7 @@ const ProfileDetails = ({ profile, onProfileUpdate }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put('http://localhost:5000/api/produsen/profile', formData, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.data.success) {
@@ -251,8 +280,8 @@ const ProfileDetails = ({ profile, onProfileUpdate }) => {
             type="button"
             onClick={isEditing ? handleCancelEdit : () => setIsEditing(true)}
             className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${
-              isEditing 
-                ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' 
+              isEditing
+                ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 : 'bg-emerald-600 text-white hover:bg-emerald-700'
             }`}
           >
@@ -264,15 +293,74 @@ const ProfileDetails = ({ profile, onProfileUpdate }) => {
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           {isEditing ? (
             <>
-              <EditItem label="Username" name="username" value={formData.username} icon={User} disabled />
-              <EditItem label="Email" name="email" value={formData.email} onChange={handleInputChange} icon={Mail} required />
-              <EditItem label="Nama Resmi Produsen" name="nama_resmi" value={formData.nama_resmi} onChange={handleInputChange} icon={Building} required />
-              <EditItem label="Kontak Telepon" name="kontak_telepon" value={formData.kontak_telepon} onChange={handleInputChange} icon={Phone} />
-              <EditItem label="Nomor Izin (NIE/SIUP)" name="nomor_izin" value={formData.nomor_izin} onChange={handleInputChange} icon={FileText} required />
-              <EditItem label="Nomor Sertifikat CPO" name="nomor_sia_sika" value={formData.nomor_sia_sika} onChange={handleInputChange} icon={FileText} />
-              <EditItem label="Nama Penanggung Jawab" name="nama_apoteker" value={formData.nama_apoteker} onChange={handleInputChange} icon={User} />
-              <EditItem label="Nomor Sertifikat Tambahan" name="nomor_sipa" value={formData.nomor_sipa} onChange={handleInputChange} icon={FileText} />
-              <EditItem label="Alamat" name="alamat" value={formData.alamat} onChange={handleInputChange} icon={MapPin} type="textarea" required />
+              <EditItem
+                label="Username"
+                name="username"
+                value={formData.username}
+                icon={User}
+                disabled
+              />
+              <EditItem
+                label="Email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                icon={Mail}
+                required
+              />
+              <EditItem
+                label="Nama Resmi Produsen"
+                name="nama_resmi"
+                value={formData.nama_resmi}
+                onChange={handleInputChange}
+                icon={Building}
+                required
+              />
+              <EditItem
+                label="Kontak Telepon"
+                name="kontak_telepon"
+                value={formData.kontak_telepon}
+                onChange={handleInputChange}
+                icon={Phone}
+              />
+              <EditItem
+                label="Nomor Izin (NIE/SIUP)"
+                name="nomor_izin"
+                value={formData.nomor_izin}
+                onChange={handleInputChange}
+                icon={FileText}
+                required
+              />
+              <EditItem
+                label="Nomor Sertifikat CPO"
+                name="nomor_sia_sika"
+                value={formData.nomor_sia_sika}
+                onChange={handleInputChange}
+                icon={FileText}
+              />
+              <EditItem
+                label="Nama Penanggung Jawab"
+                name="nama_apoteker"
+                value={formData.nama_apoteker}
+                onChange={handleInputChange}
+                icon={User}
+              />
+              <EditItem
+                label="Nomor Sertifikat Tambahan"
+                name="nomor_sipa"
+                value={formData.nomor_sipa}
+                onChange={handleInputChange}
+                icon={FileText}
+              />
+              <EditItem
+                label="Alamat"
+                name="alamat"
+                value={formData.alamat}
+                onChange={handleInputChange}
+                icon={MapPin}
+                type="textarea"
+                required
+              />
             </>
           ) : (
             <>
@@ -281,9 +369,17 @@ const ProfileDetails = ({ profile, onProfileUpdate }) => {
               <InfoItem label="Nama Resmi Produsen" value={formData.nama_resmi} icon={Building} />
               <InfoItem label="Kontak Telepon" value={formData.kontak_telepon} icon={Phone} />
               <InfoItem label="Nomor Izin (NIE/SIUP)" value={formData.nomor_izin} icon={FileText} />
-              <InfoItem label="Nomor Sertifikat CPO" value={formData.nomor_sia_sika} icon={FileText} />
+              <InfoItem
+                label="Nomor Sertifikat CPO"
+                value={formData.nomor_sia_sika}
+                icon={FileText}
+              />
               <InfoItem label="Nama Penanggung Jawab" value={formData.nama_apoteker} icon={User} />
-              <InfoItem label="Nomor Sertifikat Tambahan" value={formData.nomor_sipa} icon={FileText} />
+              <InfoItem
+                label="Nomor Sertifikat Tambahan"
+                value={formData.nomor_sipa}
+                icon={FileText}
+              />
               <InfoItem label="Alamat" value={formData.alamat} icon={MapPin} isFull />
             </>
           )}
@@ -328,10 +424,10 @@ const ProfilProdusen = () => {
           return;
         }
         const response = await axios.get('http://localhost:5000/api/produsen/profile', {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
         if (response.data.success) {
-          setProfileData(response.data.data); 
+          setProfileData(response.data.data);
           localStorage.setItem('email', response.data.data.email);
         } else {
           throw new Error(response.data.message || 'Gagal memuat profil.');
@@ -383,15 +479,20 @@ const ProfilProdusen = () => {
   return (
     <div className="flex min-h-screen bg-slate-50">
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
-        <NavbarProdusen onLogout={handleLogout} username={username} onToggleSidebar={() => setIsCollapsed(!isCollapsed)} />
-        
+      <div
+        className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}
+      >
+        <NavbarProdusen
+          onLogout={handleLogout}
+          username={username}
+          onToggleSidebar={() => setIsCollapsed(!isCollapsed)}
+        />
+
         <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
           <div className="max-w-7xl mx-auto">
-
             <div className="mb-10 relative">
-               <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-               <div className="absolute -top-20 -right-20 w-72 h-72 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+              <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+              <div className="absolute -top-20 -right-20 w-72 h-72 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
 
               <div className="relative">
                 <div className="flex items-center gap-3 mb-3">
@@ -409,7 +510,7 @@ const ProfilProdusen = () => {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-2 border-b border-slate-200 mb-6">
               <TabButton
                 label="Profil Saya"

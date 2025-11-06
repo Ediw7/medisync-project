@@ -43,6 +43,7 @@ import LihatRiwayatPembatalan from './pages/produsen/pengelolaanpengiriman/Lihat
 import LaporanAnalitik from './pages/produsen/laporananalitik/LaporanAnalitik';
 
 import PbfDashboard from './pages/pbf/PbfDashboard';
+import ProfilPbf from './pages/pbf/profil/ProfilPbf';
 import PesanObat from './pages/pbf/pesanobat/PesanObat';
 import PilihProdusen from './pages/pbf/pesanobat/PilihProdusen';
 import TambahPesanan from './pages/pbf/pesanobat/TambahPesanan';
@@ -163,6 +164,7 @@ function App() {
         <Route path="/produsen/laporan-analitik" element={<LaporanAnalitik />} />
       
       <Route path="/pbf/dashboard" element={<PbfDashboard />} />
+      <Route path="/pbf/profil" element={<ProfilPbf />} />
       <Route path="/pbf/pesan-obat" element={<PesanObat />} />
       <Route path="/pbf/pesan-obat/tambah" element={<PilihProdusen />} /> 
       <Route path="/pbf/pesan-obat/tambah/:idProdusen" element={<TambahPesanan />} /> 

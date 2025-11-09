@@ -112,7 +112,8 @@ const apotekController = {
               pbf.alamat AS alamat_pbf,
               sjp.nomor_resi,
               sjp.nomor_surat_jalan,
-              sjp.tanggal_pengiriman
+              sjp.tanggal_pengiriman,
+              sjp.catatan_penerima
             FROM pesanan_apotek pa
             JOIN users pbf ON pa.id_pbf = pbf.id
             LEFT JOIN surat_jalan_pbf sjp ON pa.id = sjp.id_pesanan_apotek
@@ -242,7 +243,7 @@ const apotekController = {
         const sql = `
             SELECT 
                 pa.id, pa.nomor_pesanan, pa.status, pa.tanggal_pesanan, pa.bukti_foto,
-                sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman, sjp.opsi_pengiriman,
+                sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman, sjp.opsi_pengiriman, sjp.catatan_penerima,
                 pbf.nama_resmi AS nama_pbf,
                 apotek.nama_resmi AS nama_apotek
             FROM pesanan_apotek pa

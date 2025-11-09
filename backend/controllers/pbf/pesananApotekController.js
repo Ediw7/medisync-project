@@ -300,7 +300,7 @@ const pesananApotekController = {
                     pa.id AS pesanan_id, pa.nomor_pesanan, pa.tanggal_pesanan, pa.status, pa.total_harga,
                     pa.nama_apotek, pa.alamat_apotek, pa.telepon AS kontak_telepon,
                     pbf.nama_resmi AS nama_pbf, pbf.alamat AS alamat_pbf,
-                    sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman,sjp.catatan_kurir,sjp.catatan_penerima 
+                    sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman,sjp.catatan_kurir,sjp.catatan_penerima,
                     sjp.waktu_pengiriman, sjp.opsi_pengiriman, sjp.status_blockchain
                 FROM pesanan_apotek pa
                 JOIN users pbf ON pa.id_pbf = pbf.id

@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Info,
+  MessageSquare,
 } from 'lucide-react';
 import axios from 'axios';
 import html2pdf from 'html2pdf.js';
@@ -534,7 +535,19 @@ const KonfirmasiPenerimaanApotek = () => {
                         </span>
                       </div>
                     </div>
-                    {/* --- AKHIR PERBAIKAN DATA --- */}
+                    {info.catatan_penerima && (
+                    <div className="space-y-1 md:col-span-2">
+                      <span className="text-sm font-medium text-slate-500 flex items-center gap-1.5">
+                        <MessageSquare size={14} />
+                        Catatan dari PBF (untuk Penerima)
+                      </span>
+                      <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
+                        <p className="font-medium text-emerald-900 text-sm italic">
+                          "{info.catatan_penerima}"
+                        </p>
+                      </div>
+                    </div>
+                  )}
                   </div>
                 </section>
 

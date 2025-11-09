@@ -157,7 +157,8 @@ const KonfirmasiPengirimanMassalPbf = () => {
           tanggalPengiriman: payload.tanggalPengiriman,
           waktuPengiriman: payload.waktuPengiriman,
           opsiPengiriman: payload.opsiPengiriman,
-          catatan: payload.catatan,
+         catatanKurir: payload.catatanKurir, 
+        catatanPenerima: payload.catatanPenerima,
           alamatTujuan: p.alamat_apotek, // Ambil alamat dari detail
         })),
       };
@@ -358,7 +359,7 @@ const KonfirmasiPengirimanMassalPbf = () => {
                       Ringkasan Jadwal Pengiriman
                     </h3>
                   </div>
-                  <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="p-6 grid grid-cols-2 md:grid-cols-3 gap-4">
                     <InfoItem
                       icon={Calendar}
                       label="Tanggal Kirim"
@@ -366,7 +367,8 @@ const KonfirmasiPengirimanMassalPbf = () => {
                     />
                     <InfoItem icon={Clock} label="Waktu Kirim" value={payload.waktuPengiriman} />
                     <InfoItem icon={Truck} label="Opsi Kirim" value={payload.opsiPengiriman} />
-                    <InfoItem icon={FileText} label="Catatan" value={payload.catatan || '-'} />
+                    <InfoItem icon={FileText} label="Catatan Kurir" value={payload.catatanKurir || '-'} />
+                    <InfoItem icon={FileText} label="Catatan Penerima" value={payload.catatanPenerima || '-'} />
                   </div>
                 </div>
 

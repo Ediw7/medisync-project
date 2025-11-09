@@ -25,7 +25,8 @@ const AturPickupMassalPbf = () => {
   // --- Menggunakan default dari file Produsen ---
   const [waktuPengiriman, setWaktuPengiriman] = useState('09:00');
   const [opsiPengiriman, setOpsiPengiriman] = useState('standar');
-  const [catatan, setCatatan] = useState('');
+  const [catatanKurir, setCatatanKurir] = useState('');
+  const [catatanPenerima, setCatatanPenerima] = useState('');
   const [error, setError] = useState('');
   const username = localStorage.getItem('username'); // Ambil username
 
@@ -83,7 +84,8 @@ const AturPickupMassalPbf = () => {
         selectedIds,
         tanggalPengiriman: selectedDate,
         waktuPengiriman,
-        catatan,
+        catatanKurir, 
+        catatanPenerima,
         opsiPengiriman,
       },
     });
@@ -235,18 +237,31 @@ const AturPickupMassalPbf = () => {
                   </div>
                 </div>
 
-                {/* CATATAN (Desain dari Produsen) */}
-                <div className="space-y-1">
-                  <label htmlFor="catatan" className="block text-sm font-medium text-slate-700">
-                    Catatan Tambahan (Opsional)
-                  </label>
-                  <textarea
-                    id="catatan"
-                    value={catatan}
-                    onChange={(e) => setCatatan(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-lg p-3 h-24 resize-none text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    placeholder="Masukkan catatan jika ada instruksi khusus..."
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-1">
+                    <label htmlFor="catatan_kurir" className="block text-sm font-medium text-slate-700">
+                      Catatan untuk Kurir (Opsional)
+                    </label>
+                    <textarea
+                      id="catatan_kurir"
+                      value={catatanKurir}
+                      onChange={(e) => setCatatanKurir(e.target.value)}
+                      className="w-full bg-white border border-slate-300 rounded-lg p-3 h-24 resize-none text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      placeholder="Instruksi khusus untuk kurir..."
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label htmlFor="catatan_penerima" className="block text-sm font-medium text-slate-700">
+                      Catatan untuk Penerima (Opsional)
+                    </label>
+                    <textarea
+                      id="catatan_penerima"
+                      value={catatanPenerima}
+                      onChange={(e) => setCatatanPenerima(e.target.value)}
+                      className="w-full bg-white border border-slate-300 rounded-lg p-3 h-24 resize-none text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      placeholder="Catatan internal untuk Apotek..."
+                    />
+                  </div>
                 </div>
 
                 {error && (

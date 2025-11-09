@@ -319,9 +319,12 @@ const CetakSuratJalanMassalPbf = () => {
                             {pesanan.nomorResi || '-'}
                           </span>
                         </p>
-                        {allDetails.catatan && (
-                          <p className="mt-1">Catatan Tambahan: {allDetails.catatan}</p>
+                        {allDetails.catatanKurir && (
+                          <p className="mt-1">
+                            <span className="font-semibold">Catatan Kurir:</span> {allDetails.catatanKurir}
+                          </p>
                         )}
+                      
                         <p className="mt-4 print:block hidden">
                           Dokumen ini dicetak pada: {new Date().toLocaleString('id-ID')}
                         </p>

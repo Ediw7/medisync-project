@@ -343,7 +343,7 @@ const pesananController = {
                 const sql = `
                   SELECT 
                     pa.id, pa.nomor_pesanan, pa.status, pa.tanggal_pesanan, pa.total_harga, 
-                    sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman, sjp.opsi_pengiriman,
+                    sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman, sjp.opsi_pengiriman, sjp.catatan_penerima,
                     pbf.nama_resmi AS nama_pbf,
                     apotek.nama_resmi AS nama_apotek,
                     pa.bukti_foto AS buktiPenerimaUrl

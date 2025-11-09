@@ -184,7 +184,9 @@ const pesananController = {
           u.alamat AS alamat_produsen,
           sjp.nomor_resi,
           sjp.nomor_surat_jalan,
-          sjp.tanggal_pengiriman
+          sjp.tanggal_pengiriman,
+          sjp.catatan_penerima, 
+          sjp.catatan_kurir
         FROM pesanan p
         JOIN users u ON p.id_produsen = u.id
         LEFT JOIN surat_jalan_produsen sjp ON p.id = sjp.id_pesanan
@@ -360,6 +362,7 @@ const pesananController = {
                   SELECT 
                     p.id, p.nomor_po, p.status, p.tanggal_pesanan, p.total_harga, p.updated_at,
                     sjp.nomor_resi, sjp.nomor_surat_jalan, sjp.tanggal_pengiriman, sjp.opsi_pengiriman,
+                    sjp.catatan_penerima,
                     pbf.nama_resmi AS nama_pbf,
                     produsen.nama_resmi AS nama_produsen,
                     p.bukti_foto AS buktiPenerimaUrl
@@ -642,8 +645,7 @@ const pesananController = {
                 const transaction = contract.createTransaction('PbfContract:terimaBarang');
                 // Endorsing policy mungkin perlu disesuaikan
                 // transaction.setEndorsingOrganizations('PBFMSP', 'ProdusenMSP'); 
-                await transaction.submit(item.id_aset_blockchain, hashBuktiFoto);
-            }
+await transaction.submit(item.id_aset_blockchain, hashBuktiFoto, idPbf.toString());            }
             // --- AKHIR PERUBAHAN ---
 
             // Simpan path foto ke 'bukti_foto' BUKAN 'catatan_khusus'

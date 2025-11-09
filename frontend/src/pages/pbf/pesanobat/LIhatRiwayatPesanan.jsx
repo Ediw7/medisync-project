@@ -18,6 +18,7 @@ import {
   XCircle,
   ImageIcon,
   X,
+  MessageSquare,
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
@@ -469,6 +470,19 @@ const LihatRiwayatPesanan = () => {
                       </span>
                     </div>
                   </div>
+                  {offChain.catatan_penerima && (
+                <div className="space-y-1 md:col-span-2">
+                  <span className="text-sm font-medium text-slate-500 flex items-center gap-1.5">
+                    <MessageSquare size={14} />
+                    Catatan dari Produsen (untuk Penerima)
+                  </span>
+                  <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
+                    <p className="font-medium text-emerald-900 text-sm italic">
+                      "{offChain.catatan_penerima}"
+                    </p>
+                  </div>
+                </div>
+              )}
                 </div>
               </div>
 

@@ -18,6 +18,7 @@ import {
   Calendar,
   Clock,
   ClipboardCopy,
+  MessageSquare, // <-- Tambahkan ikon
 } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import axios from 'axios';
@@ -229,8 +230,11 @@ const KonfirmasiPenerimaan = () => {
         throw new Error('Token tidak ditemukan. Silakan login ulang.');
       }
 
+      // --- PERBAIKAN: GANTI URL ENDPOINT ---
+      // Endpoint PBF untuk konfirmasi ada di /api/pbf/pesanan/:id/konfirmasi
+      // Bukan /api/pbf/penerimaan/...
       const response = await axios.put(
-        `http://localhost:5000/api/pbf/penerimaan/${id}/konfirmasi`,
+        `http://localhost:5000/api/pbf/pesanan/${id}/konfirmasi`,
         formData,
         {
           headers: {
@@ -240,6 +244,7 @@ const KonfirmasiPenerimaan = () => {
           timeout: 30000, // 30 detik timeout
         }
       );
+      // --- AKHIR PERBAIKAN ---
 
       if (response.data.success) {
         toast.success('Pesanan berhasil dikonfirmasi dan tercatat di blockchain!');
@@ -529,6 +534,22 @@ const KonfirmasiPenerimaan = () => {
                         </span>
                       </div>
                     </div>
+
+                    {/* --- PERUBAHAN: TAMBAHKAN CATATAN PENERIMA --- */}
+                    {info.catatan_penerima && (
+                      <div className="space-y-1 md:col-span-2">
+                        <span className="text-sm font-medium text-slate-500 flex items-center gap-1.5">
+                          <MessageSquare size={14} />
+                          Catatan dari Produsen (untuk Penerima)
+                        </span>
+                        <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
+                          <p className="font-medium text-emerald-900 text-sm italic">
+                            "{info.catatan_penerima}"
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {/* --- AKHIR PERUBAHAN --- */}
                   </div>
                 </section>
 
@@ -623,6 +644,7 @@ const KonfirmasiPenerimaan = () => {
                     <div className="relative flex items-center h-14 w-24">
                       <div
                         className={`w-full h-1.5 rounded-full ${isDikirimCompleted ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                      
                       />
                     </div>
                     <StatusStep

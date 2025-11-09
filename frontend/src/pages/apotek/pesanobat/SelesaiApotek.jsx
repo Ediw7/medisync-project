@@ -22,7 +22,8 @@ const OrderCard = ({ item, getStatusBadge, formatDate, renderAction }) => {
       <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 border-b border-slate-200">
         <div>
           <span className="text-xs text-slate-500">Nomor Pesanan</span>
-          <p className="text-sm font-semibold font-mono text-slate-900">{item.nomor_po}</p>
+          {/* PERBAIKAN: Gunakan nomor_pesanan */}
+          <p className="text-sm font-semibold font-mono text-slate-900">{item.nomor_pesanan}</p>
         </div>
         <span
           className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusBadge(item.status)}`}
@@ -33,7 +34,8 @@ const OrderCard = ({ item, getStatusBadge, formatDate, renderAction }) => {
       <div className="p-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
           <p className="text-xs text-slate-500">Tujuan PBF</p>
-          <p className="text-sm font-medium text-slate-800">{item.nama_produsen}</p>
+          {/* PERBAIKAN: Gunakan nama_pbf */}
+          <p className="text-sm font-medium text-slate-800">{item.nama_pbf}</p>
         </div>
         <div>
           <p className="text-xs text-slate-500">Tanggal Pesan</p>
@@ -46,7 +48,14 @@ const OrderCard = ({ item, getStatusBadge, formatDate, renderAction }) => {
           </p>
         </div>
       </div>
-      <div className="p-4 flex justify-end bg-slate-50/50 border-t border-slate-100">
+      {/* PERBAIKAN: Footer justify-between dan tambahkan Link */}
+      <div className="p-4 flex justify-between items-center bg-slate-50/50 border-t border-slate-100">
+        <Link
+          to={`/apotek/pesanan/${item.id}/detail`}
+          className="text-sm font-medium text-emerald-600 hover:text-emerald-800 hover:underline"
+        >
+          Lihat Surat Pesanan
+        </Link>
         {renderAction(item)}
       </div>
     </div>
@@ -116,8 +125,8 @@ const SelesaiApotek = () => {
       .filter((item) => item.status === 'Selesai') // <-- FILTER HALAMAN INI
       .filter(
         (item) =>
-          (item.nama_produsen?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-          (item.nomor_po?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+          (item.nama_pbf?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+          (item.nomor_pesanan?.toLowerCase() || '').includes(searchTerm.toLowerCase())
       )
       .filter((item) => {
         if (!dateRange.startDate || !dateRange.endDate) return true;
@@ -261,7 +270,7 @@ const SelesaiApotek = () => {
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                       <input
                         type="text"
-                        placeholder="Cari No. Pesanan / Produsen..."
+                        placeholder="Cari No. Pesanan / PBF..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-9 pr-4 py-2 border border-slate-300 rounded-lg w-full sm:w-64 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"

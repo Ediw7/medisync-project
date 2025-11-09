@@ -12,9 +12,74 @@ import {
   AlertTriangle,
   Check,
   ChevronRight,
-  Calendar, // Ditambahkan
+  Calendar,
+  ChevronDown, // Ditambahkan
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+
+// --- (PERUBAHAN 1) ---
+// Konfigurasi slot waktu, disamakan dengan AturPengiriman.jsx
+const SHIPPING_TIMES_CONFIG = [
+  { value: '09:00-12:00', label: 'Pagi (09:00 - 12:00)', startHour: 9 },
+  { value: '13:00-16:00', label: 'Siang (13:00 - 16:00)', startHour: 13 },
+  { value: '16:00-19:00', label: 'Sore (16:00 - 19:00)', startHour: 16 },
+];
+
+// --- (PERUBAHAN 2) ---
+// Helper untuk format tanggal YYYY-MM-DD
+const getLocalDateString = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// --- (PERUBAHAN 3) ---
+// Helper untuk mendapatkan waktu yang tersedia berdasarkan tanggal
+const getAvailableTimesForDate = (dateString) => {
+  const today = new Date();
+  const todayString = getLocalDateString(today);
+
+  if (dateString !== todayString) {
+    return SHIPPING_TIMES_CONFIG; // Jika bukan hari ini, semua waktu tersedia
+  }
+
+  // Jika hari ini, filter waktu yang sudah lewat
+  const currentHour = today.getHours();
+  return SHIPPING_TIMES_CONFIG.filter((time) => time.startHour > currentHour);
+};
+
+// --- (PERUBAHAN 4) ---
+// Helper untuk menghitung tanggal yang valid (Logika BARU)
+const calculateShippingDates = () => {
+  const dates = [];
+  const now = new Date();
+  let currentDate = new Date(now); // Mulai dari hari ini
+  let addedDays = 0;
+
+  while (addedDays < 6) {
+    const dayOfWeek = currentDate.getDay();
+    const dateString = getLocalDateString(currentDate);
+
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Jika bukan weekend
+      // Cek ketersediaan waktu
+      const availableTimes = getAvailableTimesForDate(dateString);
+
+      if (availableTimes.length > 0) { // Jika ada waktu tersedia di hari ini
+        const day = currentDate.toLocaleDateString('id-ID', { weekday: 'long' });
+        const dateNum = currentDate.getDate();
+        const month = currentDate.toLocaleDateString('id-ID', { month: 'short' });
+        dates.push({ day, dateNum, month, date: dateString });
+        addedDays++;
+      }
+    }
+    // Selalu maju ke hari berikutnya untuk iterasi selanjutnya
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  return dates;
+};
+// --- (AKHIR PERUBAHAN 4) ---
+
 
 const AturPickupMassalPbf = () => {
   const navigate = useNavigate();
@@ -22,50 +87,71 @@ const AturPickupMassalPbf = () => {
   const { selectedIds } = location.state || { selectedIds: [] };
 
   const [isCollapsed, setIsCollapsed] = useState(false);
-  // --- Menggunakan default dari file Produsen ---
-  const [waktuPengiriman, setWaktuPengiriman] = useState('09:00');
+
+  // --- (PERUBAHAN 5) ---
+  // Ubah state default menjadi kosong, akan diisi oleh useEffect
+  const [shippingDates, setShippingDates] = useState([]);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [availableTimes, setAvailableTimes] = useState(SHIPPING_TIMES_CONFIG);
+  const [waktuPengiriman, setWaktuPengiriman] = useState('');
+  // --- (AKHIR PERUBAHAN 5) ---
+
   const [opsiPengiriman, setOpsiPengiriman] = useState('standar');
   const [catatanKurir, setCatatanKurir] = useState('');
   const [catatanPenerima, setCatatanPenerima] = useState('');
   const [error, setError] = useState('');
-  const username = localStorage.getItem('username'); // Ambil username
+  const username = localStorage.getItem('username');
 
-  // --- LOGIKA TANGGAL (Diambil dari file Produsen) ---
-  const calculateShippingDates = () => {
-    const dates = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    let addedDays = 0;
-    let currentDate = new Date(today);
-
-    while (addedDays < 6) {
-      currentDate.setDate(currentDate.getDate() + 1);
-      const dayOfWeek = currentDate.getDay();
-      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-        // Skip Minggu (0) dan Sabtu (6)
-        const day = currentDate.toLocaleDateString('id-ID', { weekday: 'long' });
-        const dateNum = currentDate.getDate();
-        const month = currentDate.toLocaleDateString('id-ID', { month: 'short' });
-        const formattedDate = currentDate.toISOString().split('T')[0];
-        dates.push({ day, dateNum, month, date: formattedDate });
-        addedDays++;
-      }
-    }
-    return dates;
-  };
-
-  const [shippingDates] = useState(calculateShippingDates());
-  const [selectedDate, setSelectedDate] = useState(shippingDates[0]?.date || '');
-
-  // --- LOGIKA VALIDASI WAKTU DIHAPUS (Mengikuti file Produsen) ---
-
+  // --- (PERUBAHAN 6) ---
+  // useEffect untuk inisialisasi tanggal dan waktu saat komponen dimuat
   useEffect(() => {
-    if (selectedIds.length === 0) {
+    if (!selectedIds || selectedIds.length === 0) {
       toast.error('Tidak ada pesanan yang dipilih. Kembali ke halaman sebelumnya.');
-      navigate(-1); // Kembali ke halaman PBF sebelumnya
+      navigate(-1);
+      return; // Hentikan eksekusi jika tidak ada ID
+    }
+
+    // Hitung tanggal yang valid
+    const initialDates = calculateShippingDates();
+    setShippingDates(initialDates);
+
+    if (initialDates.length > 0) {
+      // Set tanggal pertama sebagai default
+      const firstDate = initialDates[0].date;
+      setSelectedDate(firstDate);
+
+      // Set waktu yang tersedia untuk tanggal pertama
+      const firstDateTimes = getAvailableTimesForDate(firstDate);
+      setAvailableTimes(firstDateTimes);
+
+      // Set waktu pertama sebagai default
+      setWaktuPengiriman(firstDateTimes[0]?.value || '');
     }
   }, [selectedIds, navigate]);
+  // --- (AKHIR PERUBAHAN 6) ---
+
+  // --- (PERUBAHAN 7) ---
+  // useEffect baru untuk memantau perubahan selectedDate
+  useEffect(() => {
+    if (!selectedDate) return; // Jangan lakukan apa-apa jika selectedDate kosong
+
+    // Dapatkan waktu baru yang tersedia
+    const newTimes = getAvailableTimesForDate(selectedDate);
+    setAvailableTimes(newTimes);
+
+    // Cek apakah waktuPengiriman saat ini masih valid di tanggal baru
+    const isCurrentTimeValid = newTimes.some(
+      (time) => time.value === waktuPengiriman
+    );
+
+    // Jika tidak valid (misal pindah dari besok 09:00 ke hari ini jam 14:00),
+    // set ke waktu pertama yang tersedia
+    if (!isCurrentTimeValid) {
+      setWaktuPengiriman(newTimes[0]?.value || '');
+    }
+  }, [selectedDate]);
+  // --- (AKHIR PERUBAHAN 7) ---
+
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -78,13 +164,12 @@ const AturPickupMassalPbf = () => {
       return;
     }
 
-    // --- Kirim state ke halaman konfirmasi PBF ---
     navigate('/pbf/pengelolaan-pesanan/konfirmasi-pengiriman-massal', {
       state: {
         selectedIds,
         tanggalPengiriman: selectedDate,
         waktuPengiriman,
-        catatanKurir, 
+        catatanKurir,
         catatanPenerima,
         opsiPengiriman,
       },
@@ -106,7 +191,7 @@ const AturPickupMassalPbf = () => {
 
         <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
           <div className="max-w-4xl mx-auto">
-            {/* --- HEADER (Desain dari Produsen) --- */}
+            {/* --- HEADER --- */}
             <div className="mb-10 relative">
               <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
               <div className="absolute -top-20 -right-20 w-72 h-72 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
@@ -147,7 +232,7 @@ const AturPickupMassalPbf = () => {
               </div>
             </div>
 
-            {/* --- KARTU KONTEN (Desain dari Produsen) --- */}
+            {/* --- KARTU KONTEN --- */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative z-10">
               <div className="bg-slate-50 px-8 py-5 border-b border-slate-200 flex items-center gap-3">
                 <FileText size={20} className="text-emerald-600 flex-shrink-0" />
@@ -163,7 +248,7 @@ const AturPickupMassalPbf = () => {
               </div>
 
               <form onSubmit={handleSubmit} className="p-8 space-y-6">
-                {/* TANGGAL (Desain dari Produsen) */}
+                {/* TANGGAL */}
                 <div>
                   <label className="block text-base font-semibold text-gray-800 mb-3">
                     Tanggal Pengiriman
@@ -174,19 +259,23 @@ const AturPickupMassalPbf = () => {
                         key={index}
                         type="button"
                         onClick={() => setSelectedDate(date.date)}
-                        className={`text-center px-4 py-2 rounded-lg border ${selectedDate === date.date ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'}`}
+                        className={`text-center px-4 py-2 rounded-lg border transition-all duration-150 ${
+                          selectedDate === date.date
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-105'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
+                        }`}
                       >
-                        <span className="font-semibold">{date.day}</span>
+                        <span className="font-semibold text-sm">{date.day}</span>
                         <br />
-                        <span className="text-xs">
-                          {date.date.split('-')[2]} -{' '}
-                          {new Date(date.date).toLocaleString('id-ID', { month: 'short' })}
+                        <span className="text-sm">
+                          {date.dateNum} {date.month}
                         </span>
                       </button>
                     ))}
                   </div>
                 </div>
-                {/* WAKTU & OPSI (Desain dari Produsen) */}
+                
+                {/* WAKTU & OPSI */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-1">
                     <label
@@ -195,22 +284,34 @@ const AturPickupMassalPbf = () => {
                     >
                       Pilih Waktu Pengiriman*
                     </label>
-                    <select
-                      id="waktu-pengiriman"
-                      value={waktuPengiriman}
-                      onChange={(e) => setWaktuPengiriman(e.target.value)}
-                      className="w-full appearance-none bg-white border border-slate-300 rounded-lg p-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                      style={{
-                        backgroundPosition: 'right 0.7rem center',
-                        backgroundRepeat: 'no-repeat',
-                        backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                      }}
-                    >
-                      {/* Waktu disederhanakan (dari Produsen) */}
-                      <option value="09:00">09:00</option>
-                      <option value="13:00">13:00</option>
-                      <option value="16:00">16:00</option>
-                    </select>
+                    {/* --- (PERUBAHAN 8) --- */}
+                    {/* Ganti <select> statis menjadi dinamis */}
+                    <div className="relative">
+                      <select
+                        id="waktu-pengiriman"
+                        value={waktuPengiriman}
+                        onChange={(e) => setWaktuPengiriman(e.target.value)}
+                        className="w-full appearance-none bg-white border border-slate-300 rounded-lg p-3 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-slate-100"
+                        disabled={availableTimes.length === 0}
+                      >
+                        {availableTimes.length > 0 ? (
+                          availableTimes.map((time) => (
+                            <option key={time.value} value={time.value}>
+                              {time.label}
+                            </option>
+                          ))
+                        ) : (
+                          <option value="" disabled>
+                            Tidak ada waktu tersedia
+                          </option>
+                        )}
+                      </select>
+                      <ChevronDown
+                        size={18}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                      />
+                    </div>
+                    {/* --- (AKHIR PERUBAHAN 8) --- */}
                   </div>
 
                   <div className="space-y-1">
@@ -220,23 +321,28 @@ const AturPickupMassalPbf = () => {
                     >
                       Opsi Pengiriman*
                     </label>
-                    <select
-                      id="opsi-pengiriman"
-                      value={opsiPengiriman}
-                      onChange={(e) => setOpsiPengiriman(e.target.value)}
-                      className="w-full appearance-none bg-white border border-slate-300 rounded-lg p-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                      style={{
-                        backgroundPosition: 'right 0.7rem center',
-                        backgroundRepeat: 'no-repeat',
-                        backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                      }}
-                    >
-                      <option value="standar">Standar (Estimasi 2-3 hari)</option>
-                      <option value="ekspres">Ekspres (Estimasi 1 hari)</option>
-                    </select>
+                    {/* --- (PERUBAHAN 9) --- */}
+                    {/* Tambahkan styling konsisten (Chevron) */}
+                    <div className="relative">
+                      <select
+                        id="opsi-pengiriman"
+                        value={opsiPengiriman}
+                        onChange={(e) => setOpsiPengiriman(e.target.value)}
+                        className="w-full appearance-none bg-white border border-slate-300 rounded-lg p-3 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      >
+                        <option value="standar">Standar (Estimasi 2-3 hari)</option>
+                        <option value="ekspres">Ekspres (Estimasi 1 hari)</option>
+                      </select>
+                      <ChevronDown
+                        size={18}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                      />
+                    </div>
+                    {/* --- (AKHIR PERUBAHAN 9) --- */}
                   </div>
                 </div>
 
+                {/* CATATAN (Sudah benar) */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-1">
                     <label htmlFor="catatan_kurir" className="block text-sm font-medium text-slate-700">
@@ -270,7 +376,7 @@ const AturPickupMassalPbf = () => {
                   </div>
                 )}
 
-                {/* TOMBOL (Desain dari Produsen) */}
+                {/* TOMBOL */}
                 <div className="flex justify-end items-center gap-3 pt-4 border-t border-slate-200">
                   <button
                     type="button"
@@ -292,7 +398,7 @@ const AturPickupMassalPbf = () => {
         </main>
       </div>
 
-      {/* STYLE BLOB (Dari Produsen) */}
+      {/* STYLE BLOB */}
       <style jsx>{`
         @keyframes blob {
           0%,

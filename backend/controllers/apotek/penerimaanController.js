@@ -18,7 +18,6 @@ async function calculateFileHash(filePath) {
   }
 }
 
-// PENYESUAIAN UNTUK APOTEK: Menggunakan identitas dan koneksi Apotek (Org3)
 async function getApotekGateway() {
   try {
     const walletPath = path.resolve(__dirname, '..', '..', 'wallet');
@@ -29,14 +28,13 @@ async function getApotekGateway() {
       throw new Error('Identitas "apotekAdmin" tidak ditemukan di wallet. Jalankan enrollAdminApotek.js terlebih dahulu.');
     }
 
-    // Gunakan connection profile untuk Apotek (misal: connection-org3.json)
     const ccpPath = path.resolve(__dirname, '..', '..', 'connection-org3.json');
     const ccp = JSON.parse(await fs.readFile(ccpPath, 'utf8'));
 
     const gateway = new Gateway();
     await gateway.connect(ccp, {
       wallet,
-      identity: 'apotekAdmin', // Gunakan identitas Apotek
+      identity: 'apotekAdmin', 
       discovery: { enabled: true, asLocalhost: true }
     });
     return gateway;
@@ -70,7 +68,6 @@ const penerimaanController = {
       dbConnection = await db.getConnection();
       await dbConnection.beginTransaction();
 
-      // PENYESUAIAN UNTUK APOTEK: Cek ke tabel 'pesanan_apotek'
       const [pesanan] = await dbConnection.query(
         'SELECT id, status FROM pesanan_apotek WHERE id = ? AND id_apotek = ?',
         [id, idApotek]
@@ -92,7 +89,6 @@ const penerimaanController = {
       const network = await gateway.getNetwork('medisyncchannel');
       const contract = network.getContract('medisync');
 
-      // PENYESUAIAN UNTUK APOTEK: Ambil asset ID dari 'detail_pesanan_apotek'
       const [detailPesanan] = await dbConnection.query(
         'SELECT id_aset_blockchain FROM detail_pesanan_apotek WHERE id_pesanan_apotek = ?',
         [id]
@@ -102,19 +98,28 @@ const penerimaanController = {
         throw new Error('ID Aset Blockchain untuk pesanan ini tidak ditemukan di database.');
       }
 
-         console.log('[DEBUG] Aset ID yang akan dikirim ke chaincode:', JSON.stringify(detailPesanan, null, 2));
+      console.log('[DEBUG] Aset ID yang akan dikirim ke chaincode:', JSON.stringify(detailPesanan, null, 2));
 
       for (const item of detailPesanan) {
         if (item.id_aset_blockchain) {
-          // PENYESUAIAN UNTUK APOTEK: Panggil chaincode milik Apotek
           const transaction = contract.createTransaction('ApotekContract:terimaBarang');
-          // Endorsing policy mungkin antara Apotek dan PBF
           transaction.setEndorsingOrganizations('ApotekMSP', 'PBFMSP');
-         await transaction.submit(item.id_aset_blockchain, hashBuktiFoto, namaApoteker, idApotek.toString());
+          await transaction.submit(item.id_aset_blockchain, hashBuktiFoto, namaApoteker, idApotek.toString());
         }
       }
 
-      // PENYESUAIAN UNTUK APOTEK: Update tabel 'pesanan_apotek'
+      // --- MODIFIKASI SOCKET.IO: KONFIRMASI PENERIMAAN APOTEK ---
+      if (req.io) {
+          req.io.emit('block_mined', {
+            type: 'PENERIMAAN_APOTEK',
+            hash: '0x' + crypto.randomBytes(32).toString('hex'),
+            timestamp: new Date().toLocaleTimeString(),
+            org: 'ApotekMSP',
+            details: `Received by Apotek (Order ID: ${id})`
+          });
+      }
+      // ---------------------------------------------------------
+
       await dbConnection.query(
         "UPDATE pesanan_apotek SET status = 'Selesai', bukti_foto = ? WHERE id = ?",
         [buktiFoto.path.replace(/\\/g, '/'), id]
@@ -126,7 +131,7 @@ const penerimaanController = {
     } catch (error) {
       if (dbConnection) await dbConnection.rollback();
       if (buktiFoto?.path) {
-        try { await fs.unlink(buktiFoto.path); } catch (e) {} // Hapus file jika gagal
+        try { await fs.unlink(buktiFoto.path); } catch (e) {} 
       }
       console.error('Error in Apotek confirmPenerimaan:', error);
       res.status(500).json({ success: false, message: `Gagal konfirmasi: ${error.message}` });

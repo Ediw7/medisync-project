@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const http = require('http'); // --- MODIFIKASI 1: Import HTTP ---
+const { Server } = require('socket.io'); // --- MODIFIKASI 2: Import Socket.io ---
 
 const authRoutes = require('./routes/auth');
 const produksiRoutes = require('./routes/produsen/produksiRoute'); 
@@ -10,7 +12,6 @@ const pembatalanRoutes = require('./routes/produsen/pembatalanRoute');
 const riwayatRoute = require('./routes/produsen/riwayatRoute');
 const laporananalitikRoutes = require('./routes/produsen/laporananalitikRoute');
 const produsenProfilRoutes = require('./routes/produsen/profilRoute');
-
 
 const pesananPbfRoutes = require('./routes/pbf/pesananRoute'); 
 const pbfRoutes = require('./routes/pbf/pbfRoute');
@@ -34,13 +35,31 @@ const batalkanApotekRoute = require('./routes/apotek/batalkanRoute');
 const pengembalianApotekRoute = require('./routes/apotek/pengembalianRoute');
 const penjualanApotekRoute = require('./routes/apotek/penjualanRoute');
 const laporanApotekRoute = require('./routes/apotek/laporanApotekRoute');
+
 const app = express();
+
+// --- MODIFIKASI 3: Bungkus App dengan HTTP Server ---
+const server = http.createServer(app);
+
+// --- MODIFIKASI 4: Inisialisasi Socket.io ---
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:5173", // Sesuaikan dengan port Frontend React Anda
+    methods: ["GET", "POST"]
+  }
+});
 
 app.use(cors());
 app.use(express.json());
 
 // Membuat folder 'uploads' bisa diakses secara publik
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// --- MODIFIKASI 5: Middleware agar 'io' bisa dipakai di Controller ---
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
 
 // Gunakan semua rute
 app.use('/api/produsen', produsenProfilRoutes);
@@ -76,6 +95,8 @@ app.use('/api/apotek', apotekRoutes);
 app.use('/api/apotek', apotekProfilRoutes);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server terintegrasi berjalan di http://localhost:${PORT}`);
+
+// --- MODIFIKASI 6: Ganti app.listen menjadi server.listen ---
+server.listen(PORT, () => {
+  console.log(`Server terintegrasi (+Socket.io) berjalan di http://localhost:${PORT}`);
 });

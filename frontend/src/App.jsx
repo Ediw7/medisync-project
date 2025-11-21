@@ -7,6 +7,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import RegisterPage from './pages/RegisterPage';
 import BlockchainDetail from './pages/BlockchainDetail';
+import NetworkMap from './pages/NetworkMap';
 
 import ProdusenDashboard from './pages/produsen/ProdusenDashboard';
 import ProfilProdusen from './pages/produsen/profil/ProfilProdusen';
@@ -124,6 +125,7 @@ function App() {
       <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
       <Route path="/register/:role" element={<RegisterPage />} />
       <Route path="/blockchain-detail/:batch_id" element={<BlockchainDetail />} />
+      <Route path="/network-map" element={<NetworkMap />} />
 
       {/* Rute Produsen */}
       <Route path="/produsen/dashboard" element={<ProdusenDashboard />} />

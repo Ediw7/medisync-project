@@ -502,6 +502,17 @@ const pesananController = {
       }
 
       await dbConnection.commit();
+
+      if (req.io) {
+        req.io.emit('block_mined', {
+          type: 'PESANAN_BARU',
+          hash: '0x' + crypto.randomBytes(32).toString('hex'), // Simulasi
+          timestamp: new Date().toLocaleTimeString(),
+          org: 'PBFMSP',
+          details: `New Order PO: ${generated_nomor_po}`
+        });
+      }
+
       res.status(201).json({ success: true, message: 'Pesanan berhasil dibuat!', idPesanan, nomorPo: generated_nomor_po });
     } catch (error) {
       if (dbConnection) await dbConnection.rollback();
@@ -647,6 +658,16 @@ const pesananController = {
                 // transaction.setEndorsingOrganizations('PBFMSP', 'ProdusenMSP'); 
 await transaction.submit(item.id_aset_blockchain, hashBuktiFoto, idPbf.toString());            }
             // --- AKHIR PERUBAHAN ---
+
+            if (req.io) {
+                req.io.emit('block_mined', {
+                  type: 'PENERIMAAN_PBF',
+                  hash: '0x' + crypto.randomBytes(32).toString('hex'),
+                  timestamp: new Date().toLocaleTimeString(),
+                  org: 'PBFMSP',
+                  details: `Received Order PO: ${pesanan[0].nomor_po}`
+                });
+            }
 
             // Simpan path foto ke 'bukti_foto' BUKAN 'catatan_khusus'
             await dbConnection.query("UPDATE pesanan SET status = 'Selesai', bukti_foto = ? WHERE id = ?", [buktiFotoPath, id]);

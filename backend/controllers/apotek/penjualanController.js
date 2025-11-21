@@ -5,6 +5,7 @@ const db = require('../../config/db');
 const { Gateway, Wallets } = require('fabric-network');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 async function getApotekGateway() {
   try {
@@ -100,7 +101,7 @@ const penjualanController = {
     }
   },
 
-  prosesPenjualan: async (req, res) => {
+ prosesPenjualan: async (req, res) => {
     const { items, total_harga, nama_pelanggan } = req.body;
     const idApotek = req.user.id;
     const namaApoteker = req.user.nama_resmi;
@@ -127,19 +128,15 @@ const penjualanController = {
       );
       const penjualanId = penjualanResult.insertId;
 
-      // ... di dalam prosesPenjualan
       for (const item of items) {
-        // Nama field dari frontend Penjualan.jsx
         const { id_aset_blockchain, jumlah_jual, harga_satuan, total_item, nama_obat } = item;
         
-        // 2a. Catat detail penjualan di MySQL
         await dbConnection.query(
           'INSERT INTO detail_penjualan (id_penjualan, id_aset_blockchain, nama_obat, jumlah_jual, harga_satuan, total_harga) VALUES (?, ?, ?, ?, ?, ?)',
           [penjualanId, id_aset_blockchain, nama_obat, jumlah_jual, harga_satuan, total_item]
         );
-// ... (sisa loop)
 
-        console.log(`🔗 Submitting blockchain: jualKeKonsumen(${id_aset_blockchain}, ${nama_pelanggan || 'Konsumen'}, ${jumlah_jual})`);
+        console.log(`Submitting blockchain: jualKeKonsumen(${id_aset_blockchain}, ${nama_pelanggan || 'Konsumen'}, ${jumlah_jual})`);
         
         const transaction = contract.createTransaction('ApotekContract:jualKeKonsumen');
         await transaction.submit(
@@ -148,15 +145,23 @@ const penjualanController = {
             jumlah_jual.toString()
         );
         
-        soldItemsInfo.push({
-            id_aset_blockchain,
-            nama_obat,
-            jumlah_jual
-        });
+        soldItemsInfo.push({ id_aset_blockchain, nama_obat, jumlah_jual });
       }
 
       await dbConnection.commit();
       
+      // --- MODIFIKASI SOCKET.IO: PENJUALAN KE KONSUMEN ---
+      if (req.io) {
+          req.io.emit('block_mined', {
+            type: 'PENJUALAN',
+            hash: '0x' + crypto.randomBytes(32).toString('hex'),
+            timestamp: new Date().toLocaleTimeString(),
+            org: 'ApotekMSP',
+            details: `Sold to Customer: ${nama_pelanggan || 'Walk-in'} (ID: ${penjualanId})`
+          });
+      }
+      // --------------------------------------------------
+
       res.json({ 
         success: true, 
         message: 'Penjualan berhasil dicatat.',
@@ -166,7 +171,7 @@ const penjualanController = {
 
     } catch (error) {
       if (dbConnection) await dbConnection.rollback();
-      console.error('❌ Error in prosesPenjualan:', error);
+      console.error('Error in prosesPenjualan:', error);
       
       let errMsg = error.message;
       if (error.responses && error.responses[0] && error.responses[0].response) {

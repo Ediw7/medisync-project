@@ -4,6 +4,7 @@ const db = require('../../config/db');
 const { Gateway, Wallets } = require('fabric-network');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 async function getGateway() {
   const walletPath = path.resolve(__dirname, '..', '..', 'wallet');
@@ -443,7 +444,7 @@ getAll: async (req, res) => {
   // Di dalam file: backend/controllers/produsen/pesananMasukController.js
 
 updateStatusWithDetails: async (req, res) => {
-    const { id } = req.params; // Ini adalah id_pesanan
+    const { id } = req.params;
     const { 
         status, nomorResi, nomorSuratJalan, tanggalPengiriman, alamatTujuan, 
         waktuPengiriman, catatanKurir, catatanPenerima, hashSuratJalan, opsiPengiriman 
@@ -454,10 +455,7 @@ updateStatusWithDetails: async (req, res) => {
     let dbConnection;
 
     try {
-      // --- Langkah 1: Validasi Input ---
-      if (status !== 'Dikirim') {
-        return res.status(400).json({ success: false, message: 'Status tidak valid. Gunakan: Dikirim' });
-      }
+      if (status !== 'Dikirim') return res.status(400).json({ success: false, message: 'Status tidak valid.' });
       if (!tanggalPengiriman || !nomorResi || !nomorSuratJalan || !alamatTujuan) {
         return res.status(400).json({ success: false, message: 'Data surat jalan wajib diisi lengkap.' });
       }
@@ -465,18 +463,15 @@ updateStatusWithDetails: async (req, res) => {
       dbConnection = await db.getConnection();
       await dbConnection.beginTransaction();
 
-      // --- Langkah 2: Proses Database Off-Chain (MySQL) ---
-      const [existing] = await dbConnection.query('SELECT id, id_pbf, nama_pbf FROM pesanan WHERE id = ? AND id_produsen = ?', [id, idProdusen]);
-      if (existing.length === 0) {
-        throw new Error('Pesanan tidak ditemukan atau Anda tidak memiliki akses.');
-      }
+      const [existing] = await dbConnection.query('SELECT id, id_pbf, nama_pbf, nomor_po FROM pesanan WHERE id = ? AND id_produsen = ?', [id, idProdusen]);
+      if (existing.length === 0) throw new Error('Pesanan tidak ditemukan atau Anda tidak memiliki akses.');
 
+      // Simpan Surat Jalan ke MySQL
       const sqlSuratJalan = `
         INSERT INTO surat_jalan_produsen (
           id_pesanan, nomor_resi, nomor_surat_jalan, tanggal_pengiriman, alamat_tujuan, 
           waktu_pengiriman, catatan_kurir, catatan_penerima, hash_surat_jalan, opsi_pengiriman
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE 
           nomor_resi = VALUES(nomor_resi), nomor_surat_jalan = VALUES(nomor_surat_jalan), 
           tanggal_pengiriman = VALUES(tanggal_pengiriman), alamat_tujuan = VALUES(alamat_tujuan), 
@@ -486,7 +481,7 @@ updateStatusWithDetails: async (req, res) => {
       
       await dbConnection.query(sqlSuratJalan, [
           id, nomorResi, nomorSuratJalan, tanggalPengiriman, alamatTujuan, 
-          waktuPengiriman || null, catatanKurir || null, catatanPenerima || null, // <-- Parameter diubah
+          waktuPengiriman || null, catatanKurir || null, catatanPenerima || null, 
           hashSuratJalan || null, opsiPengiriman?.toLowerCase() || 'standar'
       ]);
       
@@ -496,12 +491,10 @@ updateStatusWithDetails: async (req, res) => {
          WHERE dp.id_pesanan = ?`, [id]
       );
 
-      if (detailRows.length === 0) {
-        throw new Error('Tidak ada detail obat yang ditemukan untuk pesanan ini.');
-      }
+      if (detailRows.length === 0) throw new Error('Tidak ada detail obat yang ditemukan untuk pesanan ini.');
       
-      // --- Langkah 3: Proses On-Chain (Hyperledger Fabric) ---
-      gateway = await getGateway(); // Gunakan getGateway yang ada di file ini
+      // --- INTERAKSI BLOCKCHAIN ---
+      gateway = await getGateway(); 
       const network = await gateway.getNetwork('medisyncchannel');
       const contract = network.getContract('medisync');
 
@@ -514,7 +507,7 @@ updateStatusWithDetails: async (req, res) => {
       const transaction = contract.createTransaction('ProdusenContract:transferToPbf');
       
       const resultBuffer = await transaction.submit(
-        id.toString().padStart(6, '0'), // Pastikan ID pesanan sesuai format
+        id.toString().padStart(6, '0'), 
         hashSuratJalan || 'TIDAK_ADA_HASH',
         namaPbf,
         idPbf.toString(),
@@ -526,10 +519,21 @@ updateStatusWithDetails: async (req, res) => {
       const createdAssetIds = resultJson.createdAssetIds;
       console.log('ON-CHAIN transaction successful! New asset IDs:', createdAssetIds);
 
-      // --- Langkah 4: Simpan ID Aset Blockchain ke MySQL ---
+      // --- TAMBAHAN SOCKET.IO (Untuk Single Update) ---
+      if (req.io) {
+        req.io.emit('block_mined', {
+          type: 'DISTRIBUSI_PBF',
+          hash: '0x' + crypto.randomBytes(32).toString('hex'), // Simulasi hash
+          timestamp: new Date().toLocaleTimeString(),
+          org: 'ProdusenMSP',
+          details: `Transfer to PBF (PO: ${existing[0].nomor_po || 'Unknown'})`
+        });
+      }
+      // ------------------------------------------------
+
+      // Update ID Aset Baru ke MySQL
       if (createdAssetIds && createdAssetIds.length > 0) {
         for (const assetId of createdAssetIds) {
-          // Ekstrak batch ID asli dari ID aset baru (asumsi format 'batchId-pesananId')
           const originalBatchId = assetId.substring(0, assetId.lastIndexOf('-')); 
           const correspondingDetail = detailRows.find(d => d.batch_id === originalBatchId);
           if (correspondingDetail) {
@@ -537,17 +541,15 @@ updateStatusWithDetails: async (req, res) => {
               'UPDATE detail_pesanan SET id_aset_blockchain = ? WHERE id = ?',
               [assetId, correspondingDetail.detail_pesanan_id]
             );
-             console.log(`Updated detail_pesanan ID ${correspondingDetail.detail_pesanan_id} with blockchain asset ID ${assetId}`);
           }
         }
       }
       
-      // --- Langkah 5: Finalisasi Update di MySQL ---
+      // Finalisasi Update MySQL
       await dbConnection.query('UPDATE surat_jalan_produsen SET status_blockchain = ? WHERE id_pesanan = ?', ['Tercatat', id]);
       await dbConnection.query('UPDATE pesanan SET status = ? WHERE id = ?', [status, id]);
       
       await dbConnection.commit();
-      
       res.json({ success: true, message: `Pesanan berhasil dikirim dan dicatat ke blockchain.` });
 
     } catch (error) {
@@ -646,7 +648,7 @@ updateStatusWithDetails: async (req, res) => {
   },
 
   
-  prosesPengirimanMassal: async (req, res) => {
+ prosesPengirimanMassal: async (req, res) => {
     const { 
       selectedIds, tanggalPengiriman, waktuPengiriman, 
       catatanKurir, catatanPenerima, opsiPengiriman 
@@ -663,55 +665,49 @@ updateStatusWithDetails: async (req, res) => {
     const errors = [];
 
     try {
+      // --- OPTIMASI: Buka koneksi SEKALI di luar loop ---
       dbConnection = await db.getConnection();
       gateway = await getGateway();
       const network = await gateway.getNetwork('medisyncchannel');
       const contract = network.getContract('medisync');
+      // -------------------------------------------------
 
       for (const pesananId of selectedIds) {
         try {
           await dbConnection.beginTransaction();
 
-          // Ambil data pesanan DAN data PBF/Produsen untuk surat jalan
+          // Ambil data pesanan
           const sqlPesanan = `
-            SELECT 
-              p.*, 
-              pbf.nama_resmi AS nama_pbf, pbf.alamat AS alamat_pbf,
-              produsen.nama_resmi AS nama_produsen, produsen.alamat AS alamat_produsen
-            FROM pesanan p
-            JOIN users pbf ON p.id_pbf = pbf.id
-            JOIN users produsen ON p.id_produsen = produsen.id
+            SELECT p.*, pbf.nama_resmi AS nama_pbf, pbf.alamat AS alamat_pbf
+            FROM pesanan p JOIN users pbf ON p.id_pbf = pbf.id
             WHERE p.id = ? AND p.id_produsen = ? AND p.status = "Perlu Dikirim" 
             FOR UPDATE
           `;
           const [pesanan] = await dbConnection.query(sqlPesanan, [pesananId, idProdusen]);
 
-          if (pesanan.length === 0) {
-            throw new Error(`Pesanan tidak ditemukan atau statusnya bukan "Perlu Dikirim".`);
-          }
+          if (pesanan.length === 0) throw new Error(`Pesanan tidak ditemukan atau statusnya bukan "Perlu Dikirim".`);
 
           const timestamp = Date.now();
           const nomorResi = `RES-${timestamp}-${pesananId}`;
           const nomorSuratJalan = `SJ-${timestamp}-${pesananId}`;
           const hashSuratJalan = `HASH_SJPROD_${timestamp}_${pesananId}`;
 
-          // Masukkan ke surat_jalan_produsen
+          // Insert Surat Jalan
           await dbConnection.query(
             `INSERT INTO surat_jalan_produsen (
               id_pesanan, nomor_resi, nomor_surat_jalan, tanggal_pengiriman, alamat_tujuan, 
               waktu_pengiriman, catatan_kurir, catatan_penerima, hash_surat_jalan, opsi_pengiriman
-             )
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               pesananId, nomorResi, nomorSuratJalan, tanggalPengiriman, pesanan[0].alamat_pbf, 
-              waktuPengiriman || null, catatanKurir || null, catatanPenerima || null, // <-- Parameter diubah
+              waktuPengiriman || null, catatanKurir || null, catatanPenerima || null,
               hashSuratJalan, opsiPengiriman
             ]
           );
 
-          // Ambil detail pesanan untuk dikirim ke chaincode
+          // Ambil detail pesanan
           const [detailRows] = await dbConnection.query(
-            `SELECT dp.id as detail_pesanan_id, pr.batch_id, dp.jumlah_pesanan, dp.nama_obat, dp.total_harga
+            `SELECT dp.id as detail_pesanan_id, pr.batch_id, dp.jumlah_pesanan, dp.nama_obat
              FROM detail_pesanan dp JOIN produksi pr ON dp.id_produksi = pr.id
              WHERE dp.id_pesanan = ?`, [pesananId]
           );
@@ -721,26 +717,21 @@ updateStatusWithDetails: async (req, res) => {
           const obatIds = detailRows.map(row => row.batch_id).filter(Boolean);
           const jumlahPesanan = detailRows.map(row => ({ obatId: row.batch_id, jumlah: row.jumlah_pesanan }));
 
-          if (obatIds.length === 0) {
-             throw new Error('Tidak ada ID batch obat yang valid untuk pesanan ini.');
-          }
-          const idPbf = pesanan[0].id_pbf; // 1. Ambil ID PBF
-          if (!idPbf) {
-             throw new Error(`id_pbf tidak ditemukan untuk pesanan ${pesananId}.`);
-          }
+          if (obatIds.length === 0) throw new Error('Tidak ada ID batch obat yang valid.');
+          const idPbf = pesanan[0].id_pbf;
+          if (!idPbf) throw new Error(`id_pbf tidak ditemukan.`);
 
-
-          // Panggil Chaincode
+          // Panggil Chaincode (pakai gateway yang sudah dibuka di atas)
           const transaction = contract.createTransaction('ProdusenContract:transferToPbf');
           const resultBuffer = await transaction.submit(
-            pesananId.toString(), hashSuratJalan, pesanan[0].nama_pbf,idPbf.toString(),
+            pesananId.toString(), hashSuratJalan, pesanan[0].nama_pbf, idPbf.toString(),
             JSON.stringify(obatIds), JSON.stringify(jumlahPesanan)
           );
 
           const resultJson = JSON.parse(resultBuffer.toString());
           const createdAssetIds = resultJson.createdAssetIds;
 
-          // Update detail_pesanan dengan Aset ID BARU
+          // Update detail_pesanan
           if (createdAssetIds && createdAssetIds.length > 0) {
             for (const assetId of createdAssetIds) {
               const originalBatchId = assetId.substring(0, assetId.lastIndexOf(`-${pesananId}`));
@@ -750,19 +741,29 @@ updateStatusWithDetails: async (req, res) => {
                   'UPDATE detail_pesanan SET id_aset_blockchain = ? WHERE id = ?',
                   [assetId, correspondingDetail.detail_pesanan_id]
                 );
-                // Perbarui juga assetId di detailRows untuk dikirim ke frontend
-               correspondingDetail.id_aset_blockchain = assetId;
+                correspondingDetail.id_aset_blockchain = assetId;
               }
             }
           }
 
-          // Finalisasi update DB
+          // --- TAMBAHAN SOCKET.IO (Untuk Massal) ---
+          if (req.io) {
+            req.io.emit('block_mined', {
+              type: 'DISTRIBUSI_PBF_MASSAL',
+              hash: '0x' + crypto.randomBytes(32).toString('hex'),
+              timestamp: new Date().toLocaleTimeString(),
+              org: 'ProdusenMSP',
+              details: `Batch Transfer to PBF (PO: ${pesanan[0].nomor_po})`
+            });
+          }
+          // -----------------------------------------
+
+          // Finalisasi DB
           await dbConnection.query('UPDATE surat_jalan_produsen SET status_blockchain = ? WHERE id_pesanan = ?', ['Tercatat', pesananId]);
           await dbConnection.query('UPDATE pesanan SET status = ? WHERE id = ?', ['Dikirim', pesananId]);
           
           await dbConnection.commit();
 
-          // Siapkan data untuk respons
           processedDetails.push({
             ...pesanan[0],
             nomorResi,
@@ -788,15 +789,14 @@ updateStatusWithDetails: async (req, res) => {
       res.json({ success: true, message: 'Semua pesanan berhasil diproses.', data: processedDetails });
 
     } catch (outerError) {
-      console.error('Error in prosesPengirimanMassal (Outer - Produsen):', outerError);
+      console.error('Error in prosesPengirimanMassal (Outer):', outerError);
       res.status(500).json({ success: false, message: `Kesalahan Server Internal: ${outerError.message}` });
     } finally {
+      // Tutup koneksi SEKALI SAJA di akhir
       if (gateway) gateway.disconnect();
       if (dbConnection) dbConnection.release();
     }
   },
-
-
 
 };
 

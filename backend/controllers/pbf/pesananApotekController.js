@@ -3,6 +3,7 @@ const db = require('../../config/db');
 const { Gateway, Wallets } = require('fabric-network');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 // Fungsi helper untuk koneksi ke Fabric Gateway
 async function getPbfGateway() {
@@ -61,6 +62,16 @@ const pesananApotekController = {
             }
 
             await connection.commit();
+
+            if (req.io) {
+                req.io.emit('block_mined', {
+                  type: 'PESANAN_APOTEK',
+                  hash: '0x' + crypto.randomBytes(32).toString('hex'),
+                  timestamp: new Date().toLocaleTimeString(),
+                  org: 'ApotekMSP',
+                  details: `New Order from Apotek (ID: ${idPesanan})`
+                });
+            }
             res.status(201).json({ success: true, message: 'Pesanan ke PBF berhasil dibuat.' });
         } catch (error) {
             if (connection) await connection.rollback();
@@ -454,6 +465,16 @@ const pesananApotekController = {
             const createdAssetIds = resultJson.createdAssetIds;
             console.log('ON-CHAIN transaction successful! New asset IDs:', createdAssetIds);
 
+            if (req.io) {
+                req.io.emit('block_mined', {
+                  type: 'DISTRIBUSI_APOTEK',
+                  hash: '0x' + crypto.randomBytes(32).toString('hex'),
+                  timestamp: new Date().toLocaleTimeString(),
+                  org: 'PBFMSP',
+                  details: `Transfer to Apotek (SJ: ${nomorSuratJalan})`
+                });
+            }
+
             // Langkah 4: Simpan ID Aset Blockchain BARU ke MySQL
             // Ini penting agar apotek bisa menerima barang dengan ID yang benar
             if (createdAssetIds && createdAssetIds.length > 0) {
@@ -476,6 +497,15 @@ const pesananApotekController = {
             await dbConnection.query('UPDATE surat_jalan_pbf SET status_blockchain = ? WHERE id_pesanan_apotek = ?', ['Tercatat', id]);
             await dbConnection.query('UPDATE pesanan_apotek SET status = ? WHERE id = ?', [status, id]);
             
+            if (req.io) {
+                req.io.emit('block_mined', {
+                  type: 'DISTRIBUSI_APOTEK',
+                  hash: '0x' + crypto.randomBytes(32).toString('hex'),
+                  timestamp: new Date().toLocaleTimeString(),
+                  org: 'PBFMSP',
+                  details: `Transfer to Apotek (SJ: ${nomorSuratJalan})`
+                });
+            }
             await dbConnection.commit();
             
             res.json({ success: true, message: `Pesanan berhasil dikirim dan dicatat ke blockchain.` });

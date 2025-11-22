@@ -1,204 +1,158 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState } from 'react';
 import { QrReader } from 'react-qr-reader';
-import { X, Camera, Upload, AlertTriangle, RefreshCw } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { X, RefreshCw, AlertTriangle, Upload, Image as ImageIcon } from 'lucide-react';
+import QrScannerLib from 'qr-scanner'; // Pastikan npm install qr-scanner
 
-const QrScanner = React.memo(({ onScanResult, onClose }) => {
-  const [error, setError] = useState(null);
-  const [isScanning, setIsScanning] = useState(true);
-  const [hasScanned, setHasScanned] = useState(false);
-  const [scannerKey, setScannerKey] = useState(0); // Reset scanner
-  const fileInputRef = useRef(null);
-  const videoRef = useRef(null);
+const QrScanner = ({ onScanResult, onClose }) => {
+  const [error, setError] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // --- STOP VIDEO SEBELUM RESET ---
-  const stopVideo = useCallback(() => {
-    if (videoRef.current?.srcObject) {
-      videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
+  // Handle Scan Kamera
+  const handleResult = (result, error) => {
+    if (result) {
+      onScanResult(result?.text);
+      // Matikan suara 'beep' default jika ada, atau biarkan
     }
-  }, []);
-
-  // --- SCAN HANDLER ---
-  const handleScan = useCallback(
-    (result) => {
-      if (result?.text && !hasScanned) {
-        setHasScanned(true);
-        setIsScanning(false);
-        stopVideo();
-        onScanResult(result.text);
-        toast.success('QR Code berhasil dipindai!');
-        setTimeout(() => onClose(), 1500);
+    if (error) {
+      // Abaikan error scanning frame-by-frame
+      if (error.message?.includes("No QR code found")) return;
+      
+      // Deteksi error permission
+      if (error.name === 'NotAllowedError' || error.name === 'NotFoundError') {
+         setError('Gagal mengakses kamera. Pastikan izin diberikan.');
       }
-    },
-    [hasScanned, onScanResult, onClose, stopVideo]
-  );
-
-  // --- ERROR HANDLER ---
-  const handleError = useCallback(
-    (err) => {
-      stopVideo();
-      let msg = 'Gagal mengakses kamera.';
-      if (err.name === 'NotAllowedError') msg = 'Akses kamera ditolak. Izinkan di pengaturan.';
-      else if (err.name === 'NotFoundError') msg = 'Kamera tidak ditemukan.';
-      else if (err.name === 'AbortError') msg = 'Kamera terganggu. Coba lagi.';
-      setError(msg);
-      setIsScanning(false);
-    },
-    [stopVideo]
-  );
-
-  // --- RESET SCANNER ---
-  const resetScanner = useCallback(() => {
-    stopVideo();
-    setIsScanning(true);
-    setError(null);
-    setHasScanned(false);
-    setScannerKey((prev) => prev + 1); // Force remount
-  }, [stopVideo]);
-
-  // --- UPLOAD GAMBAR (ZXING) ---
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    try {
-      const { BrowserQRCodeReader } = await import('@zxing/library');
-      const reader = new BrowserQRCodeReader();
-      const result = await reader.decodeFromImageUrl(URL.createObjectURL(file));
-      if (result?.text) {
-        setHasScanned(true);
-        onScanResult(result.text);
-        toast.success('QR dari gambar berhasil!');
-        setTimeout(() => onClose(), 1500);
-      }
-    } catch (err) {
-      toast.error('QR tidak ditemukan di gambar.');
-    } finally {
-      e.target.value = null;
     }
   };
 
-  // --- CLEANUP ON UNMOUNT ---
-  useEffect(() => {
-    return () => stopVideo();
-  }, [stopVideo]);
+  // Handle Upload File
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    setIsProcessing(true);
+    try {
+      // Decode QR dari gambar menggunakan library qr-scanner
+      const result = await QrScannerLib.scanImage(file);
+      if (result) {
+        onScanResult(result);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("QR Code tidak terdeteksi dalam gambar ini.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
-        {/* HEADER */}
-        <div className="flex items-center justify-between p-5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
-          <h3 className="text-xl font-bold flex items-center gap-3">
-            <Camera size={22} /> Pindai QR Code Obat
+    // PERBAIKAN 1: Background lebih transparan (bg-black/60) & Blur
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 transition-all duration-300">
+      
+      <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl relative animate-in fade-in zoom-in duration-300 flex flex-col max-h-[90vh]">
+        
+        {/* Header */}
+        <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white z-10">
+          <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+            <RefreshCw className="text-emerald-600 animate-spin-slow" size={20} />
+            Pindai QR Code
           </h3>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-white/20 transition-all">
-            <X size={22} />
+          <button 
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <X size={20} className="text-gray-500" />
           </button>
         </div>
 
-        {/* SCANNER VIEW */}
-        <div className="relative h-80 bg-black overflow-hidden">
-          {isScanning ? (
-            <QrReader
-              key={scannerKey}
-              onResult={(result, error) => {
-                if (result) handleScan(result);
-                if (error) handleError(error);
-              }}
-              constraints={{ facingMode: 'environment' }}
-              scanDelay={1000}
-              videoContainerStyle={{ width: '100%', height: '100%' }}
-              videoStyle={{ objectFit: 'cover' }}
-              className="w-full h-full"
-              // Fix willReadFrequently
-              onLoad={(video) => {
-                videoRef.current = video;
-                const canvas = video?.querySelector('canvas');
-                if (canvas) {
-                  const ctx = canvas.getContext('2d');
-                  if (ctx) ctx.willReadFrequently = true;
-                }
-              }}
-            />
+        {/* Area Kamera */}
+        <div className="relative bg-black flex-1 min-h-[300px] flex items-center justify-center overflow-hidden">
+          {!error ? (
+            <>
+              <QrReader
+                onResult={handleResult}
+                constraints={{ facingMode: 'environment' }}
+                className="w-full h-full object-cover absolute inset-0"
+                videoContainerStyle={{ height: '100%', paddingTop: 0 }}
+                videoStyle={{ objectFit: 'cover', height: '100%' }}
+              />
+              
+              {/* Overlay Kotak Pindai */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                <div className="w-64 h-64 border-2 border-emerald-500/50 rounded-3xl relative bg-transparent shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]">
+                  {/* Sudut-sudut */}
+                  <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-emerald-500 rounded-tl-xl"></div>
+                  <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-emerald-500 rounded-tr-xl"></div>
+                  <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-emerald-500 rounded-bl-xl"></div>
+                  <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-emerald-500 rounded-br-xl"></div>
+                  
+                  {/* Garis Scanning */}
+                  <div className="absolute left-2 right-2 h-0.5 bg-emerald-400 shadow-[0_0_15px_#34d399] animate-[scan_2s_linear_infinite]"></div>
+                </div>
+              </div>
+              
+              {/* Text Instruksi Overlay */}
+              <div className="absolute bottom-8 left-0 right-0 text-center z-20 pointer-events-none">
+                <p className="text-white/90 text-sm font-medium bg-black/40 inline-block px-4 py-1 rounded-full backdrop-blur-sm">
+                  Arahkan kamera ke QR Code
+                </p>
+              </div>
+            </>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full p-6 text-center space-y-4">
-              <AlertTriangle className="w-14 h-14 text-red-500 animate-pulse" />
-              <p className="text-gray-700 font-medium">{error}</p>
-              <button
-                onClick={resetScanner}
-                className="flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all font-medium"
+            <div className="flex flex-col items-center justify-center text-center p-6 text-white z-10">
+              <AlertTriangle size={48} className="text-red-500 mb-4" />
+              <p className="text-lg font-semibold">Akses Kamera Gagal</p>
+              <p className="text-sm text-gray-400 mt-2 mb-6 max-w-xs">{error}</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="px-6 py-2 bg-emerald-600 rounded-full text-sm font-bold hover:bg-emerald-700 transition-colors"
               >
-                <RefreshCw size={18} /> Coba Lagi
+                Muat Ulang Halaman
               </button>
             </div>
           )}
+        </div>
 
-          {/* LASER LINE */}
-          {isScanning && (
-            <div className="absolute inset-x-8 top-1/2 h-1 bg-red-500/90 shadow-lg animate-laser">
-              <div className="h-full w-full bg-gradient-to-r from-transparent via-red-400 to-transparent"></div>
+        {/* PERBAIKAN 2: Footer dengan Tombol Upload */}
+        <div className="p-5 bg-white border-t border-gray-100 flex flex-col items-center gap-3 z-10">
+            <div className="w-full flex items-center gap-4">
+                <div className="h-[1px] bg-gray-200 flex-1"></div>
+                <span className="text-xs text-gray-400 font-medium uppercase">Atau</span>
+                <div className="h-[1px] bg-gray-200 flex-1"></div>
             </div>
-          )}
+
+            <label className={`
+                flex items-center justify-center gap-2 w-full py-3 rounded-xl border-2 border-dashed border-gray-300 
+                hover:border-emerald-500 hover:bg-emerald-50 cursor-pointer transition-all group
+                ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}
+            `}>
+                <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    onChange={handleFileUpload}
+                    disabled={isProcessing}
+                />
+                <div className="p-2 bg-gray-100 rounded-full group-hover:bg-white transition-colors">
+                    <ImageIcon size={20} className="text-gray-500 group-hover:text-emerald-600" />
+                </div>
+                <span className="text-sm font-semibold text-gray-600 group-hover:text-emerald-700">
+                    {isProcessing ? 'Memproses...' : 'Unggah Gambar dari Galeri'}
+                </span>
+            </label>
         </div>
 
-        {/* FOOTER */}
-        <div className="p-5 bg-gradient-to-t from-gray-50 to-white border-t">
-          <p className="text-center text-sm text-gray-600 mb-4 font-medium">
-            Arahkan kamera ke QR code pada kemasan obat.
-          </p>
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full flex items-center justify-center gap-3 py-3 bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 transition-all font-medium text-sm"
-          >
-            <Upload size={18} /> Atau Unggah dari Galeri
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-        </div>
       </div>
-
-      {/* ANIMASI */}
-      <style jsx>{`
-        @keyframes laser {
-          0%,
-          100% {
-            transform: translateY(-50%) scaleY(1);
-            opacity: 0.8;
-          }
-          50% {
-            transform: translateY(-50%) scaleY(2);
-            opacity: 1;
-          }
-        }
-        .animate-laser {
-          animation: laser 1.8s infinite ease-in-out;
-        }
-        .animate-in {
-          animation: fadeIn 0.3s ease-out;
-        }
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
+      
+      <style>{`
+        @keyframes scan {
+          0% { top: 4%; opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { top: 96%; opacity: 0; }
         }
       `}</style>
     </div>
   );
-});
-
-QrScanner.displayName = 'QrScanner';
+};
 
 export default QrScanner;

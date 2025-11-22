@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   CheckCircle,
@@ -21,34 +21,31 @@ import { AnimatedBackground } from '../components/BackgroundLanding';
 import Navbar from '../components/Navbar';
 import Threads from '../components/Threads';
 import QrScanner from '../components/QrScanner';
-import RiwayatObatModal from '../components/RiwayatObatModal';
 import LogoPutih from '../assets/logoPutih.png';
 
 const LandingPage = () => {
+  const navigate = useNavigate(); // 2. Definisi navigate
   const [showScanner, setShowScanner] = useState(false);
-  const [showResultModal, setShowResultModal] = useState(false);
-  const [scanResult, setScanResult] = useState(null);
-  const [scanError, setScanError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleScanResult = async (batchId) => {
-    setShowScanner(false);
-    setIsLoading(true);
-    setShowResultModal(true);
-    setScanError('');
-    setScanResult(null);
+  // --- FUNGSI SCAN BARU (LANGSUNG REDIRECT) ---
+  const handleScanResult = (scanData) => {
+    if (scanData) {
+      // Matikan scanner
+      setShowScanner(false);
 
-    try {
-      const response = await fetch(`http://localhost:5000/api/public/riwayat/${batchId}`);
-      const result = await response.json();
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || 'Gagal mengambil data.');
+      // Logika Ekstrak Batch ID
+      let batchId = scanData;
+      
+      // Jika hasil scan adalah URL lengkap (http://.../P1-XXX)
+      if (scanData.includes('http') || scanData.includes('/')) {
+          const parts = scanData.split('/');
+          batchId = parts[parts.length - 1].trim();
       }
-      setScanResult(result.data);
-    } catch (err) {
-      setScanError(err.message);
-    } finally {
-      setIsLoading(false);
+
+      console.log("Redirecting to Batch ID:", batchId);
+
+      // 3. Redirect ke Halaman Detail Blockchain
+      navigate(`/blockchain-detail/${batchId}`);
     }
   };
 
@@ -150,15 +147,12 @@ const LandingPage = () => {
     { href: '#', text: 'Forum' },
   ];
 
-  return (
-    // Light theme change: Changed background to white and default text to dark gray
+ return (
     <div className="min-h-screen bg-gray-200/30 text-gray-800">
-      {/* <AnimatedBackground /> */}
       <Navbar />
 
       <div>
-        <div style={{ width: '100%', height: '700px', position: 'relative' }} className="">
-          {/* Komponen Threads sebagai Latar Belakang Animasi */}
+        <div style={{ width: '100%', height: '700px', position: 'relative' }}>
           <div className="absolute inset-0 z-0">
             <Threads
               color={[0.133, 0.772, 0.368]}
@@ -169,7 +163,6 @@ const LandingPage = () => {
           </div>
           <AnimatedBackground />
 
-          {/* Konten Hero Section di atas Latar Belakang */}
           <main className="relative w-full min-h-[700px] flex items-center justify-center">
             <section className="relative z-10 w-full">
               <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -233,7 +226,6 @@ const LandingPage = () => {
             </section>
           </main>
         </div>
-
         {/* --- FEATURES SECTION --- */}
 
         <section id="fitur" className="py-20 bg-gradient-to-b relative overflow-hidden">
@@ -501,14 +493,7 @@ const LandingPage = () => {
       {showScanner && (
         <QrScanner onScanResult={handleScanResult} onClose={() => setShowScanner(false)} />
       )}
-      {showResultModal && (
-        <RiwayatObatModal
-          data={scanResult}
-          error={scanError}
-          isLoading={isLoading}
-          onClose={() => setShowResultModal(false)}
-        />
-      )}
+      
     </div>
   );
 };

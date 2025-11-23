@@ -615,15 +615,17 @@ const pesananController = {
     }
 },
 
-   konfirmasiPenerimaan: async (req, res) => {
+  konfirmasiPenerimaan: async (req, res) => {
         const { id } = req.params; // ID Pesanan
         const idPbf = req.user.id;
         
-        if (!req.file) {
+        // Perbaikan: Ambil path file dengan benar (jika ada)
+        const buktiFotoPath = req.file ? req.file.path : null;
+        
+        if (!buktiFotoPath) {
             return res.status(400).json({ success: false, message: 'Bukti foto wajib diunggah.' });
         }
         
-        const buktiFotoPath = req.file.path;
         let gateway;
         let dbConnection;
 
@@ -631,7 +633,8 @@ const pesananController = {
             dbConnection = await db.getConnection();
             await dbConnection.beginTransaction();
 
-            const [pesanan] = await dbConnection.query("SELECT id FROM pesanan WHERE id = ? AND id_pbf = ? AND status = 'Dikirim'", [id, idPbf]);
+            // Ambil pesanan dan nomor PO untuk log animasi
+            const [pesanan] = await dbConnection.query("SELECT id, nomor_po FROM pesanan WHERE id = ? AND id_pbf = ? AND status = 'Dikirim'", [id, idPbf]);
             if (pesanan.length === 0) {
                 throw new Error('Pesanan tidak ditemukan atau statusnya bukan "Dikirim".');
             }
@@ -642,7 +645,7 @@ const pesananController = {
             const network = await gateway.getNetwork('medisyncchannel');
             const contract = network.getContract('medisync');
 
-            // --- AMBIL ID ASET DARI DETAIL_PESANAN ---
+            // Ambil ID Aset Blockchain dari detail pesanan
             const [items] = await dbConnection.query("SELECT id_aset_blockchain FROM detail_pesanan WHERE id_pesanan = ?", [id]);
             if (items.length === 0) {
                 throw new Error('Tidak ada detail item yang ditemukan untuk pesanan ini.');
@@ -653,30 +656,33 @@ const pesananController = {
                     console.warn(`Item pesanan (ID: ${id}) tidak memiliki asset blockchain, dilewati.`);
                     continue;
                 }
-                const transaction = contract.createTransaction('PbfContract:terimaBarang');
-                // Endorsing policy mungkin perlu disesuaikan
-                // transaction.setEndorsingOrganizations('PBFMSP', 'ProdusenMSP'); 
-await transaction.submit(item.id_aset_blockchain, hashBuktiFoto, idPbf.toString());            }
-            // --- AKHIR PERUBAHAN ---
 
+                // --- PERBAIKAN DI SINI ---
+                const transaction = contract.createTransaction('PbfContract:terimaBarang');
+                
+                // Panggil submit di baris baru agar tidak terkena komentar
+                await transaction.submit(item.id_aset_blockchain, hashBuktiFoto, idPbf.toString());            
+            }
+
+            // Kirim sinyal ke Frontend (Socket.io)
             if (req.io) {
                 req.io.emit('block_mined', {
                   type: 'PENERIMAAN_PBF',
                   hash: '0x' + crypto.randomBytes(32).toString('hex'),
                   timestamp: new Date().toLocaleTimeString(),
                   org: 'PBFMSP',
-                  details: `Received Order PO: ${pesanan[0].nomor_po}`
+                  details: `Received Order PO: ${pesanan[0].nomor_po}` // Gunakan nomor PO dari hasil query
                 });
             }
 
-            // Simpan path foto ke 'bukti_foto' BUKAN 'catatan_khusus'
+            // Update Database
             await dbConnection.query("UPDATE pesanan SET status = 'Selesai', bukti_foto = ? WHERE id = ?", [buktiFotoPath, id]);
             
             await dbConnection.commit();
             res.json({ success: true, message: 'Pesanan berhasil dikonfirmasi selesai dan kepemilikan aset di blockchain telah ditransfer.' });
         } catch (error) {
             if (dbConnection) await dbConnection.rollback();
-            // Cek apakah file ada sebelum menghapus
+            // Hapus file jika gagal
             if (buktiFotoPath) {
                 try { await fs.unlink(buktiFotoPath); } catch(e) { console.error("Gagal hapus file bukti:", e);}
             }

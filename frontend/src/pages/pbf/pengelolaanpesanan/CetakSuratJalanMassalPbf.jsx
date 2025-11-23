@@ -1,11 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useLocation, useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import SidebarPbf from '../../../components/SidebarPbf';
 import NavbarPbf from '../../../components/NavbarPbf';
-import { Printer, Download, ArrowLeft, Loader2 } from 'lucide-react';
+import { Printer, Download, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
+import axios from 'axios';
 import html2pdf from 'html2pdf.js';
 import logo from '../../../assets/logo.png';
-import axios from 'axios';
+import { toast } from 'react-hot-toast';
 
 const CetakSuratJalanMassalPbf = () => {
   const navigate = useNavigate();
@@ -13,16 +14,19 @@ const CetakSuratJalanMassalPbf = () => {
   const contentRef = useRef(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // --- PERBAIKAN 1: Variabel destructuring sudah benar ---
-  const { pesananDetails: processedDetails = [], allDetails = {} } = location.state || {};
+  // Data awal dari navigate (hanya berisi ID dan info dasar)
+  const { pesananDetails: initialDetails = [], allDetails = {} } = location.state || {};
   const username = localStorage.getItem('username');
 
-  const [pbfProfile, setPbfProfile] = useState(null);
+  // State untuk data lengkap yang di-fetch ulang
+  const [suratJalanList, setSuratJalanList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [pbfProfile, setPbfProfile] = useState(null);
 
+  // 1. Fetch Profil PBF (Pengirim)
   useEffect(() => {
     const fetchPbfProfile = async () => {
-      setIsLoading(true);
       try {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('Token tidak ditemukan');
@@ -31,32 +35,58 @@ const CetakSuratJalanMassalPbf = () => {
         });
         if (response.data.success) {
           setPbfProfile(response.data.data);
-        } else {
-          throw new Error(response.data.message || 'Gagal mengambil profil PBF');
         }
       } catch (error) {
         console.error('Gagal mengambil profil PBF:', error);
-      } finally {
-        setIsLoading(false);
       }
     };
     fetchPbfProfile();
   }, []);
 
-  // --- PERBAIKAN 2: Gunakan 'processedDetails' ---
-  if (!processedDetails || processedDetails.length === 0) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
-        <p className="text-slate-700 font-medium">Tidak ada data untuk dicetak. Silakan kembali.</p>
-        <button
-          onClick={() => navigate(-1)}
-          className="ml-4 px-4 py-2 bg-slate-200 rounded-lg hover:bg-slate-300 transition"
-        >
-          Kembali
-        </button>
-      </div>
-    );
-  }
+  // 2. Fetch Data Surat Jalan Terbaru (Agar dapat ID Aset Baru & Catatan)
+  useEffect(() => {
+    if (!initialDetails || initialDetails.length === 0) {
+        setIsLoading(false);
+        return;
+    }
+
+    const fetchSuratJalanData = async () => {
+      setIsLoading(true);
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) throw new Error('Sesi tidak valid.');
+
+        // Ambil ID pesanan yang sukses diproses
+        const ids = initialDetails.map(p => p.id);
+
+        // Panggil endpoint getSuratJalanById untuk setiap ID secara paralel
+        const promises = ids.map(id => 
+            axios.get(`http://localhost:5000/api/pbf/pesanan-apotek/${id}/surat-jalan`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+        );
+
+        const responses = await Promise.all(promises);
+        
+        // Ambil data yang sukses
+        const validData = responses
+            .filter(res => res.data.success)
+            .map(res => res.data.data); // { pesanan: {...}, detail_pesanan: [...] }
+
+        setSuratJalanList(validData);
+
+      } catch (err) {
+        console.error("Gagal memuat surat jalan:", err);
+        setError("Gagal memuat data surat jalan terbaru dari database.");
+        toast.error("Gagal memuat data surat jalan.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSuratJalanData();
+  }, [initialDetails]);
+
 
   const handlePrint = () => {
     const printContents = contentRef.current.innerHTML;
@@ -114,7 +144,22 @@ const CetakSuratJalanMassalPbf = () => {
     return (
       <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
         <Loader2 className="animate-spin h-12 w-12 text-emerald-600" />
-        <p className="mt-4 text-slate-700 font-medium">Memuat profil PBF...</p>
+        <p className="mt-4 text-slate-700 font-medium">Menyiapkan Surat Jalan...</p>
+      </div>
+    );
+  }
+
+  if (error || suratJalanList.length === 0) {
+    return (
+      <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-red-50">
+         <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+        <p className="text-slate-700 font-medium mb-4">{error || "Tidak ada data surat jalan yang tersedia."}</p>
+        <button
+          onClick={() => navigate('/pbf/pengelolaan-pesanan/pengiriman-massal')}
+          className="px-4 py-2 bg-slate-200 rounded-lg hover:bg-slate-300 transition"
+        >
+          Kembali
+        </button>
       </div>
     );
   }
@@ -130,20 +175,19 @@ const CetakSuratJalanMassalPbf = () => {
         <main className="flex-1 overflow-auto pt-[72px] p-6 print:p-0">
           <div className="max-w-4xl mx-auto">
             {/* Header Action Buttons */}
-            <div className="print:hidden flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 sticky top-0 bg-gradient-to-br from-slate-50 via-white to-emerald-50 py-4 z-10 px-2 rounded-xl shadow-sm">
+            <div className="print:hidden flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 sticky top-0 bg-white/80 backdrop-blur-md py-4 z-10 px-4 rounded-xl shadow-sm border border-white/50">
               <div>
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 via-emerald-900 to-teal-900 bg-clip-text text-transparent">
                   Cetak Surat Jalan Massal
                 </h1>
-                {/* --- PERBAIKAN 3: Gunakan 'processedDetails' --- */}
-                <p className="text-slate-600 mt-1">{processedDetails.length} Lembar Surat Jalan</p>
+                <p className="text-slate-600 mt-1">{suratJalanList.length} Lembar Surat Jalan Siap Cetak</p>
               </div>
               <div className="flex flex-wrap gap-3">
                 <button
                   onClick={handlePrint}
                   className="inline-flex items-center px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition shadow-sm"
                 >
-                  <Printer className="w-4 h-4 mr-2" /> Cetak
+                  <Printer className="w-4 h-4 mr-2" /> Cetak Semua
                 </button>
                 <button
                   onClick={handleDownloadPDF}
@@ -152,29 +196,29 @@ const CetakSuratJalanMassalPbf = () => {
                   <Download className="w-4 h-4 mr-2" /> Unduh PDF
                 </button>
                 <button
-                  onClick={() => navigate('/pbf/tracking-pengiriman')}
+                  onClick={() => navigate('/pbf/pengelolaan-pesanan')}
                   className="inline-flex items-center px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition"
                 >
-                  <ArrowLeft className="w-4 h-4 mr-2" /> Kembali
+                  <ArrowLeft className="w-4 h-4 mr-2" /> Selesai
                 </button>
               </div>
             </div>
 
             {/* Surat Jalan Content */}
             <div ref={contentRef} className="space-y-12 print:space-y-0">
-              {/* --- PERBAIKAN 4: Gunakan 'processedDetails' --- */}
-              {processedDetails.map((pesanan, index) => {
+              {suratJalanList.map((data, index) => {
+                const { pesanan: info, detail_pesanan: detail } = data;
+                
                 const totalHargaPesanan =
-                  pesanan.detail_pesanan?.reduce(
+                  detail?.reduce(
                     (sum, item) => sum + (Number(item.jumlah) * Number(item.harga_satuan) || 0),
                     0
                   ) || 0;
 
                 return (
                   <div
-                    key={pesanan.id}
-                    // --- PERBAIKAN 5: Gunakan 'processedDetails' ---
-                    className={`bg-white rounded-xl shadow-lg border border-slate-200 p-10 print:shadow-none print:border-0 print:p-4 print-break-page ${index < processedDetails.length - 1 ? 'print:break-after-page' : ''}`}
+                    key={info.pesanan_id || index}
+                    className={`bg-white rounded-xl shadow-lg border border-slate-200 p-10 print:shadow-none print:border-0 print:p-4 print-break-page ${index < suratJalanList.length - 1 ? 'print:break-after-page' : ''}`}
                   >
                     {/* Header */}
                     <header className="flex justify-between items-start mb-10 pb-6 border-b-2 border-slate-800">
@@ -194,11 +238,11 @@ const CetakSuratJalanMassalPbf = () => {
                           Surat Jalan
                         </h2>
                         <p className="text-lg font-semibold text-slate-700 mt-1">
-                          No. {pesanan.nomorSuratJalan}
+                          No. {info.nomor_surat_jalan}
                         </p>
                         <p className="text-sm text-slate-500 mt-1">
-                          Tanggal:{' '}
-                          {new Date(allDetails.tanggalPengiriman || Date.now()).toLocaleDateString(
+                          Tanggal Kirim:{' '}
+                          {new Date(info.tanggal_pengiriman).toLocaleDateString(
                             'id-ID',
                             {
                               day: 'numeric',
@@ -223,13 +267,14 @@ const CetakSuratJalanMassalPbf = () => {
                         <h3 className="font-bold text-slate-800 mb-2 uppercase text-xs tracking-wider">
                           Penerima
                         </h3>
-                        <p className="font-semibold text-slate-700">{pesanan.nama_apotek}</p>
-                        <p className="text-slate-600">{pesanan.alamat_apotek}</p>
+                        <p className="font-semibold text-slate-700">{info.nama_apotek}</p>
+                        <p className="text-slate-600">{info.alamat_apotek}</p>
+                        <p className="text-slate-600">Kontak: {info.kontak_telepon || '-'}</p>
                       </div>
                     </section>
 
                     {/* Detail Barang */}
-                    <section className="mb-10">
+                    <section className="mb-6">
                       <h3 className="font-bold text-slate-800 mb-4 uppercase text-sm tracking-wider">
                         Detail Barang
                       </h3>
@@ -255,18 +300,19 @@ const CetakSuratJalanMassalPbf = () => {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100">
-                            {pesanan.detail_pesanan && pesanan.detail_pesanan.length > 0 ? (
-                              pesanan.detail_pesanan.map((item, idx) => (
+                            {detail && detail.length > 0 ? (
+                              detail.map((item, idx) => (
                                 <tr
-                                  key={item.detail_pesanan_id || idx}
+                                  key={item.id || idx}
                                   className="hover:bg-slate-50"
                                 >
                                   <td className="px-4 py-3 border-r border-slate-200">{idx + 1}</td>
                                   <td className="px-4 py-3 border-r border-slate-200 font-medium text-slate-800">
                                     {item.nama_obat}
                                   </td>
-                                  <td className="px-4 py-3 border-r border-slate-200 font-mono text-xs">
-                                    {item.id_aset_blockchain}
+                                  {/* Tampilkan Asset ID yang baru di-generate */}
+                                  <td className="px-4 py-3 border-r border-slate-200 font-mono text-xs text-slate-600">
+                                    {item.id_aset_blockchain || '-'}
                                   </td>
                                   <td className="px-4 py-3 text-center border-r border-slate-200">
                                     {item.jumlah.toLocaleString('id-ID')} Box
@@ -288,7 +334,7 @@ const CetakSuratJalanMassalPbf = () => {
                               </tr>
                             )}
                           </tbody>
-                          {pesanan.detail_pesanan && pesanan.detail_pesanan.length > 0 && (
+                          {detail && detail.length > 0 && (
                             <tfoot className="bg-slate-100 font-semibold text-slate-800">
                               <tr>
                                 <td
@@ -310,21 +356,42 @@ const CetakSuratJalanMassalPbf = () => {
                       </div>
                     </section>
 
+                    {/* --- BAGIAN CATATAN (DITAMBAHKAN) --- */}
+                    {(info.catatan_kurir || info.catatan_penerima) && (
+                      <section className="mb-10 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                        <h3 className="font-bold text-slate-800 mb-2 uppercase text-xs tracking-wider">
+                          Catatan Penting
+                        </h3>
+                        
+                        {info.catatan_kurir && (
+                          <div className="mb-2">
+                            <span className="font-semibold text-slate-700 text-sm">Instruksi Kurir: </span>
+                            <span className="text-slate-600 text-sm italic">"{info.catatan_kurir}"</span>
+                          </div>
+                        )}
+                        
+                        {info.catatan_penerima && (
+                          <div>
+                            <span className="font-semibold text-slate-700 text-sm">Pesan untuk Penerima: </span>
+                            <span className="text-slate-600 text-sm italic">"{info.catatan_penerima}"</span>
+                          </div>
+                        )}
+                      </section>
+                    )}
+                    {/* --- AKHIR BAGIAN CATATAN --- */}
+
                     {/* Footer */}
                     <footer className="flex flex-col sm:flex-row justify-between items-start sm:items-end mt-16 pt-8 border-t border-slate-300 text-xs text-slate-600 gap-4">
                       <div>
                         <p>
                           No. Resi Pengiriman:{' '}
                           <span className="font-semibold text-slate-900">
-                            {pesanan.nomorResi || '-'}
+                            {info.nomor_resi || '-'}
                           </span>
                         </p>
-                        {allDetails.catatanKurir && (
-                          <p className="mt-1">
-                            <span className="font-semibold">Catatan Kurir:</span> {allDetails.catatanKurir}
-                          </p>
-                        )}
-                      
+                        <p>
+                            Opsi Pengiriman: <span className="font-semibold text-slate-900 capitalize">{info.opsi_pengiriman}</span>
+                        </p>
                         <p className="mt-4 print:block hidden">
                           Dokumen ini dicetak pada: {new Date().toLocaleString('id-ID')}
                         </p>

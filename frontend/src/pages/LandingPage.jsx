@@ -435,14 +435,14 @@ const LandingPage = () => {
 
             {/* Navigation Links */}
             <nav className="flex items-center gap-8">
-              <a href="#" className="text-white hover:text-white transition-colors duration-200">
-                About
+              <a href="#fitur" className="text-white hover:text-white transition-colors duration-200">
+                Fitur
               </a>
-              <a href="#" className="text-white hover:text-white transition-colors duration-200">
-                Services
+              <a href="#tentang" className="text-white hover:text-white transition-colors duration-200">
+                Tentang
               </a>
-              <a href="#" className="text-white hover:text-white transition-colors duration-200">
-                Contact
+              <a href="#kontak" className="text-white hover:text-white transition-colors duration-200">
+                Kontak
               </a>
             </nav>
 

@@ -433,14 +433,7 @@ const LaporanAnalitikPbf = () => {
                 </table>
               </div>
 
-              <div className="text-center mt-6">
-                <Link
-                  to="/pbf/laporan-riwayat"
-                  className="text-emerald-600 font-semibold text-sm hover:underline inline-flex items-center gap-1"
-                >
-                  Lihat Semua Transaksi <ChevronDown size={14} className="rotate-[-90deg]" />
-                </Link>
-              </div>
+             
             </div>
           </div>
         </main>

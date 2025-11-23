@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useLocation, useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import SidebarPbf from '../../../components/SidebarPbf';
 import NavbarPbf from '../../../components/NavbarPbf';
 import {
@@ -17,7 +17,7 @@ import {
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
-// === GENERATE NOMOR RESI ===
+// === GENERATE NOMOR RESI PBF ===
 const generateProNumber = (prefix, orderId) => {
   const date = new Date();
   const year = date.getFullYear().toString().slice(-2);
@@ -28,22 +28,10 @@ const generateProNumber = (prefix, orderId) => {
   return `${prefix}-${year}${month}${day}-${paddedOrderId}-${timestamp}`;
 };
 
-// === GENERATE NOMOR SURAT JALAN (Disesuaikan untuk PBF) ===
+// === GENERATE NOMOR SURAT JALAN PBF ===
 const toRoman = (num) => {
   const map = {
-    M: 1000,
-    CM: 900,
-    D: 500,
-    CD: 400,
-    C: 100,
-    XC: 90,
-    L: 50,
-    XL: 40,
-    X: 10,
-    IX: 9,
-    V: 5,
-    IV: 4,
-    I: 1,
+    M: 1000, CM: 900, D: 500, CD: 400, C: 100, XC: 90, L: 50, XL: 40, X: 10, IX: 9, V: 5, IV: 4, I: 1,
   };
   let result = '';
   for (let key in map)
@@ -55,8 +43,7 @@ const toRoman = (num) => {
 };
 
 const generateSuratJalanNumber = (orderId) => {
-  // PBF menggunakan nomor izin PBF dari local storage
-  const nomorIzin = localStorage.getItem('nomorIzin'); // Pastikan ini ada di local storage PBF
+  const nomorIzin = localStorage.getItem('nomorIzin'); 
   if (!nomorIzin) return 'ERROR-NO-IZIN';
   const date = new Date();
   const year = date.getFullYear().toString().slice(-2);
@@ -78,7 +65,17 @@ const KonfirmasiPengirimanMassalPbf = () => {
   const [errorList, setErrorList] = useState([]);
   const username = localStorage.getItem('username');
 
-  // === GENERATE NOMOR RESI & SJ OTOMATIS PER PESANAN ===
+  // --- State untuk Catatan Penerima (Unik per baris) ---
+  const [catatanPenerimaMap, setCatatanPenerimaMap] = useState({});
+
+  // Handler perubahan input
+  const handleCatatanPenerimaChange = (id, value) => {
+    setCatatanPenerimaMap(prev => ({
+      ...prev,
+      [id]: value
+    }));
+  };
+
   const enrichPesananWithTracking = (details) => {
     return details.map((item) => ({
       ...item,
@@ -100,7 +97,6 @@ const KonfirmasiPengirimanMassalPbf = () => {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('Otentikasi gagal. Silakan login kembali.');
 
-        // --- PERBAIKAN: Panggil endpoint 'detail-pesanan-massal' (BARU) ---
         const response = await axios.post(
           'http://localhost:5000/api/pbf/pesanan-apotek/detail-pesanan-massal',
           { selectedIds: payload.selectedIds },
@@ -146,10 +142,13 @@ const KonfirmasiPengirimanMassalPbf = () => {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Otentikasi gagal. Silakan login kembali.');
 
-      // --- PERBAIKAN: Kirim payload yang sudah diperkaya ---
+      // --- SUSUN PAYLOAD LENGKAP ---
       const payloadWithTracking = {
         ...payload,
-        // Kirim detail pesanan yang sudah diperkaya dengan No. Resi & SJ
+        // Catatan Kurir Global
+        catatanKurirGlobal: payload.catatan,
+
+        // Detail Pesanan (Array)
         pesananDetails: pesananDetails.map((p) => ({
           id: p.id,
           nomorResi: p.nomorResi,
@@ -157,13 +156,16 @@ const KonfirmasiPengirimanMassalPbf = () => {
           tanggalPengiriman: payload.tanggalPengiriman,
           waktuPengiriman: payload.waktuPengiriman,
           opsiPengiriman: payload.opsiPengiriman,
-         catatanKurir: payload.catatanKurir, 
-        catatanPenerima: payload.catatanPenerima,
-          alamatTujuan: p.alamat_apotek, // Ambil alamat dari detail
+          alamatTujuan: p.alamat_apotek,
+          
+          // Catatan Kurir (Global)
+          catatanKurir: payload.catatan,
+
+          // Catatan Penerima (Unik)
+          catatanPenerima: catatanPenerimaMap[p.id] || '',
         })),
       };
 
-      // --- PERBAIKAN: Panggil endpoint 'proses-pengiriman-massal' ---
       const response = await axios.post(
         'http://localhost:5000/api/pbf/pesanan-apotek/proses-pengiriman-massal',
         payloadWithTracking,
@@ -189,7 +191,6 @@ const KonfirmasiPengirimanMassalPbf = () => {
         const successIds = response.data.data.map((item) => item.id);
         const successfulFullDetails = pesananDetails.filter((item) => successIds.includes(item.id));
 
-        // --- PERBAIKAN: Navigasi ke halaman cetak PBF ---
         navigate('/pbf/pengelolaan-pesanan/cetak-surat-jalan-massal', {
           state: {
             pesananDetails: successfulFullDetails,
@@ -230,7 +231,6 @@ const KonfirmasiPengirimanMassalPbf = () => {
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
-      {/* --- PERBAIKAN: SidebarPbf & NavbarPbf --- */}
       <SidebarPbf isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <div
         className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}
@@ -239,11 +239,11 @@ const KonfirmasiPengirimanMassalPbf = () => {
 
         <main className="flex-1 overflow-auto pt-[72px] px-12 py-8">
           <div className="max-w-7xl mx-auto">
+            {/* --- HEADER --- */}
             <div className="mb-10 relative">
               <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
               <div className="absolute -top-20 -right-20 w-72 h-72 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
 
-              {/* --- PERBAIKAN: Header Dinamis --- */}
               <div className="relative flex items-center gap-3">
                 <div
                   className={`flex items-center justify-center w-12 h-12 rounded-xl shadow-lg 
@@ -353,6 +353,7 @@ const KonfirmasiPengirimanMassalPbf = () => {
                   </div>
                 )}
 
+                {/* --- RINGKASAN GLOBAL --- */}
                 <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
                   <div className="p-4 border-b border-slate-200 bg-slate-50">
                     <h3 className="text-base font-semibold text-slate-700">
@@ -367,11 +368,12 @@ const KonfirmasiPengirimanMassalPbf = () => {
                     />
                     <InfoItem icon={Clock} label="Waktu Kirim" value={payload.waktuPengiriman} />
                     <InfoItem icon={Truck} label="Opsi Kirim" value={payload.opsiPengiriman} />
-                    <InfoItem icon={FileText} label="Catatan Kurir" value={payload.catatanKurir || '-'} />
-                    <InfoItem icon={FileText} label="Catatan Penerima" value={payload.catatanPenerima || '-'} />
+                    {/* Catatan Kurir ditampilkan di sini karena Global */}
+                    <InfoItem icon={FileText} label="Catatan Kurir (Global)" value={payload.catatan || '-'} />
                   </div>
                 </div>
 
+                {/* --- TABEL DETAIL --- */}
                 <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
                   <div className="p-4 border-b border-slate-200 bg-slate-50">
                     <h3 className="text-base font-semibold text-slate-700">
@@ -382,7 +384,6 @@ const KonfirmasiPengirimanMassalPbf = () => {
                     <table className="min-w-full">
                       <thead className="bg-slate-50 border-b border-slate-200">
                         <tr>
-                          {/* --- PERBAIKAN: Sesuaikan Header Tabel --- */}
                           <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                             Apotek & ID
                           </th>
@@ -398,6 +399,12 @@ const KonfirmasiPengirimanMassalPbf = () => {
                           <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                             No Surat Jalan
                           </th>
+
+                          {/* KOLOM BARU: Catatan Penerima */}
+                          <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-1/6">
+                            Catatan Penerima (Opsional)
+                          </th>
+
                           <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                             Status
                           </th>
@@ -440,7 +447,6 @@ const KonfirmasiPengirimanMassalPbf = () => {
                                     : 'hover:bg-gray-50'
                               }
                             >
-                              {/* --- PERBAIKAN: Sesuaikan Data Tabel --- */}
                               <td className="px-4 py-4 whitespace-nowrap">
                                 <p className="font-medium text-sm text-slate-900">
                                   {item.nama_apotek}
@@ -461,6 +467,19 @@ const KonfirmasiPengirimanMassalPbf = () => {
                               <td className="px-4 py-4 whitespace-nowrap font-mono text-sm text-emerald-700">
                                 {processedItem?.nomorSuratJalan || item.nomorSuratJalan}
                               </td>
+                              
+                              {/* INPUT Catatan Penerima */}
+                              <td className="px-4 py-4 whitespace-nowrap">
+                                <input
+                                  type="text"
+                                  placeholder="Pesan untuk Apotek..."
+                                  className="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-emerald-500 focus:ring-emerald-500 px-3 py-1.5"
+                                  value={catatanPenerimaMap[item.id] || ''}
+                                  onChange={(e) => handleCatatanPenerimaChange(item.id, e.target.value)}
+                                  disabled={isSuccess || processingStatus === 'submitting'}
+                                />
+                              </td>
+
                               <td className="px-4 py-4 whitespace-nowrap">
                                 <span
                                   className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full border ${statusClass}`}
@@ -479,7 +498,7 @@ const KonfirmasiPengirimanMassalPbf = () => {
 
                 <div className="mt-6 flex flex-col sm:flex-row justify-end items-center gap-3">
                   <button
-                    onClick={() => navigate('/pbf/pengelolaan-pesanan')} // <-- PERBAIKAN: Navigasi PBF
+                    onClick={() => navigate('/pbf/pengelolaan-pesanan')}
                     className="w-full sm:w-auto py-2 px-5 bg-slate-100 text-slate-700 font-medium rounded-lg hover:bg-slate-200 transition text-sm"
                   >
                     Kembali ke Pengiriman
@@ -536,7 +555,6 @@ const KonfirmasiPengirimanMassalPbf = () => {
   );
 };
 
-// --- PERBAIKAN: Komponen InfoItem ---
 const InfoItem = ({ icon: Icon, label, value }) => (
   <div className="space-y-1">
     <span className="text-xs font-medium text-slate-500 flex items-center gap-1.5">

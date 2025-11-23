@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import NavbarApotek from '../../components/NavbarApotek';
 import {
@@ -11,12 +11,11 @@ import {
   Package,
   Calendar,
   ArrowUpRight,
-  BarChart2, // <-- Baru
-  PlusCircle, // <-- Baru
-  FilePlus, // <-- Baru
+  PlusCircle, 
+  FilePlus, 
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { Bar } from 'react-chartjs-2'; // <-- Baru
+import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -25,12 +24,10 @@ import {
   Title,
   Tooltip,
   Legend,
-} from 'chart.js'; // <-- Baru
+} from 'chart.js';
 
-// --- REGISTRASI CHART.JS ---
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-// --- HELPER SAPAAN ---
 const getGreeting = () => {
   const hour = new Date().getHours();
   if (hour < 11) return 'Selamat Pagi';
@@ -39,7 +36,6 @@ const getGreeting = () => {
   return 'Selamat Malam';
 };
 
-// --- HELPER FORMAT TANGGAL (BARU) ---
 const formatDate = (dateString) => {
   if (!dateString) return '-';
   try {
@@ -51,7 +47,6 @@ const formatDate = (dateString) => {
   }
 };
 
-// --- KARTU KPI (Desain Asli Anda - Sudah Bagus) ---
 const StatCard = ({ icon, value, label, unit, isCurrency = false, trend, color = 'emerald' }) => {
   const colorClasses = {
     emerald: 'from-emerald-500 to-teal-600',
@@ -95,15 +90,15 @@ const StatCard = ({ icon, value, label, unit, isCurrency = false, trend, color =
   );
 };
 
-// --- KOMPONEN GRAFIK PENJUALAN (BARU) ---
-const SalesChart = () => {
-  // Data dummy (gantilah dengan data API Anda jika ada)
+// --- KOMPONEN GRAFIK PENJUALAN (DATA RIIL) ---
+const SalesChart = ({ chartData }) => {
+  // Gunakan data dari props, atau fallback ke 0 jika kosong
   const data = {
-    labels: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'],
+    labels: chartData.labels.length > 0 ? chartData.labels : ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'],
     datasets: [
       {
         label: 'Penjualan (Rp)',
-        data: [120000, 190000, 300000, 500000, 200000, 300000, 450000],
+        data: chartData.values.length > 0 ? chartData.values : [0, 0, 0, 0, 0, 0, 0], // Data akan mengikuti database
         backgroundColor: '#10B981',
         borderColor: '#059669',
         borderWidth: 1,
@@ -127,6 +122,7 @@ const SalesChart = () => {
       },
       tooltip: {
         callbacks: {
+          // Format tooltip tetap lengkap (Rp 150.000)
           label: (context) => `Rp ${context.raw.toLocaleString('id-ID')}`,
         },
       },
@@ -135,10 +131,22 @@ const SalesChart = () => {
       y: {
         beginAtZero: true,
         ticks: {
-          callback: (value) => `Rp${value / 1000}k`,
+          // --- PERBAIKAN FORMAT ANGKA DI SUMBU Y ---
+          // Ubah angka panjang menjadi format "100k", "1.5jt", dst
+          callback: (value) => {
+            if (value >= 1000000) return `Rp${value / 1000000}jt`;
+            if (value >= 1000) return `Rp${value / 1000}k`;
+            return `Rp${value}`;
+          },
+          font: { size: 11 },
+          color: '#64748b'
         },
+        grid: { color: '#f1f5f9' }
       },
-      x: { grid: { display: false } },
+      x: { 
+        grid: { display: false },
+        ticks: { font: { size: 12 }, color: '#64748b' }
+      },
     },
   };
 
@@ -149,7 +157,6 @@ const SalesChart = () => {
   );
 };
 
-// --- KOMPONEN AKSI CEPAT (BARU) ---
 const QuickActions = () => (
   <div className="bg-white rounded-2xl shadow-sm border border-slate-200">
     <div className="p-5 border-b border-slate-200">
@@ -174,7 +181,6 @@ const QuickActions = () => (
   </div>
 );
 
-// --- KOMPONEN STOK KRITIS (Desain List Baru) ---
 const CriticalStockList = ({ data }) => (
   <div className="bg-white rounded-2xl shadow-sm border border-slate-200">
     <div className="p-5 border-b border-slate-200">
@@ -211,7 +217,6 @@ const CriticalStockList = ({ data }) => (
   </div>
 );
 
-// --- KOMPONEN PESANAN TERBARU (Tabel) ---
 const RecentOrdersTable = ({ data, getStatusBadge }) => (
   <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
     <div className="p-5 border-b border-slate-200">
@@ -275,13 +280,12 @@ const RecentOrdersTable = ({ data, getStatusBadge }) => (
   </div>
 );
 
-// --- KOMPONEN UTAMA DASHBOARD ---
 const ApotekDashboard = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const username = localStorage.getItem('username');
-  const greeting = getGreeting(); // Sapaan dinamis
+  const greeting = getGreeting();
 
   const [stats, setStats] = useState({
     totalStok: 0,
@@ -291,6 +295,8 @@ const ApotekDashboard = () => {
   });
   const [stokTerbaru, setStokTerbaru] = useState([]);
   const [pesananTerbaru, setPesananTerbaru] = useState([]);
+  // State baru untuk chart
+  const [chartData, setChartData] = useState({ labels: [], values: [] });
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -318,6 +324,8 @@ const ApotekDashboard = () => {
           setStats(result.data.stats);
           setStokTerbaru(result.data.stokTerbaru);
           setPesananTerbaru(result.data.pesananTerbaru);
+          // Set data chart dari backend
+          setChartData(result.data.chartData || { labels: [], values: [] });
         } else {
           throw new Error(result.message || 'Data dasbor tidak tersedia');
         }
@@ -409,11 +417,8 @@ const ApotekDashboard = () => {
               </div>
             )}
 
-            {/* --- STRUKTUR UTAMA DASHBOARD (BARU) --- */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* --- Kolom Utama (Kiri) --- */}
               <div className="lg:col-span-2 space-y-6">
-                {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <StatCard
                     icon={<Box />}
@@ -443,19 +448,14 @@ const ApotekDashboard = () => {
                   />
                 </div>
 
-                {/* Grafik Penjualan */}
-                <SalesChart />
+                {/* Kirim data chart dari API ke komponen SalesChart */}
+                <SalesChart chartData={chartData} />
 
-                {/* Tabel Pesanan Terbaru */}
                 <RecentOrdersTable data={pesananTerbaru} getStatusBadge={getStatusBadge} />
               </div>
 
-              {/* --- Sidebar Kanan --- */}
               <div className="lg:col-span-1 space-y-6">
-                {/* Aksi Cepat */}
                 <QuickActions />
-
-                {/* Stok Kritis */}
                 <CriticalStockList data={stokTerbaru} />
               </div>
             </div>

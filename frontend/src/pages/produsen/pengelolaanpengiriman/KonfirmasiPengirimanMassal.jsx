@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useLocation, useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
 import {
@@ -31,19 +31,7 @@ const generateProNumber = (prefix, orderId) => {
 // === GENERATE NOMOR SURAT JALAN ===
 const toRoman = (num) => {
   const map = {
-    M: 1000,
-    CM: 900,
-    D: 500,
-    CD: 400,
-    C: 100,
-    XC: 90,
-    L: 50,
-    XL: 40,
-    X: 10,
-    IX: 9,
-    V: 5,
-    IV: 4,
-    I: 1,
+    M: 1000, CM: 900, D: 500, CD: 400, C: 100, XC: 90, L: 50, XL: 40, X: 10, IX: 9, V: 5, IV: 4, I: 1,
   };
   let result = '';
   for (let key in map)
@@ -76,6 +64,9 @@ const KonfirmasiPengirimanMassal = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [errorList, setErrorList] = useState([]);
   const username = localStorage.getItem('username');
+
+  // State untuk menyimpan catatan penerima yang beda-beda per ID
+  const [catatanPenerimaMap, setCatatanPenerimaMap] = useState({});
 
   // === GENERATE NOMOR RESI & SJ OTOMATIS PER PESANAN ===
   const enrichPesananWithTracking = (details) => {
@@ -135,6 +126,14 @@ const KonfirmasiPengirimanMassal = () => {
     navigate('/');
   };
 
+  // Handler perubahan input catatan penerima
+  const handleCatatanPenerimaChange = (id, value) => {
+    setCatatanPenerimaMap((prev) => ({
+      ...prev,
+      [id]: value,
+    }));
+  };
+
   const handleProcessAndPrint = async () => {
     setProcessingStatus('submitting');
     setErrorMessage('');
@@ -144,9 +143,12 @@ const KonfirmasiPengirimanMassal = () => {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Otentikasi gagal. Silakan login kembali.');
 
-      // Kirim data lengkap dengan nomor resi & surat jalan
+      // Susun payload lengkap
       const payloadWithTracking = {
         ...payload,
+        // Catatan Kurir diambil dari GLOBAL (payload.catatan)
+        catatanKurirGlobal: payload.catatan, 
+
         pesananDetails: pesananDetails.map((p) => ({
           id: p.id,
           nomorResi: p.nomorResi,
@@ -154,8 +156,13 @@ const KonfirmasiPengirimanMassal = () => {
           tanggalPengiriman: payload.tanggalPengiriman,
           waktuPengiriman: payload.waktuPengiriman,
           opsiPengiriman: payload.opsiPengiriman,
-          catatan: payload.catatan,
           alamatTujuan: p.alamat_pbf,
+          
+          // Catatan Kurir (Global/Sama)
+          catatanKurir: payload.catatan,
+          
+          // Catatan Penerima (Unik per baris)
+          catatanPenerima: catatanPenerimaMap[p.id] || '', 
         })),
       };
 
@@ -181,21 +188,15 @@ const KonfirmasiPengirimanMassal = () => {
         setProcessingStatus('success');
         toast.success('Semua pesanan berhasil diproses dan dicatat ke blockchain.');
 
-        // --- PERBAIKAN DI SINI ---
-        // 'pesananDetails' (dari state) sudah memiliki semua info lengkap (nama, alamat, detail_pesanan, resi, sj)
-        // 'response.data.data' hanya berisi ID yang sukses. Kita filter 'pesananDetails' berdasarkan ID yang sukses.
-
         const successIds = response.data.data.map((item) => item.id);
-
         const successfulFullDetails = pesananDetails.filter((item) => successIds.includes(item.id));
 
         navigate('/produsen/pengelolaan-pengiriman/cetak-surat-jalan-massal', {
           state: {
-            pesananDetails: successfulFullDetails, // <-- KIRIM DATA LENGKAP YANG SUDAH DI-FILTER
+            pesananDetails: successfulFullDetails,
             allDetails: payload,
           },
         });
-        // --- AKHIR PERBAIKAN ---
       }
     } catch (err) {
       const errorMsg =
@@ -243,7 +244,6 @@ const KonfirmasiPengirimanMassal = () => {
               <div className="absolute -top-20 -right-20 w-72 h-72 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
 
               <div className="relative flex items-center gap-3">
-                {/* --- PERBAIKAN SYNTAX DI SINI --- */}
                 <div
                   className={`flex items-center justify-center w-12 h-12 rounded-xl shadow-lg 
                    ${
@@ -254,8 +254,6 @@ const KonfirmasiPengirimanMassal = () => {
                          : 'bg-red-500'
                    }`}
                 >
-                  {/* --- AKHIR PERBAIKAN SYNTAX --- */}
-
                   {processingStatus === 'loading_details' && (
                     <Loader2 className="text-white animate-spin" size={24} />
                   )}
@@ -368,7 +366,7 @@ const KonfirmasiPengirimanMassal = () => {
                     />
                     <InfoItem icon={Clock} label="Waktu Kirim" value={payload.waktuPengiriman} />
                     <InfoItem icon={Truck} label="Opsi Kirim" value={payload.opsiPengiriman} />
-                    <InfoItem icon={FileText} label="Catatan" value={payload.catatan || '-'} />
+                    <InfoItem icon={FileText} label="Catatan Kurir" value={payload.catatan || '-'} />
                   </div>
                 </div>
 
@@ -397,7 +395,12 @@ const KonfirmasiPengirimanMassal = () => {
                           <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                             No Surat Jalan
                           </th>
-                          {/* Selalu tampilkan kolom status */}
+                          
+                          {/* KOLOM BARU: CATATAN PENERIMA */}
+                          <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-1/6">
+                            Catatan Penerima
+                          </th>
+
                           <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                             Status
                           </th>
@@ -412,7 +415,6 @@ const KonfirmasiPengirimanMassal = () => {
                               processingStatus === 'error') &&
                             !isSuccess;
 
-                          // Logika Status Diperbarui
                           let statusText = 'Menunggu';
                           let statusClass = 'bg-gray-100 text-gray-800 border-gray-200';
 
@@ -456,17 +458,25 @@ const KonfirmasiPengirimanMassal = () => {
                                 {item.alamat_pbf}
                               </td>
 
-                              {/* NO RESI & NO SJ OTOMATIS */}
                               <td className="px-4 py-4 whitespace-nowrap font-mono text-sm text-emerald-700">
-                                {/* Tampilkan resi yang di-generate ATAU resi yang diproses */}
                                 {processedItem?.nomorResi || item.nomorResi}
                               </td>
                               <td className="px-4 py-4 whitespace-nowrap font-mono text-sm text-emerald-700">
-                                {/* Tampilkan SJ yang di-generate ATAU SJ yang diproses */}
                                 {processedItem?.nomorSuratJalan || item.nomorSuratJalan}
                               </td>
 
-                              {/* STATUS */}
+                              {/* INPUT CATATAN PENERIMA */}
+                              <td className="px-4 py-4 whitespace-nowrap">
+                                <input
+                                  type="text"
+                                  placeholder="Pesan untuk penerima..."
+                                  className="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-emerald-500 focus:ring-emerald-500 px-3 py-1.5"
+                                  value={catatanPenerimaMap[item.id] || ''}
+                                  onChange={(e) => handleCatatanPenerimaChange(item.id, e.target.value)}
+                                  disabled={isSuccess || processingStatus === 'submitting'}
+                                />
+                              </td>
+
                               <td className="px-4 py-4 whitespace-nowrap">
                                 <span
                                   className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full border ${statusClass}`}

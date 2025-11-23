@@ -1,42 +1,84 @@
-import React, { useState, useRef, useMemo } from 'react'; // Import useMemo
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import SidebarProdusen from '../../../components/SidebarProdusen';
 import NavbarProdusen from '../../../components/NavbarProdusen';
-import { Printer, Download, ArrowLeft } from 'lucide-react';
+import { Printer, Download, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
+import axios from 'axios';
 import html2pdf from 'html2pdf.js';
 import logo from '../../../assets/logo.png';
+import { toast } from 'react-hot-toast';
 
 const CetakSuratJalanMassal = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const contentRef = useRef(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  
+  // State untuk data
+  const [suratJalanList, setSuratJalanList] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Data dari 'navigate' (pesananDetails sekarang berisi data LENGKAP)
-  const { pesananDetails, allDetails } = location.state || { pesananDetails: [], allDetails: {} };
-  const username = localStorage.getItem('username'); // Ambil username
+  // Ambil pesanan yang SUKSES diproses dari halaman sebelumnya
+  // pesananDetails di sini minimal harus punya 'id'
+  const { pesananDetails } = location.state || { pesananDetails: [] };
+  const username = localStorage.getItem('username'); 
 
-  // Ambil nama produsen dari local storage (diset saat login)
-  const namaProdusen = localStorage.getItem('namaResmi') || 'Produsen Medisync';
-  // (Anda mungkin perlu menambahkan alamat produsen ke localStorage juga saat login)
-  const alamatProdusen = 'Jl. Teknologi No. 1, Kota Industri';
+  // --- EFFECT: Fetch Data Terbaru dari Database ---
+  useEffect(() => {
+    if (!pesananDetails || pesananDetails.length === 0) {
+        // Jika tidak ada data, tidak perlu fetch (akan dihandle di render)
+        setIsLoading(false);
+        return;
+    }
 
-  if (pesananDetails.length === 0) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
-        <p className="text-slate-700 font-medium">Tidak ada data untuk dicetak. Silakan kembali.</p>
-        <button
-          onClick={() => navigate(-1)}
-          className="ml-4 px-4 py-2 bg-slate-200 rounded-lg hover:bg-slate-300 transition"
-        >
-          Kembali
-        </button>
-      </div>
-    );
-  }
+    const fetchSuratJalanData = async () => {
+      setIsLoading(true);
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) throw new Error('Sesi tidak valid.');
+
+        // Ambil ID saja
+        const ids = pesananDetails.map(p => p.id);
+
+        // Panggil endpoint massal untuk mendapatkan data LENGKAP (termasuk catatan yang baru disimpan)
+        // Kita bisa gunakan endpoint getDetailPesananMassal yang sudah ada atau buat endpoint khusus surat jalan massal
+        // Untuk efisiensi, kita gunakan endpoint yang sudah ada di controller: detail-pesanan-massal
+        // Tapi pastikan endpoint ini mengembalikan data surat jalan (catatan, resi, dll)
+        
+        // KARENA endpoint 'detail-pesanan-massal' mungkin belum join ke tabel surat_jalan_produsen,
+        // kita bisa memanggil getSuratJalanById secara paralel untuk setiap ID.
+        // Ini mungkin agak berat jika ratusan, tapi untuk puluhan masih oke.
+        
+        const promises = ids.map(id => 
+            axios.get(`http://localhost:5000/api/produsen/pesanan-masuk/${id}/surat-jalan`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+        );
+
+        const responses = await Promise.all(promises);
+        
+        // Filter yang sukses dan ambil datanya
+        const validData = responses
+            .filter(res => res.data.success)
+            .map(res => res.data.data); // Struktur: { pesanan: {...}, detail_pesanan: [...] }
+
+        setSuratJalanList(validData);
+
+      } catch (err) {
+        console.error("Gagal memuat surat jalan:", err);
+        setError("Gagal memuat data surat jalan terbaru dari database.");
+        toast.error("Gagal memuat data surat jalan.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSuratJalanData();
+  }, [pesananDetails]);
+
 
   const handlePrint = () => {
-    // ... (Fungsi tidak berubah) ...
     const printContents = contentRef.current.innerHTML;
     const originalContents = document.body.innerHTML;
     const styles = document.querySelectorAll('style, link[rel="stylesheet"]');
@@ -46,7 +88,7 @@ const CetakSuratJalanMassal = () => {
     document.body.innerHTML = `
       <html>
         <head>
-          <title>Surat Jalan Massal</title>
+          <title>Cetak Surat Jalan Massal</title>
           ${styleHTML}
           <style>
             @media print {
@@ -70,7 +112,6 @@ const CetakSuratJalanMassal = () => {
   };
 
   const handleDownloadPDF = () => {
-    // ... (Fungsi tidak berubah) ...
     const element = contentRef.current;
     const opt = {
       margin: [10, 5, 10, 5],
@@ -89,6 +130,32 @@ const CetakSuratJalanMassal = () => {
     navigate('/');
   };
 
+  // --- RENDER STATES ---
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
+        <Loader2 className="animate-spin h-12 w-12 text-emerald-600 mb-4" />
+        <p className="text-slate-700 font-medium">Menyiapkan Surat Jalan...</p>
+      </div>
+    );
+  }
+
+  if (error || suratJalanList.length === 0) {
+    return (
+      <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-slate-50 via-white to-red-50">
+         <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+        <p className="text-slate-700 font-medium mb-4">{error || "Tidak ada data surat jalan yang tersedia."}</p>
+        <button
+          onClick={() => navigate('/produsen/pengelolaan-pengiriman')}
+          className="px-4 py-2 bg-slate-200 rounded-lg hover:bg-slate-300 transition"
+        >
+          Kembali ke Pengelolaan
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
       <SidebarProdusen isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
@@ -100,19 +167,19 @@ const CetakSuratJalanMassal = () => {
         <main className="flex-1 overflow-auto pt-[72px] p-6 print:p-0">
           <div className="max-w-4xl mx-auto">
             {/* Header Action Buttons */}
-            <div className="print:hidden flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 sticky top-0 bg-gradient-to-br from-slate-50 via-white to-emerald-50 py-4 z-10 px-2 rounded-xl shadow-sm">
+            <div className="print:hidden flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 sticky top-0 bg-white/80 backdrop-blur-md py-4 z-10 px-4 rounded-xl shadow-sm border border-white/50">
               <div>
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 via-emerald-900 to-teal-900 bg-clip-text text-transparent">
                   Cetak Surat Jalan Massal
                 </h1>
-                <p className="text-slate-600 mt-1">{pesananDetails.length} Lembar Surat Jalan</p>
+                <p className="text-slate-600 mt-1">{suratJalanList.length} Lembar Surat Jalan Siap Cetak</p>
               </div>
               <div className="flex flex-wrap gap-3">
                 <button
                   onClick={handlePrint}
                   className="inline-flex items-center px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition shadow-sm"
                 >
-                  <Printer className="w-4 h-4 mr-2" /> Cetak
+                  <Printer className="w-4 h-4 mr-2" /> Cetak Semua
                 </button>
                 <button
                   onClick={handleDownloadPDF}
@@ -124,53 +191,44 @@ const CetakSuratJalanMassal = () => {
                   onClick={() => navigate('/produsen/pengelolaan-pengiriman')}
                   className="inline-flex items-center px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-100 transition"
                 >
-                  <ArrowLeft className="w-4 h-4 mr-2" /> Kembali
+                  <ArrowLeft className="w-4 h-4 mr-2" /> Selesai
                 </button>
               </div>
             </div>
 
-            {/* Surat Jalan Content */}
+            {/* Surat Jalan Content Wrapper */}
             <div ref={contentRef} className="space-y-12 print:space-y-0">
-              {/* --- PERBAIKAN: Gunakan pesananDetails --- */}
-              {pesananDetails.map((pesanan, index) => {
-                // Kalkulasi total harga dari 'detail_pesanan' yang sekarang ada
-                const totalHargaPesanan =
-                  pesanan.detail_pesanan?.reduce(
-                    (sum, item) => sum + (Number(item.total_harga) || 0),
-                    0
-                  ) || 0;
-
+              {suratJalanList.map((data, index) => {
+                // Destructure data dari backend
+                // Struktur: data = { pesanan: {...}, detail_pesanan: [...] }
+                const { pesanan: info, detail_pesanan: detail } = data;
+                
                 return (
                   <div
-                    key={pesanan.id}
-                    className={`bg-white rounded-xl shadow-lg border border-slate-200 p-10 print:shadow-none print:border-0 print:p-4 print-break-page ${index < pesananDetails.length - 1 ? 'print:break-after-page' : ''}`}
+                    key={info.pesanan_id || index}
+                    className={`bg-white rounded-xl shadow-lg border border-slate-200 p-10 print:shadow-none print:border-0 print:p-4 print-break-page ${index < suratJalanList.length - 1 ? 'print:break-after-page' : ''}`}
                   >
-                    {/* Header */}
+                    {/* Header Surat Jalan */}
                     <header className="flex justify-between items-start mb-10 pb-6 border-b-2 border-slate-800">
                       <div className="flex items-center gap-4">
                         <img src={logo} alt="Company Logo" className="h-16 w-auto print:h-12" />
                         <div>
-                          <h1 className="text-2xl font-bold text-slate-800">{namaProdusen}</h1>
-                          <p className="text-xs text-slate-600 max-w-xs">{alamatProdusen}</p>
+                          <h1 className="text-2xl font-bold text-slate-800">{info.nama_produsen}</h1>
+                          <p className="text-xs text-slate-600 max-w-xs">{info.alamat_produsen}</p>
                         </div>
                       </div>
                       <div className="text-right">
                         <h2 className="text-3xl font-bold text-slate-900 uppercase tracking-tight">
                           Surat Jalan
                         </h2>
-                        {/* --- PERBAIKAN: Gunakan nomorSuratJalan --- */}
                         <p className="text-lg font-semibold text-slate-700 mt-1">
-                          No. {pesanan.nomorSuratJalan}
+                          No. {info.nomor_surat_jalan}
                         </p>
                         <p className="text-sm text-slate-500 mt-1">
-                          Tanggal:{' '}
-                          {new Date(allDetails.tanggalPengiriman || Date.now()).toLocaleDateString(
+                          Tanggal Kirim: {' '}
+                          {new Date(info.tanggal_pengiriman).toLocaleDateString(
                             'id-ID',
-                            {
-                              day: 'numeric',
-                              month: 'long',
-                              year: 'numeric',
-                            }
+                            { day: 'numeric', month: 'long', year: 'numeric' }
                           )}
                         </p>
                       </div>
@@ -182,21 +240,21 @@ const CetakSuratJalanMassal = () => {
                         <h3 className="font-bold text-slate-800 mb-2 uppercase text-xs tracking-wider">
                           Pengirim
                         </h3>
-                        <p className="font-semibold text-slate-700">{namaProdusen}</p>
-                        <p className="text-slate-600">{alamatProdusen}</p>
+                        <p className="font-semibold text-slate-700">{info.nama_produsen}</p>
+                        <p className="text-slate-600">{info.alamat_produsen}</p>
                       </div>
                       <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
                         <h3 className="font-bold text-slate-800 mb-2 uppercase text-xs tracking-wider">
                           Penerima
                         </h3>
-                        <p className="font-semibold text-slate-700">{pesanan.nama_pbf}</p>
-                        <p className="text-slate-600">{pesanan.alamat_pbf}</p>
-                        <p className="text-slate-600">Kontak: {pesanan.kontak_telepon || '-'}</p>
+                        <p className="font-semibold text-slate-700">{info.nama_pbf}</p>
+                        <p className="text-slate-600">{info.alamat_pbf}</p>
+                        <p className="text-slate-600">Kontak: {info.kontak_telepon || '-'}</p>
                       </div>
                     </section>
 
                     {/* Detail Barang */}
-                    <section className="mb-10">
+                    <section className="mb-6">
                       <h3 className="font-bold text-slate-800 mb-4 uppercase text-sm tracking-wider">
                         Detail Barang
                       </h3>
@@ -204,30 +262,16 @@ const CetakSuratJalanMassal = () => {
                         <table className="w-full text-sm">
                           <thead className="bg-slate-100 text-slate-700">
                             <tr>
-                              <th className="px-4 py-3 text-left font-semibold border-b border-slate-200">
-                                No.
-                              </th>
-                              <th className="px-4 py-3 text-left font-semibold border-b border-slate-200">
-                                Nama Obat
-                              </th>
-                              <th className="px-4 py-3 text-left font-semibold border-b border-slate-200">
-                                Batch ID
-                              </th>
-                              <th className="px-4 py-3 text-center font-semibold border-b border-slate-200">
-                                Jumlah
-                              </th>
-                              <th className="px-4 py-3 text-right font-semibold border-b border-slate-200">
-                                Total Harga
-                              </th>
+                              <th className="px-4 py-3 text-left font-semibold border-b border-slate-200">No.</th>
+                              <th className="px-4 py-3 text-left font-semibold border-b border-slate-200">Nama Obat</th>
+                              <th className="px-4 py-3 text-left font-semibold border-b border-slate-200">Batch ID</th>
+                              <th className="px-4 py-3 text-center font-semibold border-b border-slate-200">Jumlah</th>
+                              <th className="px-4 py-3 text-right font-semibold border-b border-slate-200">Total Harga</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100">
-                            {pesanan.detail_pesanan && pesanan.detail_pesanan.length > 0 ? (
-                              pesanan.detail_pesanan.map((item, idx) => (
-                                <tr
-                                  key={item.detail_pesanan_id || idx}
-                                  className="hover:bg-slate-50"
-                                >
+                            {detail && detail.map((item, idx) => (
+                                <tr key={item.id || idx} className="hover:bg-slate-50">
                                   <td className="px-4 py-3 border-r border-slate-200">{idx + 1}</td>
                                   <td className="px-4 py-3 border-r border-slate-200 font-medium text-slate-800">
                                     {item.nama_obat}
@@ -239,29 +283,20 @@ const CetakSuratJalanMassal = () => {
                                     {item.jumlah_pesanan.toLocaleString('id-ID')} Box
                                   </td>
                                   <td className="px-4 py-3 text-right">
-                                    Rp {(item.total_harga || 0).toLocaleString('id-ID')}
+                                    Rp {Number(item.total_harga || 0).toLocaleString('id-ID')}
                                   </td>
                                 </tr>
                               ))
-                            ) : (
-                              <tr>
-                                <td colSpan="5" className="text-center py-6 text-slate-500">
-                                  Tidak ada detail barang.
-                                </td>
-                              </tr>
-                            )}
+                            }
                           </tbody>
-                          {pesanan.detail_pesanan && pesanan.detail_pesanan.length > 0 && (
+                          {detail && (
                             <tfoot className="bg-slate-100 font-semibold text-slate-800">
                               <tr>
-                                <td
-                                  colSpan="4"
-                                  className="px-4 py-3 text-right border-t-2 border-slate-300 uppercase"
-                                >
+                                <td colSpan="4" className="px-4 py-3 text-right border-t-2 border-slate-300 uppercase">
                                   Total Keseluruhan
                                 </td>
                                 <td className="px-4 py-3 text-right border-t-2 border-slate-300">
-                                  Rp {totalHargaPesanan.toLocaleString('id-ID')}
+                                  Rp {Number(info.total_harga).toLocaleString('id-ID')}
                                 </td>
                               </tr>
                             </tfoot>
@@ -270,19 +305,35 @@ const CetakSuratJalanMassal = () => {
                       </div>
                     </section>
 
-                    {/* Footer */}
-                    <footer className="flex flex-col sm:flex-row justify-between items-start sm:items-end mt-16 pt-8 border-t border-slate-300 text-xs text-slate-600 gap-4">
-                      <div>
-                        {/* --- PERBAIKAN: Gunakan 'nomorResi' --- */}
-                        <p>
-                          No. Resi Pengiriman:{' '}
-                          <span className="font-semibold text-slate-900">
-                            {pesanan.nomorResi || '-'}
-                          </span>
-                        </p>
-                        {allDetails.catatan && (
-                          <p className="mt-1">Catatan Tambahan: {allDetails.catatan}</p>
+                    {/* --- BAGIAN CATATAN (DIAMBIL DARI DATABASE) --- */}
+                    {(info.catatan_kurir || info.catatan_penerima) && (
+                      <section className="mb-10 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                        <h3 className="font-bold text-slate-800 mb-2 uppercase text-xs tracking-wider">
+                          Catatan Penting
+                        </h3>
+                        
+                        {info.catatan_kurir && (
+                          <div className="mb-2">
+                            <span className="font-semibold text-slate-700 text-sm">Instruksi Kurir: </span>
+                            <span className="text-slate-600 text-sm italic">"{info.catatan_kurir}"</span>
+                          </div>
                         )}
+                        
+                        {info.catatan_penerima && (
+                          <div>
+                            <span className="font-semibold text-slate-700 text-sm">Pesan untuk Penerima: </span>
+                            <span className="text-slate-600 text-sm italic">"{info.catatan_penerima}"</span>
+                          </div>
+                        )}
+                      </section>
+                    )}
+                    {/* --- AKHIR BAGIAN CATATAN --- */}
+
+                    {/* Footer */}
+                    <footer className="flex flex-col sm:flex-row justify-between items-start sm:items-end mt-8 pt-8 border-t border-slate-300 text-xs text-slate-600 gap-4">
+                      <div>
+                        <p>No. Resi Pengiriman: <span className="font-semibold text-slate-900">{info.nomor_resi || '-'}</span></p>
+                        <p>Opsi Pengiriman: <span className="font-semibold text-slate-900 capitalize">{info.opsi_pengiriman || 'Standar'}</span></p>
                         <p className="mt-4 print:block hidden">
                           Dokumen ini dicetak pada: {new Date().toLocaleString('id-ID')}
                         </p>
@@ -290,7 +341,7 @@ const CetakSuratJalanMassal = () => {
                       <div className="text-center sm:text-right mt-8 sm:mt-0 print:block">
                         <p className="mb-16">Hormat Kami,</p>
                         <p className="font-semibold border-t border-slate-400 pt-2">
-                          {namaProdusen}
+                          {info.nama_produsen}
                         </p>
                         <p>(Pengirim)</p>
                       </div>

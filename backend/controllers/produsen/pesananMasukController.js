@@ -649,14 +649,12 @@ updateStatusWithDetails: async (req, res) => {
 
   
  prosesPengirimanMassal: async (req, res) => {
-    const { 
-      selectedIds, tanggalPengiriman, waktuPengiriman, 
-      catatanKurir, catatanPenerima, opsiPengiriman 
-    } = req.body;
+    // TERIMA 'pesananDetails' (Array Objek Lengkap) DARI FRONTEND
+    const { pesananDetails, catatanKurirGlobal, tanggalPengiriman, waktuPengiriman, opsiPengiriman } = req.body; 
     const idProdusen = req.user.id;
 
-    if (!selectedIds || selectedIds.length === 0) {
-      return res.status(400).json({ success: false, message: 'Tidak ada pesanan yang dipilih.' });
+    if (!pesananDetails || pesananDetails.length === 0) {
+      return res.status(400).json({ success: false, message: 'Tidak ada data pesanan.' });
     }
 
     let gateway;
@@ -665,18 +663,26 @@ updateStatusWithDetails: async (req, res) => {
     const errors = [];
 
     try {
-      // --- OPTIMASI: Buka koneksi SEKALI di luar loop ---
       dbConnection = await db.getConnection();
       gateway = await getGateway();
       const network = await gateway.getNetwork('medisyncchannel');
       const contract = network.getContract('medisync');
-      // -------------------------------------------------
 
-      for (const pesananId of selectedIds) {
+      // LOOP PADA ARRAY DETAIL (BUKAN CUMA ID)
+      for (const detail of pesananDetails) {
+        const pesananId = detail.id; // Ambil ID dari objek
+        
+        // Ambil data spesifik per pesanan (Nomor Resi, SJ, dan Catatan Penerima)
+        const { 
+            nomorResi, 
+            nomorSuratJalan, 
+            catatanPenerima // <-- INI PENTING: Catatan unik per baris
+        } = detail;
+
         try {
           await dbConnection.beginTransaction();
 
-          // Ambil data pesanan
+          // 1. Ambil data pesanan asli (untuk validasi & ambil data PBF)
           const sqlPesanan = `
             SELECT p.*, pbf.nama_resmi AS nama_pbf, pbf.alamat AS alamat_pbf
             FROM pesanan p JOIN users pbf ON p.id_pbf = pbf.id
@@ -688,23 +694,27 @@ updateStatusWithDetails: async (req, res) => {
           if (pesanan.length === 0) throw new Error(`Pesanan tidak ditemukan atau statusnya bukan "Perlu Dikirim".`);
 
           const timestamp = Date.now();
-          const nomorResi = `RES-${timestamp}-${pesananId}`;
-          const nomorSuratJalan = `SJ-${timestamp}-${pesananId}`;
           const hashSuratJalan = `HASH_SJPROD_${timestamp}_${pesananId}`;
 
-          // Insert Surat Jalan
+          // 2. Insert Surat Jalan (Gunakan data spesifik)
           await dbConnection.query(
             `INSERT INTO surat_jalan_produsen (
               id_pesanan, nomor_resi, nomor_surat_jalan, tanggal_pengiriman, alamat_tujuan, 
               waktu_pengiriman, catatan_kurir, catatan_penerima, hash_surat_jalan, opsi_pengiriman
              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
-              pesananId, nomorResi, nomorSuratJalan, tanggalPengiriman, pesanan[0].alamat_pbf, 
-              waktuPengiriman || null, catatanKurir || null, catatanPenerima || null,
-              hashSuratJalan, opsiPengiriman
+              pesananId, 
+              nomorResi,        // Unik
+              nomorSuratJalan,  // Unik
+              tanggalPengiriman, 
+              pesanan[0].alamat_pbf, 
+              waktuPengiriman || null, 
+              catatanKurirGlobal || null, // Sama untuk semua (Global)
+              catatanPenerima || null,    // Beda-beda (Unik)
+              hashSuratJalan, 
+              opsiPengiriman
             ]
           );
-
           // Ambil detail pesanan
           const [detailRows] = await dbConnection.query(
             `SELECT dp.id as detail_pesanan_id, pr.batch_id, dp.jumlah_pesanan, dp.nama_obat

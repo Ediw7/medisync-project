@@ -13,20 +13,18 @@ import {
   Check,
   ChevronRight,
   Calendar,
-  ChevronDown, // Ditambahkan
+  ChevronDown,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-// --- (PERUBAHAN 1) ---
-// Konfigurasi slot waktu, disamakan dengan AturPengiriman.jsx
+// Konfigurasi slot waktu
 const SHIPPING_TIMES_CONFIG = [
   { value: '09:00-12:00', label: 'Pagi (09:00 - 12:00)', startHour: 9 },
   { value: '13:00-16:00', label: 'Siang (13:00 - 16:00)', startHour: 13 },
   { value: '16:00-19:00', label: 'Sore (16:00 - 19:00)', startHour: 16 },
 ];
 
-// --- (PERUBAHAN 2) ---
-// Helper untuk format tanggal YYYY-MM-DD
+// Helper format tanggal
 const getLocalDateString = (date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -34,38 +32,34 @@ const getLocalDateString = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-// --- (PERUBAHAN 3) ---
-// Helper untuk mendapatkan waktu yang tersedia berdasarkan tanggal
+// Helper waktu tersedia
 const getAvailableTimesForDate = (dateString) => {
   const today = new Date();
   const todayString = getLocalDateString(today);
 
   if (dateString !== todayString) {
-    return SHIPPING_TIMES_CONFIG; // Jika bukan hari ini, semua waktu tersedia
+    return SHIPPING_TIMES_CONFIG; 
   }
 
-  // Jika hari ini, filter waktu yang sudah lewat
   const currentHour = today.getHours();
   return SHIPPING_TIMES_CONFIG.filter((time) => time.startHour > currentHour);
 };
 
-// --- (PERUBAHAN 4) ---
-// Helper untuk menghitung tanggal yang valid (Logika BARU)
+// Helper hitung tanggal
 const calculateShippingDates = () => {
   const dates = [];
   const now = new Date();
-  let currentDate = new Date(now); // Mulai dari hari ini
+  let currentDate = new Date(now); 
   let addedDays = 0;
 
   while (addedDays < 6) {
     const dayOfWeek = currentDate.getDay();
     const dateString = getLocalDateString(currentDate);
 
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Jika bukan weekend
-      // Cek ketersediaan waktu
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) { 
       const availableTimes = getAvailableTimesForDate(dateString);
 
-      if (availableTimes.length > 0) { // Jika ada waktu tersedia di hari ini
+      if (availableTimes.length > 0) { 
         const day = currentDate.toLocaleDateString('id-ID', { weekday: 'long' });
         const dateNum = currentDate.getDate();
         const month = currentDate.toLocaleDateString('id-ID', { month: 'short' });
@@ -73,12 +67,10 @@ const calculateShippingDates = () => {
         addedDays++;
       }
     }
-    // Selalu maju ke hari berikutnya untuk iterasi selanjutnya
     currentDate.setDate(currentDate.getDate() + 1);
   }
   return dates;
 };
-// --- (AKHIR PERUBAHAN 4) ---
 
 
 const AturPickupMassalPbf = () => {
@@ -88,69 +80,52 @@ const AturPickupMassalPbf = () => {
 
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // --- (PERUBAHAN 5) ---
-  // Ubah state default menjadi kosong, akan diisi oleh useEffect
+  // State Tanggal & Waktu
   const [shippingDates, setShippingDates] = useState([]);
   const [selectedDate, setSelectedDate] = useState('');
   const [availableTimes, setAvailableTimes] = useState(SHIPPING_TIMES_CONFIG);
   const [waktuPengiriman, setWaktuPengiriman] = useState('');
-  // --- (AKHIR PERUBAHAN 5) ---
 
   const [opsiPengiriman, setOpsiPengiriman] = useState('standar');
-  const [catatanKurir, setCatatanKurir] = useState('');
-  const [catatanPenerima, setCatatanPenerima] = useState('');
+  const [catatan, setCatatan] = useState(''); // Ganti 'catatanKurir' jadi 'catatan' biar konsisten
   const [error, setError] = useState('');
   const username = localStorage.getItem('username');
 
-  // --- (PERUBAHAN 6) ---
-  // useEffect untuk inisialisasi tanggal dan waktu saat komponen dimuat
   useEffect(() => {
     if (!selectedIds || selectedIds.length === 0) {
       toast.error('Tidak ada pesanan yang dipilih. Kembali ke halaman sebelumnya.');
       navigate(-1);
-      return; // Hentikan eksekusi jika tidak ada ID
+      return; 
     }
 
-    // Hitung tanggal yang valid
     const initialDates = calculateShippingDates();
     setShippingDates(initialDates);
 
     if (initialDates.length > 0) {
-      // Set tanggal pertama sebagai default
       const firstDate = initialDates[0].date;
       setSelectedDate(firstDate);
 
-      // Set waktu yang tersedia untuk tanggal pertama
       const firstDateTimes = getAvailableTimesForDate(firstDate);
       setAvailableTimes(firstDateTimes);
 
-      // Set waktu pertama sebagai default
       setWaktuPengiriman(firstDateTimes[0]?.value || '');
     }
   }, [selectedIds, navigate]);
-  // --- (AKHIR PERUBAHAN 6) ---
 
-  // --- (PERUBAHAN 7) ---
-  // useEffect baru untuk memantau perubahan selectedDate
   useEffect(() => {
-    if (!selectedDate) return; // Jangan lakukan apa-apa jika selectedDate kosong
+    if (!selectedDate) return; 
 
-    // Dapatkan waktu baru yang tersedia
     const newTimes = getAvailableTimesForDate(selectedDate);
     setAvailableTimes(newTimes);
 
-    // Cek apakah waktuPengiriman saat ini masih valid di tanggal baru
     const isCurrentTimeValid = newTimes.some(
       (time) => time.value === waktuPengiriman
     );
 
-    // Jika tidak valid (misal pindah dari besok 09:00 ke hari ini jam 14:00),
-    // set ke waktu pertama yang tersedia
     if (!isCurrentTimeValid) {
       setWaktuPengiriman(newTimes[0]?.value || '');
     }
   }, [selectedDate]);
-  // --- (AKHIR PERUBAHAN 7) ---
 
 
   const handleSubmit = (e) => {
@@ -169,8 +144,7 @@ const AturPickupMassalPbf = () => {
         selectedIds,
         tanggalPengiriman: selectedDate,
         waktuPengiriman,
-        catatanKurir,
-        catatanPenerima,
+        catatan, // Kirim sebagai 'catatan' (Global Kurir)
         opsiPengiriman,
       },
     });
@@ -284,8 +258,6 @@ const AturPickupMassalPbf = () => {
                     >
                       Pilih Waktu Pengiriman*
                     </label>
-                    {/* --- (PERUBAHAN 8) --- */}
-                    {/* Ganti <select> statis menjadi dinamis */}
                     <div className="relative">
                       <select
                         id="waktu-pengiriman"
@@ -311,7 +283,6 @@ const AturPickupMassalPbf = () => {
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
                       />
                     </div>
-                    {/* --- (AKHIR PERUBAHAN 8) --- */}
                   </div>
 
                   <div className="space-y-1">
@@ -321,8 +292,6 @@ const AturPickupMassalPbf = () => {
                     >
                       Opsi Pengiriman*
                     </label>
-                    {/* --- (PERUBAHAN 9) --- */}
-                    {/* Tambahkan styling konsisten (Chevron) */}
                     <div className="relative">
                       <select
                         id="opsi-pengiriman"
@@ -338,36 +307,21 @@ const AturPickupMassalPbf = () => {
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
                       />
                     </div>
-                    {/* --- (AKHIR PERUBAHAN 9) --- */}
                   </div>
                 </div>
 
-                {/* CATATAN (Sudah benar) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-1">
-                    <label htmlFor="catatan_kurir" className="block text-sm font-medium text-slate-700">
-                      Catatan untuk Kurir (Opsional)
-                    </label>
-                    <textarea
-                      id="catatan_kurir"
-                      value={catatanKurir}
-                      onChange={(e) => setCatatanKurir(e.target.value)}
-                      className="w-full bg-white border border-slate-300 rounded-lg p-3 h-24 resize-none text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                      placeholder="Instruksi khusus untuk kurir..."
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label htmlFor="catatan_penerima" className="block text-sm font-medium text-slate-700">
-                      Catatan untuk Penerima (Opsional)
-                    </label>
-                    <textarea
-                      id="catatan_penerima"
-                      value={catatanPenerima}
-                      onChange={(e) => setCatatanPenerima(e.target.value)}
-                      className="w-full bg-white border border-slate-300 rounded-lg p-3 h-24 resize-none text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                      placeholder="Catatan internal untuk Apotek..."
-                    />
-                  </div>
+                {/* CATATAN (HANYA SATU: UNTUK KURIR) */}
+                <div className="space-y-1">
+                  <label htmlFor="catatan" className="block text-sm font-medium text-slate-700">
+                    Catatan untuk Kurir (Opsional)
+                  </label>
+                  <textarea
+                    id="catatan"
+                    value={catatan}
+                    onChange={(e) => setCatatan(e.target.value)}
+                    className="w-full bg-white border border-slate-300 rounded-lg p-3 h-24 resize-none text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    placeholder="Instruksi khusus untuk kurir (misal: Barang mudah pecah)..."
+                  />
                 </div>
 
                 {error && (

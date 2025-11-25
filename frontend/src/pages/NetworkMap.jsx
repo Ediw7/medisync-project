@@ -52,78 +52,52 @@ const NetworkMap = () => {
   const runAnimationSequence = (data) => {
     return new Promise((resolve) => {
       setIsAnimating(true);
-      setTransactionType(data.type);
 
       let starter = 'produsen';
       let text = 'Memulai Transaksi...';
 
-      // --- LOGIKA PENENTUAN PENGIRIM (DIPERBAIKI) ---
-      
-      // 1. KELOMPOK PRODUSEN (Membuat Obat / Kirim ke PBF)
-      if (['PRODUKSI_BARU', 'DISTRIBUSI_PBF', 'DISTRIBUSI_PBF_MASSAL'].includes(data.type)) {
+      // Logika penentuan pengirim (sama seperti sebelumnya)
+      if (data.type === 'PRODUKSI_BARU' || data.type.includes('DISTRIBUSI_PBF')) {
         starter = 'produsen';
-        text = data.type === 'PRODUKSI_BARU' ? 'Produsen: Mencetak Batch Baru...' : 'Produsen: Mengirim ke PBF...';
-      } 
-      
-      // 2. KELOMPOK PBF (Terima Barang / Kirim ke Apotek / Buat Pesanan)
-      else if (['PENERIMAAN_PBF', 'DISTRIBUSI_APOTEK', 'PESANAN_BARU'].includes(data.type)) {
+        text = 'Produsen Mengirim Data...';
+      } else if (data.type.includes('APOTEK') && !data.type.includes('PESANAN')) {
         starter = 'pbf';
-        if (data.type === 'PENERIMAAN_PBF') text = 'PBF: Memverifikasi Penerimaan Barang...';
-        else if (data.type === 'DISTRIBUSI_APOTEK') text = 'PBF: Mengirim ke Apotek...';
-        else text = 'PBF: Membuat Pesanan...';
-      } 
-      
-      // 3. KELOMPOK APOTEK (Terima Barang / Jual / Pesan)
-      else if (['PENERIMAAN_APOTEK', 'PESANAN_APOTEK', 'PENJUALAN'].includes(data.type)) {
+        text = 'PBF Memproses Transaksi...';
+      } else {
         starter = 'apotek';
-        if (data.type === 'PENJUALAN') text = 'Apotek: Menjual ke Konsumen...';
-        else if (data.type === 'PENERIMAAN_APOTEK') text = 'Apotek: Memverifikasi Penerimaan...';
-        else text = 'Apotek: Membuat Pesanan...';
+        text = 'Apotek Memproses Transaksi...';
       }
-      // -----------------------------------------------
 
       setOriginNode(starter);
       setStatusText(text);
       setActiveNode(starter);
-      
-      // SOUND 1: PING
-      playSound('ping'); 
 
       // Timeline Animasi
       setTimeout(() => {
         setActiveNode('orderer');
         setStatusText('Orderer: Memvalidasi & Menyusun Blok...');
-        
-        // SOUND 2: SCI-FI
-        playSound('sci-fi'); 
       }, 1000);
 
       setTimeout(() => {
         setActiveNode('all');
         setStatusText('Konsensus: Menyebar Blok ke Seluruh Peer...');
-        
-        // SOUND 3: PING
-        playSound('ping'); 
       }, 2500);
 
       setTimeout(() => {
-        // HITUNG PREV HASH
+        // HITUNG PREV HASH: Ambil hash dari blok terakhir yang ada sekarang
         setBlocks(prev => {
-           const lastBlock = prev[0] || { hash: '00000000000000000000' }; 
+           const lastBlock = prev[0]; // Blok paling baru ada di index 0 (karena kita prepend)
            const newBlock = {
                ...data,
-               prevHash: lastBlock.hash ? lastBlock.hash.substring(0, 20) + '...' : '0000...'
+               prevHash: lastBlock.hash.substring(0, 20) + '...' // Link ke blok sebelumnya
            };
+           // Tambahkan blok baru di DEPAN array
            return [newBlock, ...prev];
         });
 
         setActiveNode(null);
         setIsAnimating(false);
-        setStatusText('Transaksi Selesai. Blok Tercatat.');
-        
-        // SOUND 4: SUCCESS
-        playSound('success'); 
-        
+        setStatusText('Blok Tercatat di Ledger.');
         resolve();
       }, 4000);
     });

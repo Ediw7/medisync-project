@@ -9,6 +9,7 @@ import RegisterPage from './pages/RegisterPage';
 import BlockchainDetail from './pages/BlockchainDetail';
 import NetworkMap from './pages/NetworkMap';
 
+
 import ProdusenDashboard from './pages/produsen/ProdusenDashboard';
 import ProfilProdusen from './pages/produsen/profil/ProfilProdusen';
 import ManajemenProduksi from './pages/produsen/manajemenproduksi/ManajemenProduksi';
@@ -126,6 +127,8 @@ function App() {
       <Route path="/register/:role" element={<RegisterPage />} />
       <Route path="/blockchain-detail/:batch_id" element={<BlockchainDetail />} />
       <Route path="/network-map" element={<NetworkMap />} />
+
+      
 
       {/* Rute Produsen */}
       <Route path="/produsen/dashboard" element={<ProdusenDashboard />} />

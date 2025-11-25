@@ -521,21 +521,22 @@ recordToBlockchain: async (req, res) => {
       );
       console.log('ON-CHAIN transaction successful.');
   
-      // --- MODIFIKASI SOCKET.IO: KIRIM SINYAL KE FRONTEND ---
+      // --- MODIFIKASI SOCKET.IO UNTUK SOUVENIR ---
       if (req.io) {
-        // Kita parse hasil dari blockchain (jika ada) atau gunakan data dummy untuk visualisasi
-        const blockHash = '0x' + crypto.randomBytes(32).toString('hex'); // Simulasi hash blok
-        
+        // Cek apakah ini souvenir (misal kita tandai dari nama obat atau parameter khusus)
+        // Kita sepakati: Jika nama_obat diawali "VIP:", itu adalah Souvenir
+        const isSouvenir = prodData.nama_obat.startsWith("VIP:");
+        const visitorName = isSouvenir ? prodData.nama_obat.replace("VIP: ", "") : "";
+
         req.io.emit('block_mined', {
-          type: 'PRODUKSI_BARU',
-          hash: blockHash,
+          type: isSouvenir ? 'SOUVENIR_GUEST' : 'PRODUKSI_BARU', // Tipe Beda
+          hash: '0x' + crypto.randomBytes(32).toString('hex'),
           timestamp: new Date().toLocaleTimeString(),
           org: 'ProdusenMSP',
-          details: `Batch ${prodData.batch_id} created`
+          details: isSouvenir ? `Visitor: ${visitorName} (Certified)` : `Batch ${prodData.batch_id} created`,
+          isGold: isSouvenir // Flag untuk warna Emas
         });
-        console.log('Socket.io signal sent: block_mined');
       }
-      // -----------------------------------------------------
   
       const qrDataUrl = `http://localhost:5173/blockchain-detail/${prodData.batch_id}`;
       const qrCodeDataUrl = await qrcode.toDataURL(qrDataUrl);

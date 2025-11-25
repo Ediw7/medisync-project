@@ -127,23 +127,31 @@ const BlockchainDetail = () => {
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-      setError('');
       try {
-        const response = await fetch(
-          `http://localhost:5000/api/public/blockchain-detail/${batch_id}`
-        );
-        if (!response.ok) throw new Error('Gagal mengambil data dari server.');
+        const response = await fetch(`http://localhost:5000/api/public/blockchain-detail/${batch_id}`);
+        
+        // JIKA 404 ATAU ERROR LAIN -> Redirect ke Not Found
+        if (!response.ok) {
+            navigate('/not-found', { replace: true }); // Redirect
+            return;
+        }
+
         const result = await response.json();
-        if (!result.success) throw new Error(result.message);
+        if (!result.success || !result.data) {
+            navigate('/not-found', { replace: true }); // Redirect jika data kosong
+            return;
+        }
+        
         setData(result.data);
       } catch (err) {
-        setError(err.message);
+        console.error(err);
+        navigate('/not-found', { replace: true }); // Redirect jika fetch gagal total
       } finally {
         setIsLoading(false);
       }
     };
     fetchData();
-  }, [batch_id]);
+  }, [batch_id, navigate]);
 
   const handleCopyHash = async () => {
     if (data?.hash_sertifikat) {

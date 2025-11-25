@@ -8,6 +8,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import RegisterPage from './pages/RegisterPage';
 import BlockchainDetail from './pages/BlockchainDetail';
 import NetworkMap from './pages/NetworkMap';
+import NotFound from './pages/NotFound';
 
 
 import ProdusenDashboard from './pages/produsen/ProdusenDashboard';
@@ -127,6 +128,7 @@ function App() {
       <Route path="/register/:role" element={<RegisterPage />} />
       <Route path="/blockchain-detail/:batch_id" element={<BlockchainDetail />} />
       <Route path="/network-map" element={<NetworkMap />} />
+      <Route path="/not-found" element={<NotFound />} />
 
       
 

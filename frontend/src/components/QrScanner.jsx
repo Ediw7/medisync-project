@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { QrReader } from 'react-qr-reader';
-import { X, RefreshCw, AlertTriangle, Upload, Image as ImageIcon } from 'lucide-react';
-import QrScannerLib from 'qr-scanner'; // Pastikan npm install qr-scanner
+import { X, RefreshCw, AlertTriangle, Image as ImageIcon } from 'lucide-react';
+import QrScannerLib from 'qr-scanner';
 
 const QrScanner = ({ onScanResult, onClose }) => {
   const [error, setError] = useState('');
@@ -11,13 +11,10 @@ const QrScanner = ({ onScanResult, onClose }) => {
   const handleResult = (result, error) => {
     if (result) {
       onScanResult(result?.text);
-      // Matikan suara 'beep' default jika ada, atau biarkan
     }
     if (error) {
-      // Abaikan error scanning frame-by-frame
       if (error.message?.includes("No QR code found")) return;
       
-      // Deteksi error permission
       if (error.name === 'NotAllowedError' || error.name === 'NotFoundError') {
          setError('Gagal mengakses kamera. Pastikan izin diberikan.');
       }
@@ -31,7 +28,6 @@ const QrScanner = ({ onScanResult, onClose }) => {
 
     setIsProcessing(true);
     try {
-      // Decode QR dari gambar menggunakan library qr-scanner
       const result = await QrScannerLib.scanImage(file);
       if (result) {
         onScanResult(result);
@@ -45,7 +41,6 @@ const QrScanner = ({ onScanResult, onClose }) => {
   };
 
   return (
-    // PERBAIKAN 1: Background lebih transparan (bg-black/60) & Blur
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 transition-all duration-300">
       
       <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl relative animate-in fade-in zoom-in duration-300 flex flex-col max-h-[90vh]">
@@ -70,10 +65,16 @@ const QrScanner = ({ onScanResult, onClose }) => {
             <>
               <QrReader
                 onResult={handleResult}
-                constraints={{ facingMode: 'environment' }}
+                // PERUBAHAN 1: Menggunakan Kamera Depan
+                constraints={{ facingMode: 'user' }} 
                 className="w-full h-full object-cover absolute inset-0"
                 videoContainerStyle={{ height: '100%', paddingTop: 0 }}
-                videoStyle={{ objectFit: 'cover', height: '100%' }}
+                videoStyle={{ 
+                  objectFit: 'cover', 
+                  height: '100%',
+                  // PERUBAHAN 2: Menghilangkan efek mirror pada kamera depan
+                  transform: 'scaleX(-1)' 
+                }}
               />
               
               {/* Overlay Kotak Pindai */}
@@ -112,7 +113,7 @@ const QrScanner = ({ onScanResult, onClose }) => {
           )}
         </div>
 
-        {/* PERBAIKAN 2: Footer dengan Tombol Upload */}
+        {/* Footer dengan Tombol Upload */}
         <div className="p-5 bg-white border-t border-gray-100 flex flex-col items-center gap-3 z-10">
             <div className="w-full flex items-center gap-4">
                 <div className="h-[1px] bg-gray-200 flex-1"></div>

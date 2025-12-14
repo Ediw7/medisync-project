@@ -4,6 +4,8 @@ const jwt = require("jsonwebtoken");
 
 const sgMail = require("@sendgrid/mail");
 
+const { registerAndEnrollUser } = require("../utils/fabricHelper");
+
 const JWT_SECRET = process.env.JWT_SECRET || "kunci-rahasia-default";
 const FROM_EMAIL = (process.env.EMAIL_USER || "").replace(/(^"|"$)/g, "");
 const SENDGRID_API_KEY = (process.env.SENDGRID_API_KEY || "").replace(
@@ -23,13 +25,10 @@ if (!SENDGRID_API_KEY) {
 
 const authController = {
   register: async (req, res) => {
-    const { username, email, password, role, namaResmi, nomorIzin, alamat } =
-      req.body;
+    const { username, email, password, role, namaResmi, nomorIzin, alamat } = req.body;
     try {
       if (!namaResmi || !nomorIzin || !alamat) {
-        return res
-          .status(400)
-          .json({ message: "Informasi perusahaan/izin wajib diisi." });
+        return res.status(400).json({ message: "Informasi perusahaan/izin wajib diisi." });
       }
 
       const validRoles = ["produsen", "pbf", "apotek"];
@@ -37,6 +36,7 @@ const authController = {
         return res.status(400).json({ message: "Role tidak valid" });
       }
 
+      // 1. Simpan ke Database MySQL (Aplikasi)
       await User.create(
         username,
         email,
@@ -46,7 +46,24 @@ const authController = {
         nomorIzin,
         alamat
       );
-      res.status(201).json({ message: "Registrasi berhasil. Silakan login." });
+
+      // --- TAMBAHAN UNTUK ABAC ---
+      // 2. Daftarkan Identity ke Hyperledger Fabric CA
+      // Ini akan membuat file wallet untuk user ini dengan atribut 'role'
+      try {
+          await registerAndEnrollUser(username, role);
+      } catch (fabricError) {
+          console.error("Fabric Registration Error:", fabricError);
+          // Opsi: Anda bisa menghapus user dari MySQL jika gagal register di Fabric (rollback manual)
+          // Atau biarkan saja, tapi user tidak akan bisa transaksi blockchain
+          return res.status(500).json({ 
+              message: "Registrasi DB berhasil, tapi gagal mendaftar ke Blockchain Network.",
+              error: fabricError.message 
+          });
+      }
+
+      res.status(201).json({ message: "Registrasi berhasil (App & Blockchain). Silakan login." });
+
     } catch (err) {
       if (err.code === "ER_DUP_ENTRY") {
         return res.status(400).json({

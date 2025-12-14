@@ -1,61 +1,73 @@
+/* File: enrollAdmin.js */
 'use strict';
 
 const { Wallets } = require('fabric-network');
-const fs = require('fs');
+const FabricCAServices = require('fabric-ca-client');
 const path = require('path');
+const fs = require('fs');
 
 async function main() {
     try {
-        // Buat wallet baru untuk menyimpan identitas
-        const walletPath = path.join(process.cwd(), 'wallet');
-        const wallet = await Wallets.newFileSystemWallet(walletPath);
-        console.log(`Lokasi wallet: ${walletPath}`);
-
-        // Cek apakah admin sudah ada di wallet
-        const identity = await wallet.get('admin');
-        if (identity) {
-            console.log('Identitas untuk admin "admin" sudah ada di dalam wallet.');
-            return;
-        }
-
-        // --- PERBAIKAN DI BAWAH INI ---
-        // Dapatkan path ke material kripto admin Org1
-        const adminCertPath = path.resolve(__dirname, '../organizations/peerOrganizations/org1.medisync.com/users/Admin@org1.medisync.com/msp/signcerts/cert.pem');
-        const adminKeyDirPath = path.resolve(__dirname, '../organizations/peerOrganizations/org1.medisync.com/users/Admin@org1.medisync.com/msp/keystore/');
+        // 1. Setup Konfigurasi Org1
+        const ccpPath = path.resolve(__dirname, 'connection-org1.json');
         
-        // Pastikan file sertifikat ada
-        if (!fs.existsSync(adminCertPath)) {
-            console.error(`File sertifikat admin tidak ditemukan di: ${adminCertPath}`);
-            process.exit(1);
+        if (!fs.existsSync(ccpPath)) {
+            throw new Error(`File koneksi tidak ditemukan di: ${ccpPath}`);
         }
 
-        // Temukan file kunci privat secara dinamis di dalam folder keystore
-        const keyFiles = fs.readdirSync(adminKeyDirPath);
-        if (keyFiles.length === 0) {
-            console.error(`Tidak ada file kunci privat yang ditemukan di: ${adminKeyDirPath}`);
-            process.exit(1);
+        const ccp = JSON.parse(fs.readFileSync(ccpPath, 'utf8'));
+        const walletPath = path.join(process.cwd(), 'wallet');
+        
+        // 2. Ambil Info CA (Auto-detect)
+        if (!ccp.certificateAuthorities) {
+            throw new Error('Key "certificateAuthorities" tidak ditemukan di connection-org1.json.');
         }
-        const adminKeyPath = path.resolve(adminKeyDirPath, keyFiles[0]);
 
-        const certificate = fs.readFileSync(adminCertPath).toString();
-        const privateKey = fs.readFileSync(adminKeyPath).toString();
+        // Ambil key pertama (ca.org1.medisync.com)
+        const caKeys = Object.keys(ccp.certificateAuthorities);
+        const caKey = caKeys[0]; 
+        const caInfo = ccp.certificateAuthorities[caKey];
+        const caURL = caInfo.url;
+        
+        // Ambil nama internal CA (ca-org1)
+        const caName = caInfo.caName || caKey;
 
-        // Buat identitas X.509 baru
+        console.log(`Target CA: ${caName} (${caURL})`);
+
+        // 3. Setup CA Client (Insecure untuk local dev)
+        const ca = new FabricCAServices(caURL, { verify: false, trustedRoots: [] }, caName);
+
+        // 4. Setup Wallet
+        const wallet = await Wallets.newFileSystemWallet(walletPath);
+        
+        const identity = await wallet.get('admin'); 
+        if (identity) {
+            console.log('Identitas "admin" (Org1) sudah ada. Melakukan enroll ulang...');
+        }
+
+        // 5. ENROLL ADMIN
+        // Default credentials Hyperledger Test Network: admin / adminpw
+        console.log('Menghubungi CA Org1 untuk enroll admin...');
+        const enrollment = await ca.enroll({ 
+            enrollmentID: 'admin', 
+            enrollmentSecret: 'adminpw' 
+        });
+
+        // 6. Simpan ke Wallet
         const x509Identity = {
             credentials: {
-                certificate: certificate,
-                privateKey: privateKey,
+                certificate: enrollment.certificate,
+                privateKey: enrollment.key.toBytes(),
             },
-            mspId: 'ProdusenMSP',
+            mspId: 'ProdusenMSP', // MSP Org1
             type: 'X.509',
         };
 
-        // Masukkan identitas admin baru ke dalam wallet
         await wallet.put('admin', x509Identity);
-        console.log('Berhasil mendaftarkan user admin "admin" dan menyimpannya ke dalam wallet');
+        console.log('SUKSES: Admin Org1 ("admin") berhasil di-enroll dan disimpan ke wallet.');
 
     } catch (error) {
-        console.error(`Gagal mendaftarkan user admin "admin": ${error}`);
+        console.error(`Gagal enroll admin Org1: ${error}`);
         process.exit(1);
     }
 }

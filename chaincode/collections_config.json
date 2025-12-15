@@ -1,0 +1,38 @@
+[
+    {
+        "name": "collectionPBF",
+        "policy": "OR('PBFMSP.member', 'ProdusenMSP.member')",
+        "requiredPeerCount": 0,
+        "maxPeerCount": 3,
+        "blockToLive": 0,
+        "memberOnlyRead": true,
+        "memberOnlyWrite": true,
+        "endorsementPolicy": {
+            "signaturePolicy": "OR('PBFMSP.member', 'ProdusenMSP.member')"
+        }
+    },
+    {
+        "name": "collectionApotek",
+        "policy": "OR('ApotekMSP.member', 'PBFMSP.member')",
+        "requiredPeerCount": 0,
+        "maxPeerCount": 3,
+        "blockToLive": 0,
+        "memberOnlyRead": true,
+        "memberOnlyWrite": true,
+        "endorsementPolicy": {
+            "signaturePolicy": "OR('ApotekMSP.member', 'PBFMSP.member')"
+        }
+    },
+    {
+        "name": "collectionPrivate",
+        "policy": "OR('ProdusenMSP.member', 'PBFMSP.member', 'ApotekMSP.member')",
+        "requiredPeerCount": 0,
+        "maxPeerCount": 3,
+        "blockToLive": 0,
+        "memberOnlyRead": true,
+        "memberOnlyWrite": true,
+        "endorsementPolicy": {
+            "signaturePolicy": "OR('ProdusenMSP.member', 'PBFMSP.member', 'ApotekMSP.member')"
+        }
+    }
+]

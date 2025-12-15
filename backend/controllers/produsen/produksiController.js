@@ -1,3 +1,4 @@
+/* File: controllers/produsen/produksiController.js */
 'use strict';
 
 const db = require('../../config/db');
@@ -7,6 +8,7 @@ const fs = require('fs');
 const qrcode = require('qrcode');
 const crypto = require('crypto');
 
+// --- HELPER FUNCTIONS ---
 
 function calculateFileHash(filePath) {
   return new Promise((resolve, reject) => {
@@ -18,29 +20,47 @@ function calculateFileHash(filePath) {
   });
 }
 
-
 async function getGateway() {
   const walletPath = path.resolve(__dirname, '..', '..', 'wallet');
   const wallet = await Wallets.newFileSystemWallet(walletPath);
+  
   const ccpPath = path.resolve(__dirname, '..', '..', 'connection-org1.json');
+  if (!fs.existsSync(ccpPath)) {
+      throw new Error(`Connection profile tidak ditemukan di: ${ccpPath}`);
+  }
   const ccp = JSON.parse(fs.readFileSync(ccpPath, 'utf8'));
+  
   const gateway = new Gateway();
+  
+  // --- KONFIGURASI IDENTITY ---
+  // Sesuai request Anda: menggunakan 'produsen_user_2'
+  const identityLabel = 'produsen_user_2'; 
+  
+  // Cek apakah identity ada di wallet
+  const identity = await wallet.get(identityLabel);
+  if (!identity) {
+      throw new Error(`Identitas "${identityLabel}" tidak ditemukan di wallet. Pastikan Anda sudah login/register dengan user ini.`);
+  }
+
   const connectionOptions = {
     wallet,
-    identity: 'admin',
-    discovery: { enabled: false, asLocalhost: true },
+    identity: identityLabel,
+    discovery: { enabled: true, asLocalhost: true },
   };
+  
   await gateway.connect(ccp, connectionOptions);
   return gateway;
 }
 
+// --- CONTROLLER UTAMA ---
+
 const produksiController = {
   
+  // 1. GET ALL (MySQL)
   getAll: async (req, res) => {
     try {
       const { month, year, minJumlah, maxJumlah, status, sortBy, sortOrder } = req.query;
 
-     
       let sql = `
         SELECT 
           id, batch_id, nama_obat, jumlah, status, 
@@ -51,26 +71,11 @@ const produksiController = {
         WHERE id_produsen = ?`;
       const params = [req.user.id];
 
-      if (status) {
-        sql += ' AND status = ?';
-        params.push(status);
-      }
-      if (month) {
-        sql += ' AND MONTH(tanggal_produksi) = ?';
-        params.push(month);
-      }
-      if (year) {
-        sql += ' AND YEAR(tanggal_produksi) = ?';
-        params.push(year);
-      }
-      if (minJumlah) {
-        sql += ' AND jumlah >= ?';
-        params.push(minJumlah);
-      }
-      if (maxJumlah) {
-        sql += ' AND jumlah <= ?';
-        params.push(maxJumlah);
-      }
+      if (status) { sql += ' AND status = ?'; params.push(status); }
+      if (month) { sql += ' AND MONTH(tanggal_produksi) = ?'; params.push(month); }
+      if (year) { sql += ' AND YEAR(tanggal_produksi) = ?'; params.push(year); }
+      if (minJumlah) { sql += ' AND jumlah >= ?'; params.push(minJumlah); }
+      if (maxJumlah) { sql += ' AND jumlah <= ?'; params.push(maxJumlah); }
 
       const allowedSortBy = ['batch_id', 'nama_obat', 'tanggal_produksi', 'jumlah', 'status'];
       const direction = sortOrder?.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
@@ -82,15 +87,6 @@ const produksiController = {
       }
 
       const [rows] = await db.query(sql, params);
-
-     
-      if (rows.length > 0) {
-        console.log('Sample formatted dates in getAll:', {
-          produksi: rows[0].tanggal_produksi,
-          kadaluarsa: rows[0].tanggal_kadaluarsa
-        });
-      }
-
       res.json({ success: true, data: rows });
     } catch (error) {
       console.error('Error in getAll:', error);
@@ -98,9 +94,9 @@ const produksiController = {
     }
   },
 
+  // 2. GET BY ID (MySQL)
   getById: async (req, res) => {
     try {
-      
       const [rows] = await db.query(`
         SELECT 
           *, 
@@ -114,18 +110,9 @@ const produksiController = {
         return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
       }
 
-      
       const data = rows[0];
       data.tanggal_produksi = data.tanggal_produksi_formatted;
       data.tanggal_kadaluarsa = data.tanggal_kadaluarsa_formatted;
-
-     
-      console.log('Formatted dates in getById:', {
-        produksi: data.tanggal_produksi,
-        kadaluarsa: data.tanggal_kadaluarsa
-      });
-
-      
       delete data.tanggal_produksi_formatted;
       delete data.tanggal_kadaluarsa_formatted;
 
@@ -135,60 +122,23 @@ const produksiController = {
       res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
     }
   },
-  create: async (req, res) => {
 
+  // 3. CREATE / INPUT JADWAL (MySQL Only)
+  create: async (req, res) => {
     const {
-      nama_obat,
-      nomor_izin_edar,
-      dosis,
-      bentuk_sediaan,
-      jumlah,
-      tanggal_produksi,
-      tanggal_kadaluarsa,
-      prioritas,
-      status,
-      komposisi_obat,
-      penanggung_jawab,
-      harga_per_unit,
+      nama_obat, nomor_izin_edar, dosis, bentuk_sediaan, jumlah,
+      tanggal_produksi, tanggal_kadaluarsa, prioritas, status,
+      komposisi_obat, penanggung_jawab, harga_per_unit,
     } = req.body;
     const id_produsen = req.user.id;
 
-
     const now = new Date();
-    const year = now.getFullYear();
-    const month = (now.getMonth() + 1).toString().padStart(2, '0');
-    const day = now.getDate().toString().padStart(2, '0');
-    const dateStamp = `${year}${month}${day}`; 
-    
+    const dateStamp = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}`; 
     const randomHash = crypto.randomBytes(4).toString('hex').toUpperCase(); 
-    
-  
     const batch_id = `P${id_produsen}-${dateStamp}-${randomHash}`;
 
-
-   
     if (!nama_obat || !jumlah || !tanggal_produksi || !tanggal_kadaluarsa) { 
-      return res.status(400).json({
-        success: false,
-        message: 'Nama Obat, Jumlah, Tanggal Produksi, dan Tanggal Kadaluarsa wajib diisi.', 
-      });
-    }
-
-    if (!bentuk_sediaan) {
-      return res.status(400).json({ success: false, message: 'Bentuk sediaan wajib diisi.' });
-    }
-    if (!penanggung_jawab) {
-      return res.status(400).json({ success: false, message: 'Penanggung jawab wajib diisi.' });
-    }
-    if (Number(jumlah) <= 0) {
-      return res.status(400).json({ success: false, message: 'Jumlah produksi harus lebih dari 0.' });
-    }
-    
-    if (tanggal_kadaluarsa <= tanggal_produksi) {
-      return res.status(400).json({
-        success: false,
-        message: 'Tanggal kadaluarsa harus setelah tanggal produksi.',
-      });
+      return res.status(400).json({ success: false, message: 'Field wajib belum diisi.' });
     }
 
     let dokumen_bpom_path = null;
@@ -211,23 +161,10 @@ const produksiController = {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
       const params = [
-        batch_id,
-        nama_obat,
-        nomor_izin_edar || null,
-        dosis || null,
-        bentuk_sediaan,
-        jumlah,
-        tanggal_produksi,
-        tanggal_kadaluarsa,
-        prioritas || 'Medium',
-        status || 'Terjadwal',
-        komposisi_obat || null,
-        dokumen_bpom_path,
-        sertifikat_analisis_path,
-        hash_sertifikat_analisis,
-        penanggung_jawab,
-        harga_per_unit || 0,
-        id_produsen,
+        batch_id, nama_obat, nomor_izin_edar || null, dosis || null, bentuk_sediaan,
+        jumlah, tanggal_produksi, tanggal_kadaluarsa, prioritas || 'Medium', status || 'Terjadwal',
+        komposisi_obat || null, dokumen_bpom_path, sertifikat_analisis_path, hash_sertifikat_analisis,
+        penanggung_jawab, harga_per_unit || 0, id_produsen,
       ];
 
       const [result] = await db.query(sql, params);
@@ -246,45 +183,16 @@ const produksiController = {
     }
   },
 
-  
+  // 4. UPDATE (MySQL)
   update: async (req, res) => {
     const {
-      batch_id,
-      nama_obat,
-      nomor_izin_edar,
-      dosis,
-      bentuk_sediaan,
-      jumlah,
-      tanggal_produksi,
-      tanggal_kadaluarsa,
-      prioritas,
-      status,
-      komposisi_obat,
-      penanggung_jawab,
-      harga_per_unit,
+      batch_id, nama_obat, nomor_izin_edar, dosis, bentuk_sediaan, jumlah,
+      tanggal_produksi, tanggal_kadaluarsa, prioritas, status,
+      komposisi_obat, penanggung_jawab, harga_per_unit,
     } = req.body;
 
-   
-    if (!batch_id || !nama_obat || !jumlah || !tanggal_produksi || !tanggal_kadaluarsa) {
-      return res.status(400).json({
-        success: false,
-        message: 'Batch ID, Nama Obat, Jumlah, Tanggal Produksi, dan Tanggal Kadaluarsa wajib diisi.',
-      });
-    }
-    if (!bentuk_sediaan) {
-      return res.status(400).json({ success: false, message: 'Bentuk sediaan wajib diisi.' });
-    }
-    if (!penanggung_jawab) {
-      return res.status(400).json({ success: false, message: 'Penanggung jawab wajib diisi.' });
-    }
-    if (Number(jumlah) <= 0) {
-      return res.status(400).json({ success: false, message: 'Jumlah produksi harus lebih dari 0.' });
-    }
-    if (new Date(tanggal_kadaluarsa) <= new Date(tanggal_produksi)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Tanggal kadaluarsa harus setelah tanggal produksi.',
-      });
+    if (!batch_id || !nama_obat || !jumlah) {
+      return res.status(400).json({ success: false, message: 'Field wajib tidak boleh kosong.' });
     }
 
     let dokumen_bpom_path = req.body.dokumen_bpom_path_existing || null;
@@ -300,7 +208,6 @@ const produksiController = {
         hash_sertifikat_analisis = await calculateFileHash(sertifikat_analisis_path);
       }
 
-     
       const sql = `UPDATE produksi SET 
         batch_id = ?, nama_obat = ?, nomor_izin_edar = ?, dosis = ?, bentuk_sediaan = ?, jumlah = ?,
         tanggal_produksi = ?, tanggal_kadaluarsa = ?, prioritas = ?, status = ?, komposisi_obat = ?,
@@ -309,28 +216,11 @@ const produksiController = {
         WHERE id = ? AND id_produsen = ?`;
 
       const params = [
-        batch_id,
-        nama_obat,
-        nomor_izin_edar || null,
-        dosis || null,
-        bentuk_sediaan,
-        jumlah,
-        tanggal_produksi,
-        tanggal_kadaluarsa,
-        prioritas || 'Medium',
-        status || 'Terjadwal',
-        komposisi_obat || null,
-        dokumen_bpom_path,
-        sertifikat_analisis_path,
-        hash_sertifikat_analisis,
-        penanggung_jawab,
-        harga_per_unit || 0,  
-        req.params.id,
-        req.user.id,
+        batch_id, nama_obat, nomor_izin_edar || null, dosis || null, bentuk_sediaan, jumlah,
+        tanggal_produksi, tanggal_kadaluarsa, prioritas || 'Medium', status || 'Terjadwal', komposisi_obat || null,
+        dokumen_bpom_path, sertifikat_analisis_path, hash_sertifikat_analisis, penanggung_jawab, harga_per_unit || 0,  
+        req.params.id, req.user.id,
       ];
-
-      console.log('Update SQL placeholders count:', sql.split('?').length - 1); 
-      console.log('Update params length:', params.length);
 
       const [result] = await db.query(sql, params);
       if (result.affectedRows === 0) {
@@ -339,33 +229,24 @@ const produksiController = {
       res.json({ success: true, message: 'Data produksi berhasil diperbarui' });
     } catch (error) {
       console.error('Error in update:', error);
-      if (error.code === 'ER_DUP_ENTRY') {
-        return res.status(400).json({ success: false, message: 'Batch ID sudah ada.' });
-      }
-      if (error.code === 'ER_PARSE_ERROR') {
-        return res.status(500).json({ success: false, message: 'Error sintaks SQL. Periksa data input.' });
-      }
-      res.status(500).json({ success: false, message: `Kesalahan Server Internal: ${error.message}` });
-    }
-  },
-
-  // Menghapus data produksi
-  delete: async (req, res) => {
-    try {
-      const [result] = await db.query('DELETE FROM produksi WHERE id = ? AND id_produsen = ?', [
-        req.params.id,
-        req.user.id,
-      ]);
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ success: false, message: 'Data tidak ditemukan atau Anda tidak berwenang' });
-      }
-      res.json({ success: true, message: 'Data produksi berhasil dihapus' });
-    } catch (error) {
-      console.error('Error in delete:', error);
       res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
     }
   },
 
+  // 5. DELETE (MySQL)
+  delete: async (req, res) => {
+    try {
+      const [result] = await db.query('DELETE FROM produksi WHERE id = ? AND id_produsen = ?', [req.params.id, req.user.id]);
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
+      }
+      res.json({ success: true, message: 'Data produksi berhasil dihapus' });
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+    }
+  },
+
+  // 6. GET QR DATA (HTML Response)
   getQrData: async (req, res) => {
     const { batch_id } = req.params;
     let dbConnection;
@@ -386,67 +267,29 @@ const produksiController = {
         <!DOCTYPE html>
         <html lang="en">
         <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Informasi Obat - ${prodData.batch_id}</title>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              margin: 0;
-              padding: 20px;
-              background-color: #f4f4f4;
-              color: #333;
-            }
-            .container {
-              max-width: 600px;
-              margin: 0 auto;
-              background: white;
-              padding: 20px;
-              border-radius: 8px;
-              box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            }
-            h1 {
-              color: #2c3e50;
-              text-align: center;
-              margin-bottom: 20px;
-            }
-            .info-item {
-              margin-bottom: 15px;
-            }
-            .info-item label {
-              font-weight: bold;
-              color: #34495e;
-              display: block;
-            }
-            .info-item span {
-              color: #7f8c8d;
-            }
-          </style>
+          <style>body{font-family:Arial;padding:20px;max-width:600px;margin:auto;background:#f9f9f9;border:1px solid #ddd;} .label{font-weight:bold;color:#555;} .value{color:#000;}</style>
         </head>
         <body>
-          <div class="container">
-            <h1>Detail Obat</h1>
-            <div class="info-item"><label>Batch ID:</label> <span>${prodData.batch_id}</span></div>
-            <div class="info-item"><label>Nama Obat:</label> <span>${prodData.nama_obat || '-'}</span></div>
-            <div class="info-item"><label>Tanggal Produksi:</label> <span>${new Date(prodData.tanggal_produksi).toLocaleDateString('id-ID')}</span></div>
-            <div class="info-item"><label>Tanggal Kadaluarsa:</label> <span>${new Date(prodData.tanggal_kadaluarsa).toLocaleDateString('id-ID')}</span></div>
-            <div class="info-item"><label>Penanggung Jawab:</label> <span>${prodData.penanggung_jawab || '-'}</span></div>
-            <div class="info-item"><label>Nama Perusahaan:</label> <span>${namaPerusahaan}</span></div>
-          </div>
+          <h2>Detail Obat</h2>
+          <p><span class="label">Batch ID:</span> <span class="value">${prodData.batch_id}</span></p>
+          <p><span class="label">Nama Obat:</span> <span class="value">${prodData.nama_obat}</span></p>
+          <p><span class="label">Produsen:</span> <span class="value">${namaPerusahaan}</span></p>
+          <p><span class="label">Status:</span> <span class="value">${prodData.status}</span></p>
         </body>
         </html>
       `;
-
       res.set('Content-Type', 'text/html');
       res.send(htmlResponse);
     } catch (error) {
-      console.error('Error in getQrData:', error);
-      res.status(500).json({ success: false, message: 'Kesalahan Server Internal' });
+      res.status(500).json({ success: false, message: 'Error server' });
     } finally {
       if (dbConnection) dbConnection.release();
     }
   },
-recordToBlockchain: async (req, res) => {
+
+  // 7. RECORD TO BLOCKCHAIN (Dengan Private Data Collection - PDC)
+  recordToBlockchain: async (req, res) => {
     const { id } = req.params;
     const id_produsen = req.user.id;
     let gateway;
@@ -455,89 +298,67 @@ recordToBlockchain: async (req, res) => {
     try {
       dbConnection = await db.getConnection();
   
+      // Ambil data dari MySQL
       const [rows] = await dbConnection.query(`
-        SELECT 
-          *, 
+        SELECT *, 
           DATE_FORMAT(tanggal_produksi, '%Y-%m-%d') as tanggal_produksi_formatted,
           DATE_FORMAT(tanggal_kadaluarsa, '%Y-%m-%d') as tanggal_kadaluarsa_formatted
         FROM produksi 
-        WHERE id = ? AND id_produsen = ?
-      `, [id, id_produsen]);
+        WHERE id = ? AND id_produsen = ?`, [id, id_produsen]);
   
-      if (rows.length === 0) {
-        return res.status(404).json({ success: false, message: 'Data produksi tidak ditemukan.' });
-      }
+      if (rows.length === 0) return res.status(404).json({ success: false, message: 'Data produksi tidak ditemukan.' });
   
       const prodData = rows[0];
-      prodData.tanggal_produksi = prodData.tanggal_produksi_formatted;
-      prodData.tanggal_kadaluarsa = prodData.tanggal_kadaluarsa_formatted;
-      delete prodData.tanggal_produksi_formatted;
-      delete prodData.tanggal_kadaluarsa_formatted;
-  
+      
       if (prodData.status === 'Tercatat di Blockchain') {
-        return res.status(400).json({ success: false, message: 'Batch ini sudah pernah dicatat.' });
+        return res.status(400).json({ success: false, message: 'Batch ini sudah tercatat.' });
       }
       if (prodData.status !== 'Selesai') {
-        return res.status(400).json({ success: false, message: 'Hanya batch yang sudah Selesai yang bisa dicatat ke blockchain.' });
+        return res.status(400).json({ success: false, message: 'Hanya batch yang statusnya Selesai yang bisa dicatat.' });
       }
-  
+      
       const [userRows] = await dbConnection.query('SELECT nama_resmi FROM users WHERE id = ?', [id_produsen]);
-      if (userRows.length === 0 || !userRows[0].nama_resmi || userRows[0].nama_resmi.trim() === '') {
-        return res.status(400).json({ success: false, message: 'Error: Nama resmi perusahaan tidak ditemukan di database users.' });
-      }
-      const namaPerusahaan = userRows[0].nama_resmi;
+      const namaPerusahaan = (userRows.length > 0) ? userRows[0].nama_resmi : 'Perusahaan Tidak Diketahui';
   
+      // Connect Blockchain
       gateway = await getGateway();
       const network = await gateway.getNetwork('medisyncchannel');
-      const contract = network.getContract('medisync');
+      const contract = network.getContract('medisync', 'ProdusenContract');
   
-      const transaction = contract.createTransaction('ProdusenContract:createObat');
-      transaction.setEndorsingOrganizations('ProdusenMSP', 'PBFMSP');
+      // --- PENERAPAN PDC (TRANSIENT DATA) ---
+      console.log(`[PDC] Mencatat batch ${prodData.batch_id} ke blockchain dengan identitas produsen_user_2...`);
+      
+      const transaction = contract.createTransaction('createObat');
+      
+      // Siapkan Data Rahasia (Harga, Komposisi, Dosis, Hash)
+      // Harus dikonversi ke Buffer
+      const transientData = {
+          hargaPerUnit: Buffer.from(String(prodData.harga_per_unit || 0)),
+          komposisi: Buffer.from(String(prodData.komposisi_obat || '-')),
+          dosis: Buffer.from(String(prodData.dosis || '-')),
+          hashHasilUjiMutu: Buffer.from(String(prodData.hash_sertifikat_analisis || ''))
+      };
+      
+      // Set Transient
+      transaction.setTransient(transientData);
   
-      const tanggalProduksiFormatted = prodData.tanggal_produksi;
-      const tanggalKadaluarsaFormatted = prodData.tanggal_kadaluarsa;
-  
-      console.log('Record input dates (formatted):', { 
-        produksi: tanggalProduksiFormatted, 
-        kadaluarsa: tanggalKadaluarsaFormatted 
-      });
-  
-      // --- SUBMIT TRANSAKSI KE BLOCKCHAIN ---
-      const result = await transaction.submit(
+      // Submit Transaksi (HANYA DATA PUBLIK)
+      await transaction.submit(
         prodData.batch_id,
         prodData.nama_obat,
-        prodData.nomor_izin_edar || 'TIDAK ADA DATA',
-        prodData.komposisi_obat || '',
-        prodData.dosis || 'N/A',
-        tanggalProduksiFormatted,  
-        tanggalKadaluarsaFormatted,  
+        prodData.nomor_izin_edar || 'N/A',
+        prodData.tanggal_produksi_formatted,  
+        prodData.tanggal_kadaluarsa_formatted,  
         prodData.bentuk_sediaan,
         prodData.penanggung_jawab,
-        prodData.jumlah,
-        prodData.harga_per_unit || 0,
-        prodData.hash_sertifikat_analisis || 'TIDAK ADA HASH',
+        String(prodData.jumlah),
         namaPerusahaan,
-        id_produsen.toString()
+        String(id_produsen)
       );
-      console.log('ON-CHAIN transaction successful.');
+      
+      console.log(`[PDC] Sukses mencatat batch ${prodData.batch_id}`);
   
-      // --- MODIFIKASI SOCKET.IO UNTUK SOUVENIR ---
-      if (req.io) {
-        // Cek apakah ini souvenir (misal kita tandai dari nama obat atau parameter khusus)
-        // Kita sepakati: Jika nama_obat diawali "VIP:", itu adalah Souvenir
-        const isSouvenir = prodData.nama_obat.startsWith("VIP:");
-        const visitorName = isSouvenir ? prodData.nama_obat.replace("VIP: ", "") : "";
-
-        req.io.emit('block_mined', {
-          type: isSouvenir ? 'SOUVENIR_GUEST' : 'PRODUKSI_BARU', // Tipe Beda
-          hash: '0x' + crypto.randomBytes(32).toString('hex'),
-          timestamp: new Date().toLocaleTimeString(),
-          org: 'ProdusenMSP',
-          details: isSouvenir ? `Visitor: ${visitorName} (Certified)` : `Batch ${prodData.batch_id} created`,
-          isGold: isSouvenir // Flag untuk warna Emas
-        });
-      }
-  
+      // Update MySQL Status & QR
       const qrDataUrl = `http://localhost:5173/blockchain-detail/${prodData.batch_id}`;
       const qrCodeDataUrl = await qrcode.toDataURL(qrDataUrl);
   
@@ -545,93 +366,75 @@ recordToBlockchain: async (req, res) => {
         'UPDATE produksi SET status = ?, qr_code_url = ? WHERE id = ?',
         ['Tercatat di Blockchain', qrCodeDataUrl, id]
       );
-      console.log('OFF-CHAIN status and QR code updated.');
+
+      // Emit Socket IO (Notifikasi)
+      if (req.io) {
+        req.io.emit('block_mined', {
+          type: 'PRODUKSI_BARU',
+          hash: '0x' + crypto.randomBytes(32).toString('hex'), 
+          timestamp: new Date().toLocaleTimeString(),
+          org: 'ProdusenMSP',
+          details: `Batch ${prodData.batch_id} created with Privacy`
+        });
+      }
   
       res.json({
         success: true,
-        message: `Batch ${prodData.batch_id} berhasil dicatat ke blockchain.`,
+        message: `Batch ${prodData.batch_id} berhasil dicatat (PDC Aktif).`,
         qrCodeDataUrl: qrCodeDataUrl,
       });
+
     } catch (error) {
-      console.error('Error recording to blockchain:', error);
-      res.status(500).json({ success: false, message: `Gagal mencatat ke blockchain: ${error.message}` });
+      console.error('[Blockchain Error]:', error);
+      res.status(500).json({ success: false, message: `Gagal mencatat: ${error.message}` });
     } finally {
       if (gateway) gateway.disconnect();
       if (dbConnection) dbConnection.release();
     }
   },
 
-getBlockchainDetail: async (req, res) => {
+  // 8. GET BLOCKCHAIN DETAIL (Read with Privacy Access)
+  getBlockchainDetail: async (req, res) => {
     const { batch_id } = req.params;
     let gateway;
-    let dbConnection;
 
     try {
-        dbConnection = await db.getConnection();
-        
-        const [rows] = await dbConnection.query(`
-          SELECT 
-            *, 
-            DATE_FORMAT(tanggal_produksi, '%Y-%m-%d') as tanggal_produksi_formatted,
-            DATE_FORMAT(tanggal_kadaluarsa, '%Y-%m-%d') as tanggal_kadaluarsa_formatted
-          FROM produksi 
-          WHERE batch_id = ?
-        `, [batch_id]);
-        
-        if (rows.length === 0) {
-            return res.status(404).json({ success: false, message: 'Data tidak ditemukan di database' });
-        }
-
-        const prodData = rows[0];
-
-        prodData.tanggal_produksi = prodData.tanggal_produksi_formatted;
-        prodData.tanggal_kadaluarsa = prodData.tanggal_kadaluarsa_formatted;
-        delete prodData.tanggal_produksi_formatted;
-        delete prodData.tanggal_kadaluarsa_formatted;
-
         gateway = await getGateway();
         const network = await gateway.getNetwork('medisyncchannel');
-        const contract = network.getContract('medisync');
+        const contract = network.getContract('medisync', 'ProdusenContract');
 
-        const result = await contract.evaluateTransaction('ProdusenContract:readObat', batch_id);
+        // Membaca dari blockchain.
+        // Karena kita menggunakan 'produsen_user_2' (Org1), kita SEHARUSNYA bisa melihat data private kita sendiri.
+        const result = await contract.evaluateTransaction('readObat', batch_id);
         const blockchainData = JSON.parse(result.toString());
 
-        console.log('=== DEBUG for', batch_id, '===');
-        console.log('Raw blockchainData:', JSON.stringify(blockchainData, null, 2));
-
-        const tanggalProduksiFormatted = blockchainData.tanggalProduksi;
-        const tanggalKadaluarsaFormatted = blockchainData.tanggalKadaluarsa;
-
-        console.log('Get detail dates from chain:', { 
-          produksi: tanggalProduksiFormatted, 
-          kadaluarsa: tanggalKadaluarsaFormatted 
-        });
-
-    
         const responseData = {
             batch_id: blockchainData.id,
             nama_obat: blockchainData.namaObat,
-            tanggal_produksi: tanggalProduksiFormatted,  
-            tanggal_kadaluarsa: tanggalKadaluarsaFormatted,  
+            tanggal_produksi: blockchainData.tanggalProduksi,
+            tanggal_kadaluarsa: blockchainData.tanggalKadaluarsa,
             penanggung_jawab: blockchainData.penanggungJawab,
             jumlah: blockchainData.jumlah,
-            hash_sertifikat: blockchainData.hashDokumen.hasilUjiMutu,
-            nama_perusahaan: blockchainData.namaPerusahaan || 'Nama Perusahaan Tidak Tersedia',
+            nama_perusahaan: blockchainData.namaPerusahaan,
             status_saat_ini: blockchainData.statusSaatIni,
+            
+            // Field ini hanya muncul jika akses PDC valid
+            harga_per_unit: blockchainData.hargaPerUnit || '(Restricted/Private)',
+            komposisi: blockchainData.komposisi || '(Restricted/Private)',
+            dosis: blockchainData.dosis || '(Restricted/Private)',
+            hash_sertifikat: blockchainData.hashDokumen ? blockchainData.hashDokumen.hasilUjiMutu : null,
+            
             riwayat: blockchainData.riwayat
         };
 
-        console.log('Final responseData nama_perusahaan:', responseData.nama_perusahaan);
-
         res.json({ success: true, data: responseData });
     } catch (error) {
-        console.error('Error in getBlockchainDetail:', error);
-        res.status(500).json({ success: false, message: `Gagal mengambil data blockchain: ${error.message}` });
+        console.error('Error getBlockchainDetail:', error);
+        res.status(500).json({ success: false, message: `Gagal baca blockchain: ${error.message}` });
     } finally {
         if (gateway) gateway.disconnect();
-        if (dbConnection) dbConnection.release();
     }
-},
+  },
 };
 
 module.exports = produksiController;

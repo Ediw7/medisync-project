@@ -1,0 +1,5 @@
+[33m2025-12-14 19:50:53.167 UTC 0001 WARN[0m [msp] [33;1mloadCertificateAt[0m -> Failed loading OrdererOU certificate at [/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.medisync.com/users/Admin@org1.medisync.com/msp/cacerts/localhost-6054-ca-orderer.pem]: [could not read file /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.medisync.com/users/Admin@org1.medisync.com/msp/cacerts/localhost-6054-ca-orderer.pem: open /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.medisync.com/users/Admin@org1.medisync.com/msp/cacerts/localhost-6054-ca-orderer.pem: no such file or directory]
+Installed chaincodes on peer:
+Package ID: medisync_1.0:fc317008a79c7690abffba8adf332c3fe6258fa42738b4492c70984cc6a09155, Label: medisync_1.0
+Package ID: medisync_1.0:3ad22b3bb46f52efc06afb61da080984c03e6720e8712aa80789a89e94f01620, Label: medisync_1.0
+Package ID: medisync_2.0:07ca37d21fc34a6f16e55ce2a79e5bb2dd98a2a83c539e47fcee652fea0512f6, Label: medisync_2.0

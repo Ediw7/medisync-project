@@ -25,6 +25,7 @@ docker exec \
   --name $CC_NAME \
   --version $CC_VERSION \
   --sequence $CC_SEQUENCE \
+  --collections-config /opt/gopath/src/github.com/chaincode/medisync/javascript/collections_config.json \
   --tls --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/medisync.com/msp/tlscacerts/tlsca.medisync.com-cert.pem
 
 echo "Melakukan commit..."
@@ -40,6 +41,7 @@ docker exec \
   --name $CC_NAME \
   --version $CC_VERSION \
   --sequence $CC_SEQUENCE \
+  --collections-config /opt/gopath/src/github.com/chaincode/medisync/javascript/collections_config.json \
   --peerAddresses peer0.org1.medisync.com:7051 \
   --tlsRootCertFiles /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.medisync.com/peers/peer0.org1.medisync.com/tls/ca.crt \
   --peerAddresses peer0.org2.medisync.com:9051 \

@@ -27,5 +27,6 @@ docker exec \
   --version $CC_VERSION \
   --package-id $PACKAGE_ID \
   --sequence $CC_SEQUENCE \
+  --collections-config /opt/gopath/src/github.com/chaincode/medisync/javascript/collections_config.json \
   --tls --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/medisync.com/msp/tlscacerts/tlsca.medisync.com-cert.pem
 echo "Chaincode disetujui oleh Apotek."

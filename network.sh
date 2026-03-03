@@ -132,15 +132,18 @@ function generateCryptoCA() {
   for org in 1 2 3; do
     if [ $org -eq 1 ]; then
       MSP="ProdusenMSP" && CA_NAME="ca-org1" && CA_PORT="7054" && ORG_NAME="org1.medisync.com"
+      ROLE_ATTR='"role=produsen:ecert"'
     elif [ $org -eq 2 ]; then
       MSP="PBFMSP" && CA_NAME="ca-org2" && CA_PORT="8054" && ORG_NAME="org2.medisync.com"
+      ROLE_ATTR='"role=admin_pbf:ecert"'
     elif [ $org -eq 3 ]; then
       MSP="ApotekMSP" && CA_NAME="ca-org3" && CA_PORT="9054" && ORG_NAME="org3.medisync.com"
+      ROLE_ATTR='"role=admin_apotek:ecert"'
     fi
 
-    echo "Menghasilkan kredensial untuk $MSP..."
+    echo "Menghasilkan kredensial untuk $MSP (dengan atribut ABAC: $ROLE_ATTR)..."
     docker exec -e FABRIC_CA_CLIENT_HOME=/etc/hyperledger/fabric-ca-server ca.org${org}.medisync.com fabric-ca-client enroll -u https://admin:adminpw@localhost:${CA_PORT} --caname ${CA_NAME} --tls.certfiles /etc/hyperledger/fabric-ca-server/tls/tls-cert.pem
-    docker exec -e FABRIC_CA_CLIENT_HOME=/etc/hyperledger/fabric-ca-server ca.org${org}.medisync.com fabric-ca-client register --id.name Org${org}Admin --id.secret adminpw --id.type admin --caname ${CA_NAME} --tls.certfiles /etc/hyperledger/fabric-ca-server/tls/tls-cert.pem
+    docker exec -e FABRIC_CA_CLIENT_HOME=/etc/hyperledger/fabric-ca-server ca.org${org}.medisync.com fabric-ca-client register --id.name Org${org}Admin --id.secret adminpw --id.type admin --id.attrs "$ROLE_ATTR" --caname ${CA_NAME} --tls.certfiles /etc/hyperledger/fabric-ca-server/tls/tls-cert.pem
 
     mkdir -p organizations/peerOrganizations/${ORG_NAME}/users/Admin@${ORG_NAME}/msp
     docker exec -e FABRIC_CA_CLIENT_HOME=/etc/hyperledger/fabric-ca-server ca.org${org}.medisync.com fabric-ca-client enroll -u https://Org${org}Admin:adminpw@localhost:${CA_PORT} --caname ${CA_NAME} --mspdir /etc/hyperledger/fabric-ca-server/users/Admin@${ORG_NAME}/msp --tls.certfiles /etc/hyperledger/fabric-ca-server/tls/tls-cert.pem

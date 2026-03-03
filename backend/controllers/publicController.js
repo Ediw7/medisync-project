@@ -94,7 +94,7 @@ const publicController = {
                 tanggal_kadaluarsa: blockchainData.tanggalKadaluarsa,
                 penanggung_jawab: blockchainData.penanggungJawab,
                 jumlah: blockchainData.jumlah,
-                hash_sertifikat: blockchainData.hashDokumen.hasilUjiMutu,
+                hash_sertifikat: blockchainData.hashDokumen?.hasilUjiMutu || '',
                 status_saat_ini: blockchainData.statusSaatIni,
                 riwayat: blockchainData.riwayat,
                 

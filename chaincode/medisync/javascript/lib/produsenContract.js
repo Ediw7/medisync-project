@@ -1,6 +1,15 @@
 'use strict';
 const { Contract } = require('fabric-contract-api');
 
+// Helper function untuk membaca data dari Transient Map
+function getTransientData(ctx, key) {
+    const transientMap = ctx.stub.getTransient();
+    if (transientMap.has(key)) {
+        return transientMap.get(key).toString('utf8');
+    }
+    return null;
+}
+
 class ProdusenContract extends Contract {
     constructor() { super('ProdusenContract'); }
 
@@ -9,16 +18,21 @@ class ProdusenContract extends Contract {
         return assetJSON && assetJSON.length > 0;
     }
 
-   async createObat(ctx, id, namaObat, nomorIzinEdar, komposisi, dosis, tanggalProduksi, tanggalKadaluarsa, bentukSediaan, penanggungJawab, jumlah, hargaPerUnit, hashHasilUjiMutu, namaPerusahaan, idProdusen) {
+   async createObat(ctx, id, namaObat, nomorIzinEdar, tanggalProduksi, tanggalKadaluarsa, bentukSediaan, penanggungJawab, jumlah, namaPerusahaan, idProdusen) {
+        // === VALIDASI ORGANISASI (MSP Check) ===
         const mspID = ctx.clientIdentity.getMSPID();
         if (mspID !== 'ProdusenMSP') {
             throw new Error(`ERROR: Organisasi ${mspID} tidak diizinkan untuk membuat aset obat.`);
         }
 
+        // === VALIDASI ATRIBUT ABAC (Role Check) ===
+        // Memastikan sertifikat X.509 memiliki atribut role=produsen
+        ctx.clientIdentity.assertAttributeValue('role', 'produsen');
+
         if (!namaPerusahaan || namaPerusahaan.trim() === '') {
             throw new Error('ERROR: Nama perusahaan (dari nama_resmi di DB users) wajib disediakan.');
         }
-        if (!idProdusen) { // Validasi ID Produsen
+        if (!idProdusen) {
             throw new Error('ERROR: ID Produsen (dari DB users) wajib disediakan.');
         }
 
@@ -27,46 +41,67 @@ class ProdusenContract extends Contract {
             throw new Error(`ERROR: Obat dengan ID Batch ${id} sudah ada.`);
         }
 
+        // === AMBIL DATA PRIVAT DARI TRANSIENT MAP ===
+        // Data ini tidak tercatat di Transaction Log Orderer
+        const hargaPerUnit = getTransientData(ctx, 'hargaPerUnit');
+        const komposisi = getTransientData(ctx, 'komposisi');
+        const dosis = getTransientData(ctx, 'dosis');
+        const hashHasilUjiMutu = getTransientData(ctx, 'hashHasilUjiMutu');
+
+        if (!hargaPerUnit || !komposisi) {
+            throw new Error('ERROR: Data privat (hargaPerUnit, komposisi) wajib dikirim via Transient Map.');
+        }
+
         const timestamp = new Date(ctx.stub.getTxTimestamp().seconds.low * 1000).toISOString();
 
-        const obat = {
+        // === OBJEK PUBLIK (Disimpan di World State - Traceability) ===
+        const publicObat = {
             docType: 'obat',
             id: id,
             namaObat: namaObat,
             nomorIzinEdar: nomorIzinEdar,
-            komposisi: komposisi,
-            dosis: dosis,
             bentukSediaan: bentukSediaan,
             tanggalProduksi: tanggalProduksi,
             tanggalKadaluarsa: tanggalKadaluarsa,
             penanggungJawab: penanggungJawab,
             jumlah: Number(jumlah) || 0,
-            hargaPerUnit: Number(hargaPerUnit) || 0,
             pemilikSaatIni: mspID, // "ProdusenMSP"
             statusSaatIni: 'DIPRODUKSI',
-            hashDokumen: {
-                hasilUjiMutu: hashHasilUjiMutu,
-                suratJalan: ''
-            },
             namaPerusahaan: namaPerusahaan,
             
-            // --- PENAMBAHAN ID RELASIONAL ---
+            // --- ID RELASIONAL ---
             idProdusen: idProdusen,
-            idPbf: null, // PBF belum ada
-            idApotek: null, // Apotek belum ada
-            // --- AKHIR PENAMBAHAN ---
+            idPbf: null,
+            idApotek: null,
             
             riwayat: [{
                 pemilik: mspID,
                 status: 'DIPRODUKSI',
                 timestamp: timestamp,
                 detail: `Diproduksi oleh ${namaPerusahaan}`,
-                idProdusen: idProdusen // Simpan ID Produsen di riwayat
+                idProdusen: idProdusen
             }]
         };
 
-        await ctx.stub.putState(id, Buffer.from(JSON.stringify(obat)));
-        return JSON.stringify(obat);
+        // === OBJEK PRIVAT (Disimpan di SideDB - Privacy) ===
+        const privateObat = {
+            id: id,
+            hargaPerUnit: Number(hargaPerUnit) || 0,
+            komposisi: komposisi,
+            dosis: dosis || 'N/A',
+            hashDokumen: {
+                hasilUjiMutu: hashHasilUjiMutu || '',
+                suratJalan: ''
+            }
+        };
+
+        // === PENYIMPANAN TERPISAH ===
+        // Data publik ke World State (semua peer)
+        await ctx.stub.putState(id, Buffer.from(JSON.stringify(publicObat)));
+        // Data privat ke SideDB (hanya peer anggota collectionPrivate)
+        await ctx.stub.putPrivateData('collectionPrivate', id, Buffer.from(JSON.stringify(privateObat)));
+        
+        return JSON.stringify(publicObat);
     }
     async readObat(ctx, id) {
         const assetJSON = await ctx.stub.getState(id);

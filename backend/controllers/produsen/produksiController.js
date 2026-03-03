@@ -19,16 +19,23 @@ function calculateFileHash(filePath) {
 }
 
 
-async function getGateway() {
+async function getGateway(username) {
   const walletPath = path.resolve(__dirname, '..', '..', 'wallet');
   const wallet = await Wallets.newFileSystemWallet(walletPath);
+  
+  // Validasi: pastikan identitas user ada di wallet
+  const identity = await wallet.get(username);
+  if (!identity) {
+    throw new Error(`ERROR: Identitas '${username}' tidak ditemukan di wallet. Pastikan user sudah di-enroll.`);
+  }
+
   const ccpPath = path.resolve(__dirname, '..', '..', 'connection-org1.json');
   const ccp = JSON.parse(fs.readFileSync(ccpPath, 'utf8'));
   const gateway = new Gateway();
   const connectionOptions = {
     wallet,
-    identity: 'admin',
-    discovery: { enabled: false, asLocalhost: true },
+    identity: username, // KUNCI ABAC: Transaksi atas nama user asli, bukan 'admin'
+    discovery: { enabled: true, asLocalhost: true },
   };
   await gateway.connect(ccp, connectionOptions);
   return gateway;
@@ -487,13 +494,21 @@ recordToBlockchain: async (req, res) => {
       }
       const namaPerusahaan = userRows[0].nama_resmi;
   
-      gateway = await getGateway();
+      gateway = await getGateway(req.user.username);
       const network = await gateway.getNetwork('medisyncchannel');
       const contract = network.getContract('medisync');
   
       const transaction = contract.createTransaction('ProdusenContract:createObat');
-      transaction.setEndorsingOrganizations('ProdusenMSP', 'PBFMSP');
   
+      // === DATA RAHASIA dikirim via Transient Map (BUKAN sebagai argumen publik) ===
+      const transientData = {
+        hargaPerUnit: Buffer.from(String(prodData.harga_per_unit || 0)),
+        komposisi: Buffer.from(String(prodData.komposisi_obat || '')),
+        dosis: Buffer.from(String(prodData.dosis || 'N/A')),
+        hashHasilUjiMutu: Buffer.from(String(prodData.hash_sertifikat_analisis || ''))
+      };
+      transaction.setTransient(transientData);
+
       const tanggalProduksiFormatted = prodData.tanggal_produksi;
       const tanggalKadaluarsaFormatted = prodData.tanggal_kadaluarsa;
   
@@ -502,20 +517,17 @@ recordToBlockchain: async (req, res) => {
         kadaluarsa: tanggalKadaluarsaFormatted 
       });
   
-      // --- SUBMIT TRANSAKSI KE BLOCKCHAIN ---
+      // === SUBMIT TRANSAKSI KE BLOCKCHAIN ===
+      // Hanya data publik yang dikirim sebagai argumen fungsi
       const result = await transaction.submit(
         prodData.batch_id,
         prodData.nama_obat,
         prodData.nomor_izin_edar || 'TIDAK ADA DATA',
-        prodData.komposisi_obat || '',
-        prodData.dosis || 'N/A',
         tanggalProduksiFormatted,  
         tanggalKadaluarsaFormatted,  
         prodData.bentuk_sediaan,
         prodData.penanggung_jawab,
-        prodData.jumlah,
-        prodData.harga_per_unit || 0,
-        prodData.hash_sertifikat_analisis || 'TIDAK ADA HASH',
+        String(prodData.jumlah),
         namaPerusahaan,
         id_produsen.toString()
       );
@@ -549,7 +561,7 @@ recordToBlockchain: async (req, res) => {
   
       res.json({
         success: true,
-        message: `Batch ${prodData.batch_id} berhasil dicatat ke blockchain.`,
+        message: `Batch ${prodData.batch_id} berhasil dicatat ke blockchain (PDC Aktif).`,
         qrCodeDataUrl: qrCodeDataUrl,
       });
     } catch (error) {
@@ -589,7 +601,7 @@ getBlockchainDetail: async (req, res) => {
         delete prodData.tanggal_produksi_formatted;
         delete prodData.tanggal_kadaluarsa_formatted;
 
-        gateway = await getGateway();
+        gateway = await getGateway(req.user?.username || 'admin');
         const network = await gateway.getNetwork('medisyncchannel');
         const contract = network.getContract('medisync');
 
@@ -607,18 +619,30 @@ getBlockchainDetail: async (req, res) => {
           kadaluarsa: tanggalKadaluarsaFormatted 
         });
 
-    
+        // === GABUNGKAN: Data publik (Blockchain) + Data operasional/privat (MySQL) ===
         const responseData = {
+            // Data dari Blockchain (World State - publik)
             batch_id: blockchainData.id,
             nama_obat: blockchainData.namaObat,
             tanggal_produksi: tanggalProduksiFormatted,  
             tanggal_kadaluarsa: tanggalKadaluarsaFormatted,  
             penanggung_jawab: blockchainData.penanggungJawab,
             jumlah: blockchainData.jumlah,
-            hash_sertifikat: blockchainData.hashDokumen.hasilUjiMutu,
             nama_perusahaan: blockchainData.namaPerusahaan || 'Nama Perusahaan Tidak Tersedia',
             status_saat_ini: blockchainData.statusSaatIni,
-            riwayat: blockchainData.riwayat
+            pemilik_saat_ini: blockchainData.pemilikSaatIni,
+            riwayat: blockchainData.riwayat,
+
+            // Data dari MySQL (privat/operasional - hanya bisa diakses oleh Produsen yang login)
+            harga_per_unit: prodData.harga_per_unit || 0,
+            komposisi_obat: prodData.komposisi_obat || '',
+            dosis: prodData.dosis || '',
+            bentuk_sediaan: prodData.bentuk_sediaan || '',
+            nomor_izin_edar: prodData.nomor_izin_edar || '',
+            hash_sertifikat_analisis: prodData.hash_sertifikat_analisis || '',
+            prioritas: prodData.prioritas || '',
+            status_produksi: prodData.status || '',
+            qr_code_url: prodData.qr_code_url || '',
         };
 
         console.log('Final responseData nama_perusahaan:', responseData.nama_perusahaan);
